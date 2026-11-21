@@ -1,11 +1,14 @@
 // Kajícné šachy – aplikace (lobby, deska, online hra)
-import * as E from './engine.js?v=3';
-import { pieceSVG, CHIP_SVG, ICON } from './pieces.js?v=3';
-import { FX } from './fx.js?v=3';
-import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=3';
-import { RULES_HTML } from './rules.js?v=3';
-import { sfx, playEvents, unlock, isMuted, setMuted } from './sound.js?v=3';
-import { LEVELS } from './ai.js?v=3';
+import * as E from './engine.js?v=4';
+import { pieceSVG, CHIP_SVG, ICON } from './pieces.js?v=4';
+import { FX } from './fx.js?v=4';
+import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=4';
+import { RULES_HTML } from './rules.js?v=4';
+import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=4';
+import { MusicPlayer } from './music.js?v=4';
+
+const music = new MusicPlayer(getCtx);
+import { LEVELS } from './ai.js?v=4';
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -222,6 +225,7 @@ class BoardView {
       } else {
         this.animate(evs);
         playEvents(evs);
+        music.react(evs);
       }
     }
   }
@@ -798,6 +802,7 @@ class Game {
   }
 
   showFinal(r) {
+    music.react([{ type: 'gameover' }]);
     if (r.reason === 'draw') sfx.draw();
     else if (!this.me || r.winner === this.me) sfx.win();
     else sfx.lose();
@@ -1006,7 +1011,7 @@ class Game {
     this.aiWait = new Map();
     this.aiBase = new URL('../model/', import.meta.url).href;
     try {
-      this.worker = new Worker(new URL('./ai-worker.js?v=3', import.meta.url), { type: 'module' });
+      this.worker = new Worker(new URL('./ai-worker.js?v=4', import.meta.url), { type: 'module' });
       this.worker.onmessage = (e) => {
         const cb = this.aiWait.get(e.data.id);
         if (cb) { this.aiWait.delete(e.data.id); cb(e.data); }
@@ -1033,7 +1038,7 @@ class Game {
         return this.aiCall(msg);
       });
     }
-    return import('./ai.js?v=3').then(async (A) => {
+    return import('./ai.js?v=4').then(async (A) => {
       if (!this.aiModel) {
         try { this.aiModel = await A.loadModel(this.aiBase); } catch (e) { this.aiModel = A.materialModel; }
       }
@@ -1321,6 +1326,9 @@ class Game {
 const SOUND_ON = '<svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>';
 const SOUND_OFF = '<svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
 
+const MUSIC_ON = '<svg viewBox="0 0 24 24"><path d="M9 17.5V6l10-2.5v11.5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/><circle cx="6.5" cy="17.5" r="2.6" fill="currentColor"/><circle cx="16.5" cy="15" r="2.6" fill="currentColor"/></svg>';
+const MUSIC_OFF = '<svg viewBox="0 0 24 24"><path d="M9 17.5V6l10-2.5v11.5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round" opacity=".45"/><circle cx="6.5" cy="17.5" r="2.6" fill="currentColor" opacity=".45"/><circle cx="16.5" cy="15" r="2.6" fill="currentColor" opacity=".45"/><path d="M4 4l16 16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+
 function setupSound() {
   const btn = $('btn-sound');
   const paint = () => {
@@ -1330,11 +1338,21 @@ function setupSound() {
   };
   paint();
   btn.onclick = () => { setMuted(!isMuted()); paint(); if (!isMuted()) sfx.select(); };
-  document.addEventListener('pointerdown', unlock, { passive: true });
-  document.addEventListener('keydown', unlock);
+  const mbtn = $('btn-music');
+  const paintMusic = () => {
+    mbtn.innerHTML = music.isOn() ? MUSIC_ON : MUSIC_OFF;
+    mbtn.title = music.isOn() ? 'Vypnout hudbu' : 'Zapnout hudbu';
+    mbtn.setAttribute('aria-label', mbtn.title);
+  };
+  paintMusic();
+  mbtn.onclick = () => { unlock(); music.setOn(!music.isOn()); paintMusic(); };
+  const wake = () => { unlock(); music.autostart(); };
+  document.addEventListener('pointerdown', wake, { passive: true });
+  document.addEventListener('keydown', wake);
 }
 
 function main() {
+  window.__music = music;
   setupRules();
   setupSound();
   addEventListener('hashchange', () => location.reload());

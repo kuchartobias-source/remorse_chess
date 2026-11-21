@@ -1,6 +1,6 @@
 // Web Worker: přemýšlení stroje mimo hlavní vlákno (aby se neseklo uživatelské rozhraní)
-import * as E from './engine.js?v=3';
-import { loadModel, materialModel, chooseAction, acceptsDraw } from './ai.js?v=3';
+import * as E from './engine.js?v=4';
+import { loadModel, materialModel, chooseAction, acceptsDraw } from './ai.js?v=4';
 
 let model = null;
 let modelPromise = null;

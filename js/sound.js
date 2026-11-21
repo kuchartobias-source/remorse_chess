@@ -8,6 +8,8 @@ try { muted = localStorage.getItem('rc-sound') === 'off'; } catch (e) { /* nic *
 
 export const isMuted = () => muted;
 export const audioState = () => (ctx ? ctx.state : 'none');
+// Sdílený AudioContext pro hudbu (vzniká až po gestu uživatele v unlock())
+export const getCtx = () => ctx;
 
 export function setMuted(m) {
   muted = m;
