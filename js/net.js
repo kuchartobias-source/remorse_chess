@@ -2,7 +2,9 @@
 // Do zpráv se neposílají žádná jména ani osobní údaje – jen tahy a stav místnosti.
 
 const BASE = 'https://ntfy.sh/';
-export const ROOM_RE = /^[a-z0-9]{12}$/;
+// Kód místnosti: 12 znaků, mód Křižáci od začátku má příponu „-k“ (stará verze stránky ji nepozná)
+export const ROOM_RE = /^[a-z0-9]{12}(-k)?$/;
+export const variantOfRoom = (room) => (room && room.endsWith('-k') ? 'krizaci' : 'poutnici');
 // Verze protokolu = verze pravidel (rc2: Poutníci, dosah Hranic skrz vlastní figurky)
 const APP = 'rc2';
 

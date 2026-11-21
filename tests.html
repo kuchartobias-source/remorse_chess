@@ -377,6 +377,38 @@ t('500 náhodných partií: bez chyb, invarianty, replay = stav', () => {
   if (!stats.conclaves || !stats.damnation || !stats.absolves || !stats.promos || !stats.burns || !stats.crusades) throw new Error('některá mechanika se v náhodných partiích nevyskytla');
 });
 
+// ---- Mód „Křižáci od začátku“ ----
+t('Mód Křižáci: jezdci začínají jako Křižáci, 20 tahů', () => {
+  const s = E.initialState('krizaci');
+  eq([P(s, 'b1').t, P(s, 'g1').t, P(s, 'b8').t, P(s, 'g8').t], ['C', 'C', 'C', 'C']);
+  eq(acts(s).length, 20);
+  eq(E.replay(['g1f3', 'b8c6'], 'krizaci').board[E.sqIndex('f3')].t, 'C');
+});
+
+t('Mód Křižáci: proměna v jezdce dá Křižáka i s Biskupy', () => {
+  const s = pos({ e1: 'wK', c1: 'wB', b7: 'wP', e8: 'bK', h8: 'bB' }, 'w', { variant: 'krizaci' });
+  const r = apply(s, 'b7b8n');
+  eq(P(r.state, 'b8').t, 'C');
+  eq(r.events.find(e => e.type === 'promote').t, 'C');
+  const s2 = pos({ e1: 'wK', c1: 'wB', b7: 'wP', e8: 'bK', h8: 'bB' });
+  eq(P(apply(s2, 'b7b8n').state, 'b8').t, 'N', 'v módu Poutníci zůstává Poutník');
+});
+
+t('Mód Křižáci: 200 náhodných partií bez Poutníků, replay = stav', () => {
+  const rand = rng(777);
+  for (let g = 0; g < 200; g++) {
+    let s = E.initialState('krizaci');
+    for (let ply = 0; ply < 300 && !s.result; ply++) {
+      const a = E.legalActions(s);
+      if (!a.length) break;
+      s = E.applyAction(s, a[Math.floor(rand() * a.length)]).state;
+      if (s.board.some(p => p && p.t === 'N')) throw new Error('Poutník v módu Křižáci (partie ' + g + ')');
+      for (const p of s.board) if (p && p.pen && 'KCR'.includes(p.t)) throw new Error('kající ' + p.t);
+    }
+    if (snap(E.replay(s.history, 'krizaci')) !== snap(s)) throw new Error('replay se liší v partii ' + g);
+  }
+});
+
 out.innerHTML += `\n${pass} prošlo, ${fail} selhalo\n`;
 document.title = fail ? 'FAIL ' + fail : 'OK ' + pass;
 </script>

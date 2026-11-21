@@ -1,5 +1,5 @@
 // Text pravidel zobrazený v aplikaci
-import { pieceSVG } from './pieces.js?v=5';
+import { pieceSVG } from './pieces.js?v=6';
 
 const m = (t) => `<span class="mini w">${pieceSVG(t)}</span><span class="mini b">${pieceSVG(t)}</span>`;
 
@@ -38,6 +38,9 @@ neúprosná inkvizice a sám papež.</p>
   vezmou kříž a natrvalo se z nich stanou <b>Křižáci</b>. Případného Pokání se tím zbaví.</li>
   <li><b>Křižák</b> táhne jako jezdec, zabíjí živé figurky bez Pokání, ale Hranici odstranit nesmí. Křižákem zůstává,
   i když strana později znovu získá Biskupa.</li>
+  <li><b>Mód hry:</b> v módu <b>Poutníci</b> (výchozí) platí vše výše. V módu <b>Křižáci od začátku</b> jsou jezdci Křižáky
+  už od prvního tahu a proměna Hříšníka v jezdce dá vždy Křižáka; Poutníci se v něm nevyskytují. Mód se volí v úvodu
+  a online je součástí odkazu na hru.</li>
 </ul>
 
 <h3>4. Zpověď a rozhřešení</h3>

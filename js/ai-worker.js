@@ -1,41 +1,45 @@
 // Web Worker: přemýšlení stroje mimo hlavní vlákno (aby se neseklo uživatelské rozhraní)
-import * as E from './engine.js?v=5';
-import { loadModel, materialModel, chooseAction, acceptsDraw } from './ai.js?v=5';
+import * as E from './engine.js?v=6';
+import { loadModel, materialModel, chooseAction, acceptsDraw } from './ai.js?v=6';
 
-let model = null;
-let modelPromise = null;
-let cache = { actions: [], state: E.initialState() };
+let cache = { variant: 'poutnici', actions: [], state: E.initialState() };
+const models = {};
 
-function stateFor(actions) {
+function stateFor(actions, variant = 'poutnici') {
   const c = cache.actions;
   let s;
   let from = 0;
-  if (actions.length >= c.length && c.every((a, i) => actions[i] === a)) {
+  if (cache.variant === variant && actions.length >= c.length && c.every((a, i) => actions[i] === a)) {
     s = cache.state;
     from = c.length;
   } else {
-    s = E.initialState();
+    s = E.initialState(variant);
   }
   for (let i = from; i < actions.length; i++) s = E.applyAction(s, actions[i]).state;
-  cache = { actions: actions.slice(), state: s };
+  cache = { variant, actions: actions.slice(), state: s };
   return s;
 }
 
-function ensureModel(base) {
-  if (!modelPromise) {
-    modelPromise = loadModel(base)
-      .then((m) => { model = m; return 'net'; })
-      .catch(() => { model = materialModel; return 'material'; });
+// síť módu, záložně síť Poutníků, nakonec materiál
+function ensureModel(bases) {
+  const key = bases.join('|');
+  if (!models[key]) {
+    models[key] = (async () => {
+      for (let i = 0; i < bases.length; i++) {
+        try { return { model: await loadModel(bases[i]), kind: i === 0 ? 'net' : 'net-fallback' }; } catch (e) { /* další */ }
+      }
+      return { model: materialModel, kind: 'material' };
+    })();
   }
-  return modelPromise;
+  return models[key];
 }
 
 self.onmessage = async (ev) => {
-  const { id, type, actions, level, base, aiColor } = ev.data;
+  const { id, type, actions, level, bases, aiColor, variant } = ev.data;
   try {
-    const kind = await ensureModel(base);
+    const { model, kind } = await ensureModel(bases);
     if (type === 'load') { self.postMessage({ id, ok: true, kind }); return; }
-    const st = stateFor(actions);
+    const st = stateFor(actions, variant);
     if (type === 'move') {
       const t0 = performance.now();
       const action = chooseAction(model, st, level);

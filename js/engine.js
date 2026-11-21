@@ -39,9 +39,13 @@ export const CONFESSORS = { P: ['B'], N: ['B'], Q: ['B', 'K'], B: ['K'] };
 
 function at(f, r) { return f >= 0 && f < 8 && r >= 0 && r < 8 ? r * 8 + f : -1; }
 
-export function initialState() {
+// Mód hry: 'poutnici' (jezdci začínají jako Poutníci) nebo 'krizaci' (jezdci jsou od začátku Křižáci;
+// i proměna v jezdce dá Křižáka)
+export const VARIANTS = ['poutnici', 'krizaci'];
+
+export function initialState(variant = 'poutnici') {
   const board = Array(64).fill(null);
-  const back = 'RNBQKBNR';
+  const back = variant === 'krizaci' ? 'RCBQKBCR' : 'RNBQKBNR';
   let id = 0;
   const mk = (t, c) => ({ id: ++id, t, c, pen: false, moved: false });
   for (let f = 0; f < 8; f++) {
@@ -52,7 +56,7 @@ export function initialState() {
     board[48 + f] = mk('P', 'b');
     board[56 + f] = mk(back[f], 'b');
   }
-  return { board, turn: 'w', ep: -1, conclave: null, result: null, ply: 0, history: [] };
+  return { board, turn: 'w', ep: -1, conclave: null, result: null, ply: 0, history: [], variant };
 }
 
 export function cloneState(s) {
@@ -61,7 +65,7 @@ export function cloneState(s) {
     turn: s.turn, ep: s.ep,
     conclave: s.conclave ? { ...s.conclave, options: [...s.conclave.options] } : null,
     result: s.result ? { ...s.result } : null,
-    ply: s.ply, history: [...s.history],
+    ply: s.ply, history: [...s.history], variant: s.variant,
   };
 }
 
@@ -311,10 +315,10 @@ function applyMove(state, m) {
     events.push({ type: 'penance', sq: m.to, id: p.id });
   }
   if (m.promo) {
-    p.t = m.promo;
+    p.t = m.promo === 'N' && state.variant === 'krizaci' ? 'C' : m.promo;
     const hadPen = p.pen;
     p.pen = false;
-    events.push({ type: 'promote', sq: m.to, t: m.promo, id: p.id, cleansed: hadPen });
+    events.push({ type: 'promote', sq: m.to, t: p.t, id: p.id, cleansed: hadPen });
   }
   state.ep = m.double ? (m.from + m.to) / 2 : -1;
 
@@ -368,8 +372,8 @@ export function applyAction(state, action) {
   return { state: s, events };
 }
 
-export function replay(actions) {
-  let s = initialState();
+export function replay(actions, variant = 'poutnici') {
+  let s = initialState(variant);
   for (const a of actions) s = applyAction(s, a).state;
   return s;
 }

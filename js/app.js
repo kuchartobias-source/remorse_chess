@@ -1,14 +1,14 @@
 // Kajícné šachy – aplikace (lobby, deska, online hra)
-import * as E from './engine.js?v=5';
-import { pieceSVG, CHIP_SVG, ICON } from './pieces.js?v=5';
-import { FX } from './fx.js?v=5';
-import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=5';
-import { RULES_HTML } from './rules.js?v=5';
-import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=5';
-import { MusicPlayer } from './music.js?v=5';
+import * as E from './engine.js?v=6';
+import { pieceSVG, CHIP_SVG, ICON } from './pieces.js?v=6';
+import { FX } from './fx.js?v=6';
+import { Channel, newRoomId, clientId, ROOM_RE, variantOfRoom } from './net.js?v=6';
+import { RULES_HTML } from './rules.js?v=6';
+import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=6';
+import { MusicPlayer } from './music.js?v=6';
 
 const music = new MusicPlayer(getCtx);
-import { LEVELS } from './ai.js?v=5';
+import { LEVELS } from './ai.js?v=6';
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -20,6 +20,13 @@ const other = E.other;
 const NAME = E.NAMES;
 const PLAYER = { w: 'Bílý', b: 'Černý' };
 const SIDE = { w: 'bílé', b: 'černé' };
+const MODE_NAME = { poutnici: 'Poutníci', krizaci: 'Křižáci od začátku' };
+const MODE_DESC = {
+  poutnici: 'Jezdci začínají jako Poutníci a Křižáky se stanou, až strana přijde o všechny Biskupy.',
+  krizaci: 'Jezdci jsou od prvního tahu Křižáci – zabíjejí bez pokání. Poutníci se nevyskytují.',
+};
+const modeSuffix = (v) => (v === 'krizaci' ? '-k' : '');
+const modeParam = (v) => (v === 'krizaci' ? '&mod=k' : '');
 const ACC = { K: 'Papeže', Q: 'Inkvizitora', R: 'Hranici', B: 'Biskupa', N: 'Poutníka', C: 'Křižáka', P: 'Hříšníka' };
 const GEN = { K: 'Papeže', B: 'Biskupa' };
 const ACTION_RE = /^([a-h][1-8][a-h][1-8][qrbn]?|@[a-h][1-8])$/;
@@ -78,10 +85,17 @@ function showLobby() {
       };
     });
   };
+  let gameMode = store.get('rc-mode') === 'krizaci' ? 'krizaci' : 'poutnici';
+  const paintMode = () => {
+    $('mode-seg').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.m === gameMode)));
+    $('mode-desc').textContent = MODE_DESC[gameMode];
+  };
+  paintMode();
+  seg('mode-seg', 'm', (v) => { gameMode = v; store.set('rc-mode', v); paintMode(); });
   seg('color-seg', 'c', (v) => { color = v; });
   seg('flip-seg', 'f', (v) => { flip = v === '1'; });
   $('btn-create').onclick = () => {
-    const room = newRoomId();
+    const room = newRoomId() + modeSuffix(gameMode);
     const c = color === 'r' ? (Math.random() < 0.5 ? 'w' : 'b') : color;
     store.set('rc2-seat-' + room, c);
     store.set('rc2-host-' + room, true);
@@ -89,7 +103,7 @@ function showLobby() {
   };
   $('btn-local').onclick = () => {
     store.del('rc2-local');
-    location.hash = 'mistni' + (flip ? '&otacet=1' : '');
+    location.hash = 'mistni' + (flip ? '&otacet=1' : '') + modeParam(gameMode);
   };
   let aiColor = 'w', aiLevel = '2';
   seg('ai-color-seg', 'c', (v) => { aiColor = v; });
@@ -97,7 +111,7 @@ function showLobby() {
   $('btn-ai').onclick = () => {
     const c = aiColor === 'r' ? (Math.random() < 0.5 ? 'w' : 'b') : aiColor;
     store.del('rc2-ai');
-    location.hash = `stroj=${c}&uroven=${aiLevel}`;
+    location.hash = `stroj=${c}&uroven=${aiLevel}` + modeParam(gameMode);
   };
 }
 
@@ -360,15 +374,16 @@ class BoardView {
 
 // ---------------- Hra ----------------
 class Game {
-  constructor({ mode, room = null, autoFlip = false, ai = null }) {
+  constructor({ mode, room = null, autoFlip = false, ai = null, variant = 'poutnici' }) {
     this.mode = mode;
+    this.variant = variant;
     this.ai = ai; // { color: barva stroje, level: 1..3 } v režimu proti stroji
     this.thinking = false;
     this.room = room;
     this.autoFlip = autoFlip;
     this.me = null;
     this.actions = [];
-    this.state = E.initialState();
+    this.state = E.initialState(variant);
     this.hist = [];
     this.legal = [];
     this.ext = null;
@@ -396,7 +411,7 @@ class Game {
 
   // Přepočítá stav a historii z this.actions (neplatný konec zahodí)
   rebuild() {
-    let s = E.initialState();
+    let s = E.initialState(this.variant);
     const hist = [];
     const good = [];
     for (const a of this.actions) {
@@ -431,8 +446,8 @@ class Game {
   }
 
   persist() {
-    if (this.ai) store.set('rc2-ai', { a: this.actions, ext: this.ext, color: this.ai.color, level: this.ai.level });
-    else if (this.mode === 'local') store.set('rc2-local', { a: this.actions, ext: this.ext, flip: this.autoFlip });
+    if (this.ai) store.set('rc2-ai', { a: this.actions, ext: this.ext, color: this.ai.color, level: this.ai.level, variant: this.variant });
+    else if (this.mode === 'local') store.set('rc2-local', { a: this.actions, ext: this.ext, flip: this.autoFlip, variant: this.variant });
     else store.set('rc2-game-' + this.room, { a: this.actions, ext: this.ext });
   }
 
@@ -446,6 +461,7 @@ class Game {
   }
 
   refreshPanels() {
+    $('mode-tag').textContent = 'Mód: ' + MODE_NAME[this.variant];
     this.renderBoardMood();
     this.renderMarks();
     this.renderHints();
@@ -783,7 +799,7 @@ class Game {
 
   askPromo(ms) {
     const c = this.state.turn;
-    const noBishop = !this.state.board.some((p) => p && p.c === c && p.t === 'B');
+    const noBishop = this.variant === 'krizaci' || !this.state.board.some((p) => p && p.c === c && p.t === 'B');
     const opts = ['Q', 'R', 'B', 'N'].map((t) => {
       const shown = t === 'N' && noBishop ? 'C' : t;
       return `<button type="button" data-t="${t}">${mini(shown, c)}<small>${NAME[shown]}</small></button>`;
@@ -822,7 +838,7 @@ class Game {
   async rematchNow() {
     if (this.ai) {
       store.del('rc2-ai');
-      location.hash = `stroj=${this.ai.color}&uroven=${this.ai.level}`;
+      location.hash = `stroj=${this.ai.color}&uroven=${this.ai.level}` + modeParam(this.variant);
       return;
     }
     if (this.mode === 'local') {
@@ -836,7 +852,7 @@ class Game {
       location.hash = 'hra=' + this.rematch.room;
       return;
     }
-    const room = newRoomId();
+    const room = newRoomId() + modeSuffix(this.variant);
     const c = other(this.me);
     store.set('rc2-seat-' + room, c);
     this.closeOverlay();
@@ -994,7 +1010,8 @@ class Game {
   // ---------- hra proti stroji ----------
   startAI() {
     const saved = store.get('rc2-ai');
-    if (saved && Array.isArray(saved.a) && saved.color === this.ai.color && saved.level === this.ai.level) {
+    if (saved && Array.isArray(saved.a) && saved.color === this.ai.color && saved.level === this.ai.level
+      && (saved.variant || 'poutnici') === this.variant) {
       this.actions = saved.a.filter((x) => typeof x === 'string' && ACTION_RE.test(x));
       this.ext = saved.ext || null;
       this.rebuild();
@@ -1009,9 +1026,11 @@ class Game {
   initAI() {
     this.aiReq = 0;
     this.aiWait = new Map();
-    this.aiBase = new URL('../model/', import.meta.url).href;
+    const own = this.variant === 'krizaci' ? '../model-krizaci/' : '../model/';
+    this.aiBases = [new URL(own, import.meta.url).href];
+    if (this.variant === 'krizaci') this.aiBases.push(new URL('../model/', import.meta.url).href);
     try {
-      this.worker = new Worker(new URL('./ai-worker.js?v=5', import.meta.url), { type: 'module' });
+      this.worker = new Worker(new URL('./ai-worker.js?v=6', import.meta.url), { type: 'module' });
       this.worker.onmessage = (e) => {
         const cb = this.aiWait.get(e.data.id);
         if (cb) { this.aiWait.delete(e.data.id); cb(e.data); }
@@ -1021,14 +1040,15 @@ class Game {
       this.worker = null;
     }
     this.aiCall({ type: 'load' }).then((r) => {
-      if (r.ok && r.kind !== 'net') toast('Síť se nepodařilo načíst – stroj hraje jen podle materiálu.', 5000);
+      if (r.ok && r.kind === 'net-fallback') toast('Síť pro mód Křižáci se ještě učí – zatím hraje síť z módu Poutníci.', 5000);
+      else if (r.ok && r.kind !== 'net') toast('Síť se nepodařilo načíst – stroj hraje jen podle materiálu.', 5000);
     });
   }
 
   // Dotaz na stroj (ve Web Workeru, záložně v hlavním vlákně)
   aiCall(msg) {
     const id = ++this.aiReq;
-    const payload = { ...msg, id, actions: this.actions.slice(), level: this.ai.level, base: this.aiBase, aiColor: this.ai.color };
+    const payload = { ...msg, id, actions: this.actions.slice(), level: this.ai.level, bases: this.aiBases, aiColor: this.ai.color, variant: this.variant };
     if (this.worker) {
       const viaWorker = new Promise((res) => { this.aiWait.set(id, res); this.worker.postMessage(payload); });
       const fallback = new Promise((res) => setTimeout(() => res(null), 20000));
@@ -1038,11 +1058,15 @@ class Game {
         return this.aiCall(msg);
       });
     }
-    return import('./ai.js?v=5').then(async (A) => {
+    return import('./ai.js?v=6').then(async (A) => {
       if (!this.aiModel) {
-        try { this.aiModel = await A.loadModel(this.aiBase); } catch (e) { this.aiModel = A.materialModel; }
+        this.aiKind = 'material';
+        this.aiModel = A.materialModel;
+        for (let i = 0; i < this.aiBases.length; i++) {
+          try { this.aiModel = await A.loadModel(this.aiBases[i]); this.aiKind = i === 0 ? 'net' : 'net-fallback'; break; } catch (e) { /* další */ }
+        }
       }
-      if (msg.type === 'load') return { ok: true, kind: this.aiModel === A.materialModel ? 'material' : 'net' };
+      if (msg.type === 'load') return { ok: true, kind: this.aiKind };
       if (msg.type === 'move') return { ok: true, action: A.chooseAction(this.aiModel, this.state, this.ai.level) };
       if (msg.type === 'draw') return { ok: true, accept: A.acceptsDraw(this.aiModel, this.state, this.ai.color) };
       return { ok: false };
@@ -1070,7 +1094,7 @@ class Game {
   // ---------- místní hra ----------
   startLocal() {
     const saved = store.get('rc2-local');
-    if (saved && Array.isArray(saved.a)) {
+    if (saved && Array.isArray(saved.a) && (saved.variant || 'poutnici') === this.variant) {
       this.actions = saved.a.filter((x) => typeof x === 'string' && ACTION_RE.test(x));
       this.ext = saved.ext || null;
       this.rebuild();
@@ -1082,7 +1106,7 @@ class Game {
   // ---------- online hra ----------
   startOnline() {
     this.cid = clientId();
-    this.server = { actions: [], state: E.initialState() };
+    this.server = { actions: [], state: E.initialState(this.variant) };
     this.seats = { w: null, b: null };
     this.opp = { seen: false };
     this.offer = null;
@@ -1290,7 +1314,7 @@ class Game {
     const text = free.length === 1
       ? `Soupeř už sedí za ${SIDE[other(free[0])]} a čeká na tebe.`
       : 'Vyber si barvu.';
-    this.openOverlay(`<div class="box"><h2>Vstup do hry</h2><p>${text}</p><div class="row">${btns}<button class="btn ghost" data-x>Jen se dívat</button></div></div>`, (ov) => {
+    this.openOverlay(`<div class="box"><h2>Vstup do hry</h2><p>${text}</p><p>Mód: <b>${MODE_NAME[this.variant]}</b></p><div class="row">${btns}<button class="btn ghost" data-x>Jen se dívat</button></div></div>`, (ov) => {
       ov.querySelectorAll('[data-c]').forEach((b) => { b.onclick = () => this.claim(b.dataset.c); });
       ov.querySelector('[data-x]').onclick = () => { this.closeOverlay(); this.refreshPanels(); };
     });
@@ -1360,20 +1384,22 @@ function main() {
   const room = params.get('hra');
   if (room && ROOM_RE.test(room)) {
     $('game').hidden = false;
-    const g = new Game({ mode: 'online', room });
+    const g = new Game({ mode: 'online', room, variant: variantOfRoom(room) });
     window.__game = g;
     g.startOnline();
   } else if (params.has('stroj')) {
     $('game').hidden = false;
     const human = params.get('stroj') === 'b' ? 'b' : 'w';
     const lv = parseInt(params.get('uroven'), 10);
-    const g = new Game({ mode: 'local', ai: { color: other(human), level: [1, 2, 3].includes(lv) ? lv : 2 } });
+    const g = new Game({ mode: 'local', ai: { color: other(human), level: [1, 2, 3].includes(lv) ? lv : 2 },
+      variant: params.get('mod') === 'k' ? 'krizaci' : 'poutnici' });
     window.__game = g;
     g.startAI();
   } else if (params.has('mistni')) {
     $('game').hidden = false;
     const saved = store.get('rc2-local');
-    const g = new Game({ mode: 'local', autoFlip: params.get('otacet') === '1' || !!(saved && saved.flip) });
+    const g = new Game({ mode: 'local', autoFlip: params.get('otacet') === '1' || !!(saved && saved.flip),
+      variant: params.get('mod') === 'k' ? 'krizaci' : 'poutnici' });
     window.__game = g;
     g.startLocal();
   } else {

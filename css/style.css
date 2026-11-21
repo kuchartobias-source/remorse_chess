@@ -442,3 +442,10 @@ footer.foot { text-align: center; color: var(--dim); font-size: 14px; padding: 8
 .chat-form { display: flex; gap: 6px; }
 .chat-form input { flex: 1; min-width: 0; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: rgba(0,0,0,.35); color: var(--ink); font: inherit; font-size: 15px; }
 .chat-form input:focus { outline: none; border-color: var(--gold); }
+
+/* ---------- Mód hry ---------- */
+.mode-pick { max-width: 620px; margin: 24px auto 0; text-align: center; }
+.mode-pick .seg { justify-content: center; max-width: 440px; margin: 0 auto; }
+.mode-label { font-family: var(--font-title); color: var(--gold); letter-spacing: .14em; font-size: 13px; text-transform: uppercase; margin-bottom: 8px; }
+.mode-desc { color: var(--muted); font-size: 16px; margin: 4px 0 0; min-height: 1.4em; }
+.mode-tag { font-family: var(--font-title); font-size: 13px; letter-spacing: .06em; color: var(--gold2); text-align: center; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: rgba(214,171,76,.06); }

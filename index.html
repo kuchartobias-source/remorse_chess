@@ -10,8 +10,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=5">
-  <link rel="stylesheet" href="css/fx.css?v=5">
+  <link rel="stylesheet" href="css/style.css?v=6">
+  <link rel="stylesheet" href="css/fx.css?v=6">
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -41,6 +41,14 @@
       <h1>Kajícné šachy</h1>
       <div class="sub">REMORSE CHESS</div>
       <p class="lead">Každý prolitý doušek krve zatěžuje svědomí. Figurky po zabití propadají pokání a hledají rozhřešení u zpovědníků – nad vším bdí neúprosná inkvizice a sám papež.</p>
+    </section>
+    <section class="mode-pick">
+      <div class="mode-label">Mód hry</div>
+      <div class="seg" role="group" aria-label="Mód hry" id="mode-seg">
+        <button type="button" data-m="poutnici" aria-pressed="true">Poutníci</button>
+        <button type="button" data-m="krizaci" aria-pressed="false">Křižáci od začátku</button>
+      </div>
+      <p class="mode-desc" id="mode-desc"></p>
     </section>
     <section class="cards">
       <div class="card">
@@ -101,6 +109,7 @@
       <div class="player" id="pl-bottom"></div>
     </section>
     <aside class="side">
+      <div class="mode-tag" id="mode-tag"></div>
       <div class="panel invite" id="invite" hidden>
         <h3>Pozvi soupeře</h3>
         <p>Pošli tento odkaz soupeři. Kdo ho otevře, usedne na volné místo.</p>
@@ -149,6 +158,6 @@
     <div class="rbody" id="rules-body"></div>
   </dialog>
 
-  <script type="module" src="js/app.js?v=5"></script>
+  <script type="module" src="js/app.js?v=6"></script>
 </body>
 </html>

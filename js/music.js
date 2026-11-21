@@ -318,14 +318,77 @@ export class SampleKit {
     g.track(src, t + Math.min(maxLen, hold + release * 2.5) + 0.02);
   }
 
-  // zpívaná fráze (legato: každý tón přesahuje do nástupu dalšího)
+  // zpívaná fráze legato (jako zpěvák – hlas se mezi tóny nepřerušuje):
+  //  - krok o tón či půltón: stávající nahrávka plynule přejde na novou výšku (žádné prolínání dvou
+  //    téměř stejných vln, které by se navzájem rušily)
+  //  - stejný tón po sobě: jen jemný „nádech“ v hlasitosti (nová slabika)
+  //  - větší skok, příliš velké přeladění nebo dohrávající nahrávka (3,1 s): nový zdroj, který začne
+  //    za svým nástupem a prolne se s předchozím se stálou hlasitostí (≤ 40 % tónu)
   line(g, notes, t, { inst = 'voice', gain = 0.5, pan = 0, detune = 0 } = {}) {
+    const { ctx } = g;
+    const det = Math.pow(2, detune / 1200);
+    let cur = null;
+    const start = (f, at, fade, first) => {
+      const e = this.pick(inst, f);
+      const src = ctx.createBufferSource();
+      src.buffer = e.buf;
+      const rate = (f / e.freq) * det;
+      src.playbackRate.setValueAtTime(rate, at);
+      // ustálená část nahrávky se opakuje ve smyčce dlouhé přesně na celý počet kmitů (bez cvaknutí),
+      // takže jeden hlas vydrží celou frázi a nemusí se střídat se sebou samým
+      src.loop = true;
+      src.loopStart = 0.7;
+      src.loopEnd = Math.min(e.buf.duration - 0.05, 0.7 + Math.round(1.9 * e.freq) / e.freq);
+      const env = ctx.createGain();
+      env.gain.value = 0;
+      env.gain.setValueCurveAtTime(fadeCurve(gain, true), at, fade);
+      src.connect(env);
+      connectPan(g, env, pan);
+      const offset = first ? 0.02 : 0.22; // navazující tón bez vlastního nástupu
+      src.start(at, offset);
+      return { src, env, e, f, rate, used: offset };
+    };
+    const end = (c, at, fade) => {
+      c.env.gain.setValueCurveAtTime(fadeCurve(gain, false), at, fade);
+      this.trackLine(g, c.src, at + fade + 0.02);
+    };
     for (const n of notes) {
-      this.note(g, inst, freq(n.name), t, n.d + 0.09, { gain, attack: 0.08, release: 0.3, pan, detune, offset: 0.02 });
+      const f = freq(n.name);
+      const semis = cur ? 12 * Math.log2(f / cur.f) : 0;
+      const fromBase = cur ? Math.abs(12 * Math.log2(f / cur.e.freq)) : 0;
+      const room = !!cur; // smyčka nahrávky → zdroj vydrží libovolně dlouho
+      if (cur && room && Math.abs(semis) < 1e-6) {
+        const dip = Math.min(0.1, n.d * 0.3);
+        cur.env.gain.setValueAtTime(gain, t - dip);
+        cur.env.gain.linearRampToValueAtTime(gain * 0.75, t);
+        cur.env.gain.linearRampToValueAtTime(gain, t + dip);
+      } else if (cur && room && Math.abs(semis) <= 2.2 && fromBase <= 3.5) { // pythagorejský celý tón = 2,04 půltónu
+        const rate = (f / cur.e.freq) * det;
+        cur.src.playbackRate.setValueAtTime(cur.rate, t);
+        cur.src.playbackRate.linearRampToValueAtTime(rate, t + 0.07);
+        cur.env.gain.setValueAtTime(gain, t - 0.03);
+        cur.env.gain.linearRampToValueAtTime(gain * 0.9, t + 0.02);
+        cur.env.gain.linearRampToValueAtTime(gain, t + 0.1);
+        cur.rate = rate;
+        cur.f = f;
+      } else {
+        const fade = cur ? Math.min(0.14, n.d * 0.4) : 0.08;
+        const next = start(f, t, fade, !cur);
+        if (cur) end(cur, t, fade);
+        cur = next;
+      }
+      cur.used += n.d * cur.rate;
       t += n.d;
+    }
+    if (cur) {
+      const rel = 0.32;
+      cur.env.gain.setValueCurveAtTime(fadeCurve(gain, false), t, rel);
+      this.trackLine(g, cur.src, t + rel + 0.02);
     }
     return t;
   }
+
+  trackLine(g, src, stopAt) { g.track(src, stopAt); }
 
   pluck(g, name, t, gain = 0.3) { this.note(g, 'psaltery', freq(name), t, 1.3, { gain, attack: 0.004, release: 0.9 }); }
   harp(g, name, t, gain = 0.25) { this.note(g, 'harp', freq(name), t, 2.0, { gain, attack: 0.004, release: 0.8, pan: -0.2 }); }
@@ -371,6 +434,17 @@ export class SampleKit {
   }
 }
 
+// křivka prolnutí se stálou hlasitostí (sinus/kosinus)
+const FADE_N = 24;
+function fadeCurve(gain, up) {
+  const c = new Float32Array(FADE_N);
+  for (let i = 0; i < FADE_N; i++) {
+    const x = i / (FADE_N - 1);
+    c[i] = gain * (up ? Math.sin(x * Math.PI / 2) : Math.cos(x * Math.PI / 2));
+  }
+  return c;
+}
+
 function connectPan(g, node, pan) {
   if (pan && g.ctx.createStereoPanner) {
     const pn = g.ctx.createStereoPanner();
@@ -382,14 +456,30 @@ function connectPan(g, node, pan) {
 
 export async function loadKit(ctx, base) {
   const meta = await fetch(base + 'samples.json').then((r) => { if (!r.ok) throw new Error('samples ' + r.status); return r.json(); });
+  // stahuje nejvýš 6 souborů najednou, každý s jedním opakovaným pokusem
+  const jobs = [];
+  for (const [inst, list] of Object.entries(meta)) for (const e of list) jobs.push({ inst, e });
+  const getOne = async (e, tries = 2) => {
+    try {
+      const r = await fetch(base + e.file);
+      if (!r.ok) throw new Error(e.file + ' ' + r.status);
+      return await r.arrayBuffer();
+    } catch (err) {
+      if (tries > 1) { await new Promise((res) => setTimeout(res, 400)); return getOne(e, tries - 1); }
+      throw err;
+    }
+  };
   const banks = {};
-  await Promise.all(Object.entries(meta).map(async ([inst, list]) => {
-    banks[inst] = await Promise.all(list.map(async (e) => {
-      const ab = await fetch(base + e.file).then((r) => { if (!r.ok) throw new Error(e.file + ' ' + r.status); return r.arrayBuffer(); });
+  let next = 0;
+  const workers = Array.from({ length: 6 }, async () => {
+    while (next < jobs.length) {
+      const { inst, e } = jobs[next++];
+      const ab = await getOne(e);
       const buf = await new Promise((res, rej) => ctx.decodeAudioData(ab, res, rej));
-      return { name: e.file, freq: e.midi == null ? null : 440 * Math.pow(2, (e.midi - 69) / 12), buf };
-    }));
-  }));
+      (banks[inst] = banks[inst] || []).push({ name: e.file, freq: e.midi == null ? null : 440 * Math.pow(2, (e.midi - 69) / 12), buf });
+    }
+  });
+  await Promise.all(workers);
   return new SampleKit(banks);
 }
 
@@ -447,7 +537,7 @@ export class Composer {
     const rng = this.rng;
     for (const p of ANTIPHON.map((ph) => realize(ph, this.u, rng))) {
       this.kit.harp(g, p[0].name, t, 0.077);
-      t = this.kit.line(g, p, t, { inst: 'voice', gain: 1.27 });
+      t = this.kit.line(g, p, t, { inst: 'voice', gain: 1.7 });
       if (rng() < 0.35) this.kit.bell(g, rng() < 0.5 ? 'A3' : 'D4', t + 0.2, 0.06);
       t += this.breath();
     }
