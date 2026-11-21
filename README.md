@@ -27,6 +27,8 @@ a **Proti stroji** – soupeřem je neuronová síť, která se hru naučila sam
 - Síť pro hru proti stroji: `model/net.bin` (MLP 1436 → 192 → 64 → 1, váhy float32) a `js/ai.js`
   (kódování pozice, hodnocení, prohledávání 1–2 půltahů); počítá se ve Web Workeru.
 
-Grafika figurek i animace jsou vlastní tvorba (SVG + CSS). Zvuky i hudba na pozadí se syntetizují
-přímo v prohlížeči (WebAudio): hudba je vlastní skladba – kantikum v dórském modu na D (antifona,
-verše na recitačním tónu, organum v kvintách, mezihra se zvony), zapíná a vypíná se ikonou noty.
+Grafika figurek i animace jsou vlastní tvorba (SVG + CSS). Zvukové efekty se syntetizují přímo
+v prohlížeči (WebAudio). Hudba na pozadí je vlastní skladba – kantikum v dórském modu na D (antifona,
+verše na recitačním tónu, organum v kvintách, mezihra se žaltářem a zvony) – kterou hrají skutečné
+nahrávky: nástroje z VCSL (CC0) a sbor a hlas z FluidR3 GM od Franka Wena (CC BY 3.0).
+Podrobnosti a licence: [music/CREDITS.md](music/CREDITS.md). Zapíná a vypíná se ikonou noty.

@@ -1,0 +1,204 @@
+{
+ "psaltery": [
+  {
+   "file": "psaltery_As3.wav",
+   "midi": 58
+  },
+  {
+   "file": "psaltery_C4.wav",
+   "midi": 60
+  },
+  {
+   "file": "psaltery_D4.wav",
+   "midi": 62
+  },
+  {
+   "file": "psaltery_E4.wav",
+   "midi": 64
+  },
+  {
+   "file": "psaltery_Fs4.wav",
+   "midi": 66
+  },
+  {
+   "file": "psaltery_Gs4.wav",
+   "midi": 68
+  },
+  {
+   "file": "psaltery_As4.wav",
+   "midi": 70
+  },
+  {
+   "file": "psaltery_C5.wav",
+   "midi": 72
+  },
+  {
+   "file": "psaltery_D5.wav",
+   "midi": 74
+  }
+ ],
+ "harp": [
+  {
+   "file": "harp_D2.wav",
+   "midi": 38
+  },
+  {
+   "file": "harp_As2.wav",
+   "midi": 46
+  },
+  {
+   "file": "harp_D3.wav",
+   "midi": 50
+  },
+  {
+   "file": "harp_E3.wav",
+   "midi": 52
+  },
+  {
+   "file": "harp_Fs3.wav",
+   "midi": 54
+  },
+  {
+   "file": "harp_Gs3.wav",
+   "midi": 56
+  },
+  {
+   "file": "harp_As3.wav",
+   "midi": 58
+  },
+  {
+   "file": "harp_C4.wav",
+   "midi": 60
+  },
+  {
+   "file": "harp_D4.wav",
+   "midi": 62
+  }
+ ],
+ "organ": [
+  {
+   "file": "organ_D2.wav",
+   "midi": 38
+  },
+  {
+   "file": "organ_Gs2.wav",
+   "midi": 44
+  },
+  {
+   "file": "organ_As2.wav",
+   "midi": 46
+  },
+  {
+   "file": "organ_D3.wav",
+   "midi": 50
+  }
+ ],
+ "bells": [
+  {
+   "file": "bells_D3.wav",
+   "midi": 50
+  },
+  {
+   "file": "bells_D4.wav",
+   "midi": 62
+  },
+  {
+   "file": "bells_As3.wav",
+   "midi": 58
+  },
+  {
+   "file": "bells_Gs3.wav",
+   "midi": 56
+  }
+ ],
+ "drum": [
+  {
+   "file": "drum_HDrumL_Hit.wav",
+   "midi": null
+  },
+  {
+   "file": "drum_HDrumL_HitMuted.wav",
+   "midi": null
+  },
+  {
+   "file": "drum_HDrumS_Hand.wav",
+   "midi": null
+  }
+ ],
+ "choir": [
+  {
+   "file": "choir_F2.mp3",
+   "midi": 41
+  },
+  {
+   "file": "choir_A2.mp3",
+   "midi": 45
+  },
+  {
+   "file": "choir_C3.mp3",
+   "midi": 48
+  },
+  {
+   "file": "choir_D3.mp3",
+   "midi": 50
+  },
+  {
+   "file": "choir_E3.mp3",
+   "midi": 52
+  },
+  {
+   "file": "choir_F3.mp3",
+   "midi": 53
+  },
+  {
+   "file": "choir_G3.mp3",
+   "midi": 55
+  },
+  {
+   "file": "choir_A3.mp3",
+   "midi": 57
+  },
+  {
+   "file": "choir_C4.mp3",
+   "midi": 60
+  },
+  {
+   "file": "choir_D4.mp3",
+   "midi": 62
+  }
+ ],
+ "voice": [
+  {
+   "file": "voice_C3.mp3",
+   "midi": 48
+  },
+  {
+   "file": "voice_D3.mp3",
+   "midi": 50
+  },
+  {
+   "file": "voice_E3.mp3",
+   "midi": 52
+  },
+  {
+   "file": "voice_F3.mp3",
+   "midi": 53
+  },
+  {
+   "file": "voice_G3.mp3",
+   "midi": 55
+  },
+  {
+   "file": "voice_A3.mp3",
+   "midi": 57
+  },
+  {
+   "file": "voice_C4.mp3",
+   "midi": 60
+  },
+  {
+   "file": "voice_D4.mp3",
+   "midi": 62
+  }
+ ]
+}

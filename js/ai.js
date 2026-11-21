@@ -1,6 +1,6 @@
 // Umělá inteligence Kajícných šachů: hodnotová síť (MLP natrénovaná samohrou v ai/train.py)
 // + prohledávání o 1–2 půltahy. Kódování pozice odpovídá přesně ai/nn.py.
-import * as E from './engine.js?v=4';
+import * as E from './engine.js?v=5';
 
 const CLASSES = ['P', 'P*', 'N', 'N*', 'C', 'B', 'B*', 'R', 'Q', 'Q*', 'K'];
 const NCLS = CLASSES.length;

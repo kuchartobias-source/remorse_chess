@@ -1,5 +1,6 @@
 // Hudba na pozadí Kajícných šachů – vlastní skladba: kantikum v dórském modu na D.
-// Vše je syntetizováno přes WebAudio (žádné nahrávky). Forma (smyčka ~2 min):
+// Hrají skutečné nahrávky nástrojů a hlasů (music/, licence v music/CREDITS.md); když se
+// nenačtou, zazní záložní syntéza přes WebAudio. Forma (smyčka ~2 min):
 //   úvod (bordun + zvon) → antifona (sólový kantor) → 2 verše (sbor na recitačním tónu)
 //   → antifona jako organum v paralelních kvintách → mezihra (drnkané úryvky, zvon) → antifona …
 // Ladění je pythagorejské od D, aby kvinty proti bordunu zněly čistě.
@@ -8,7 +9,7 @@ const LITE = (() => {
   try { return matchMedia('(max-width: 600px)').matches || (navigator.hardwareConcurrency || 8) <= 4; } catch (e) { return false; }
 })();
 
-const LEVEL = 0.9; // hlasitost hudby (špička ~0.14, pod úrovní efektů)
+const LEVEL = 0.7; // hlasitost hudby (špička ~0.25, pod úrovní efektů)
 
 // ---------- výšky tónů ----------
 const D3 = 146.832;
@@ -277,13 +278,151 @@ function drone(g, t0, t1) {
   return env;
 }
 
+// ---------- sada nástrojů ze skutečných nahrávek ----------
+// Vzorky: VCSL (CC0) – žaltář, lidová harfa, renesanční varhany, trubicové zvony, rámový buben;
+//         FluidR3_GM (Frank Wen, CC BY 3.0) – sbor „aah“ a hlas „ooh“. Viz music/CREDITS.md.
+export class SampleKit {
+  constructor(banks) {
+    this.banks = banks; // { nástroj: [{ name, freq, buf }] }
+    this.droneNext = null;
+    this.kind = 'samples';
+  }
+
+  pick(inst, f) {
+    let best = null;
+    for (const e of this.banks[inst]) {
+      const d = Math.abs(Math.log2(f / e.freq));
+      if (!best || d < best.d) best = { e, d };
+    }
+    return best.e;
+  }
+
+  // jeden tón ze vzorku; délka `dur` včetně držení, poté doznění `release`
+  note(g, inst, f, t, dur, { gain = 0.3, attack = 0.03, release = 0.25, pan = 0, detune = 0, offset = 0 } = {}) {
+    const { ctx } = g;
+    const e = this.pick(inst, f);
+    const src = ctx.createBufferSource();
+    src.buffer = e.buf;
+    const rate = (f / e.freq) * Math.pow(2, detune / 1200);
+    src.playbackRate.value = rate;
+    const env = ctx.createGain();
+    const hold = Math.max(attack, dur);
+    env.gain.setValueAtTime(0, t);
+    env.gain.linearRampToValueAtTime(gain, t + attack);
+    env.gain.setValueAtTime(gain, t + hold);
+    env.gain.setTargetAtTime(0, t + hold, release / 3);
+    src.connect(env);
+    connectPan(g, env, pan);
+    src.start(t, offset);
+    const maxLen = (e.buf.duration - offset) / rate;
+    g.track(src, t + Math.min(maxLen, hold + release * 2.5) + 0.02);
+  }
+
+  // zpívaná fráze (legato: každý tón přesahuje do nástupu dalšího)
+  line(g, notes, t, { inst = 'voice', gain = 0.5, pan = 0, detune = 0 } = {}) {
+    for (const n of notes) {
+      this.note(g, inst, freq(n.name), t, n.d + 0.09, { gain, attack: 0.08, release: 0.3, pan, detune, offset: 0.02 });
+      t += n.d;
+    }
+    return t;
+  }
+
+  pluck(g, name, t, gain = 0.3) { this.note(g, 'psaltery', freq(name), t, 1.3, { gain, attack: 0.004, release: 0.9 }); }
+  harp(g, name, t, gain = 0.25) { this.note(g, 'harp', freq(name), t, 2.0, { gain, attack: 0.004, release: 0.8, pan: -0.2 }); }
+  bell(g, name, t, gain = 0.2) { this.note(g, 'bells', freq(name), t, 3.0, { gain, attack: 0.004, release: 1.5, pan: 0.15 }); }
+
+  drum(g, which, t, gain = 0.3) {
+    const e = this.banks.drum.find((x) => x.name.includes(which));
+    if (!e) return;
+    const src = g.ctx.createBufferSource();
+    src.buffer = e.buf;
+    const env = g.ctx.createGain();
+    env.gain.value = gain;
+    src.connect(env);
+    connectPan(g, env, 0.1);
+    src.start(t);
+    g.track(src, t + e.buf.duration + 0.02);
+  }
+
+  // prodleva z varhan: překrývající se úseky tónů D2, A2 a D3 s prolínáním
+  drone(g, t0, t1) {
+    if (this.droneNext == null || this.droneNext < t0 - 2) this.droneNext = t0;
+    const L = 3.4, X = 1.1;
+    while (this.droneNext < t1) {
+      const t = this.droneNext;
+      for (const [name, a] of [['D3', 0.023], ['A3', 0.014], ['D4', 0.0066]]) {
+        const f = freq(name) / 2;
+        const e = this.pick('organ', f);
+        const src = g.ctx.createBufferSource();
+        src.buffer = e.buf;
+        src.playbackRate.value = f / e.freq;
+        const env = g.ctx.createGain();
+        env.gain.setValueAtTime(0, t);
+        env.gain.linearRampToValueAtTime(a, t + X);
+        env.gain.setValueAtTime(a, t + L - X);
+        env.gain.linearRampToValueAtTime(0, t + L);
+        src.connect(env);
+        env.connect(g.bus);
+        src.start(t, 0.45);
+        g.track(src, t + L + 0.03);
+      }
+      this.droneNext += L - X;
+    }
+  }
+}
+
+function connectPan(g, node, pan) {
+  if (pan && g.ctx.createStereoPanner) {
+    const pn = g.ctx.createStereoPanner();
+    pn.pan.value = pan;
+    node.connect(pn);
+    pn.connect(g.bus);
+  } else node.connect(g.bus);
+}
+
+export async function loadKit(ctx, base) {
+  const meta = await fetch(base + 'samples.json').then((r) => { if (!r.ok) throw new Error('samples ' + r.status); return r.json(); });
+  const banks = {};
+  await Promise.all(Object.entries(meta).map(async ([inst, list]) => {
+    banks[inst] = await Promise.all(list.map(async (e) => {
+      const ab = await fetch(base + e.file).then((r) => { if (!r.ok) throw new Error(e.file + ' ' + r.status); return r.arrayBuffer(); });
+      const buf = await new Promise((res, rej) => ctx.decodeAudioData(ab, res, rej));
+      return { name: e.file, freq: e.midi == null ? null : 440 * Math.pow(2, (e.midi - 69) / 12), buf };
+    }));
+  }));
+  return new SampleKit(banks);
+}
+
+// ---------- záložní syntetizovaná sada (když se vzorky nenačtou) ----------
+export class SynthKit {
+  constructor() { this.kind = 'synth'; this.droneUntil = 0; }
+
+  line(g, notes, t, { inst = 'voice', gain = 0.5, pan = 0, detune = 0 } = {}) {
+    const total = notes.reduce((a, n) => a + n.d, 0);
+    const v = voice(g, { t0: t, t1: t + total + 1, pan, detune, vowel: inst === 'voice' ? VOWEL_A : VOWEL_O, gain: gain * 0.6 });
+    return sing(v, notes, t);
+  }
+
+  pluck(g, name, t, gain = 0.3) { pluck(g, name, t, gain * 0.15); }
+  harp(g, name, t, gain = 0.25) { pluck(g, name, t, gain * 0.15); }
+  bell(g, name, t, gain = 0.2) { bell(g, name, t, gain * 0.2); }
+  drum() { /* bez bubnu */ }
+
+  drone(g, t0, t1) {
+    if (this.droneUntil > t0) return;
+    this.droneUntil = t0 + 6 * 3600;
+    drone(g, t0, this.droneUntil);
+  }
+}
+
 // ---------- skladatel: naplánuje vždy jeden oddíl ----------
 export class Composer {
-  constructor(seed = Date.now()) {
+  constructor(kit, seed = Date.now()) {
+    this.kit = kit;
     this.rng = mulberry(seed);
     this.step = 0;
     this.form = ['intro', 'antiphon', 'verse', 'verse', 'organum', 'interlude'];
-    this.u = 0.48;
+    this.u = 0.5;
   }
 
   // naplánuje další oddíl od času t, vrátí jeho konec
@@ -291,24 +430,25 @@ export class Composer {
     const kind = this.step === 0 ? 'intro' : this.form[1 + ((this.step - 1) % (this.form.length - 1))];
     this.step++;
     this.last = kind;
-    return this[kind](g, t);
+    const end = this[kind](g, t);
+    this.kit.drone(g, t, end + 1.5);
+    return end;
   }
 
   breath() { return this.u * 1.5 * (1 + (this.rng() * 2 - 1) * 0.08); }
 
   intro(g, t) {
-    bell(g, 'D3', t + 3, 0.05);
+    this.kit.harp(g, 'D3', t + 2.2, 0.1);
+    this.kit.bell(g, 'D3', t + 4, 0.1);
     return t + 10;
   }
 
   antiphon(g, t) {
     const rng = this.rng;
-    const phrases = ANTIPHON.map((p) => realize(p, this.u, rng));
-    const total = phrases.reduce((s, p) => s + p.reduce((a, n) => a + n.d, 0), 0) + 4 * this.breath() + 2;
-    const v = voice(g, { t0: t, t1: t + total + 1, pan: 0, vowel: VOWEL_A, gain: 0.42 });
-    for (const p of phrases) {
-      t = sing(v, p, t);
-      if (rng() < 0.35) bell(g, rng() < 0.5 ? 'A3' : 'D4', t + 0.2, 0.025);
+    for (const p of ANTIPHON.map((ph) => realize(ph, this.u, rng))) {
+      this.kit.harp(g, p[0].name, t, 0.077);
+      t = this.kit.line(g, p, t, { inst: 'voice', gain: 1.27 });
+      if (rng() < 0.35) this.kit.bell(g, rng() < 0.5 ? 'A3' : 'D4', t + 0.2, 0.06);
       t += this.breath();
     }
     return t;
@@ -316,14 +456,11 @@ export class Composer {
 
   verse(g, t) {
     const rng = this.rng;
-    const phrases = verse(rng).map((p) => realize(p, this.u, rng));
-    const total = phrases.reduce((s, p) => s + p.reduce((a, n) => a + n.d, 0), 0) + 3 * this.breath() + 2;
-    const voices = [-8, 0, 8].map((det, i) => voice(g, {
-      t0: t, t1: t + total + 1, pan: [-0.35, 0, 0.35][i], detune: det, vowel: VOWEL_O, gain: 0.2,
-    }));
-    for (const p of phrases) {
+    for (const p of verse(rng).map((ph) => realize(ph, this.u, rng))) {
       let end = t;
-      voices.forEach((v, i) => { end = Math.max(end, sing(v, p, t + i * 0.012 + rng() * 0.012)); });
+      [[-6, -0.3, 0], [6, 0.3, 0.018]].forEach(([det, pan, off]) => {
+        end = Math.max(end, this.kit.line(g, p, t + off, { inst: 'choir', gain: 1.0, pan, detune: det }));
+      });
       t = end + this.breath();
     }
     return t;
@@ -331,11 +468,7 @@ export class Composer {
 
   organum(g, t) {
     const rng = this.rng;
-    const phrases = ANTIPHON.map((p) => realize(p, this.u * 1.06, rng));
-    const total = phrases.reduce((s, p) => s + p.reduce((a, n) => a + n.d, 0), 0) + 4 * this.breath() + 2;
-    const upper = [-7, 7].map((det, i) => voice(g, { t0: t, t1: t + total + 1, pan: [-0.25, 0.25][i], detune: det, vowel: VOWEL_A, gain: 0.22 }));
-    const lower = [-6, 6].map((det, i) => voice(g, { t0: t, t1: t + total + 1, pan: [0.3, -0.3][i], detune: det, vowel: VOWEL_O, gain: 0.22 }));
-    for (const p of phrases) {
+    for (const p of ANTIPHON.map((ph) => realize(ph, this.u * 1.06, rng))) {
       // spodní hlas: kvinta pod melodií, začátek a konec v unisonu
       let prevLow = p[0].name;
       const low = p.map((n, i) => {
@@ -345,9 +478,11 @@ export class Composer {
         return { ...n, name: prevLow };
       });
       let end = t;
-      upper.forEach((v, i) => { end = Math.max(end, sing(v, p, t + i * 0.015)); });
-      lower.forEach((v, i) => { end = Math.max(end, sing(v, low, t + 0.008 + i * 0.015)); });
-      if (rng() < 0.4) bell(g, 'D3', end + 0.1, 0.03);
+      end = Math.max(end, this.kit.line(g, p, t, { inst: 'choir', gain: 0.9, pan: -0.25, detune: -5 }));
+      end = Math.max(end, this.kit.line(g, p, t + 0.015, { inst: 'choir', gain: 0.9, pan: 0.25, detune: 5 }));
+      end = Math.max(end, this.kit.line(g, low, t + 0.008, { inst: 'choir', gain: 0.85, pan: 0.1, detune: 3 }));
+      end = Math.max(end, this.kit.line(g, low, t + 0.02, { inst: 'voice', gain: 0.6, pan: -0.1 }));
+      if (rng() < 0.4) this.kit.bell(g, 'D3', end + 0.1, 0.07);
       t = end + this.breath();
     }
     return t;
@@ -356,16 +491,19 @@ export class Composer {
   interlude(g, t) {
     const rng = this.rng;
     const start = t;
-    t += 1.5;
+    this.kit.drum(g, 'HDrumL_Hit', t + 0.3, 0.125);
+    t += 1.6;
     const order = [0, 1, 2, 3].sort(() => rng() - 0.5).slice(0, 3);
     for (const fi of order) {
+      this.kit.harp(g, rng() < 0.5 ? 'D3' : 'A3', t, 0.066);
       for (const [name, units] of FRAGMENTS[fi]) {
-        pluck(g, name, t, 0.045);
+        this.kit.pluck(g, name, t, 0.26);
         t += units * this.u * 1.15 * (1 + (rng() * 2 - 1) * 0.1);
       }
+      this.kit.drum(g, rng() < 0.5 ? 'HDrumL_HitMuted' : 'HDrumS_Hand', t + 0.2, 0.08);
       t += 1.8 + rng() * 1.5;
     }
-    bell(g, rng() < 0.5 ? 'D4' : 'A3', t, 0.035);
+    this.kit.bell(g, rng() < 0.5 ? 'D4' : 'A3', t, 0.085);
     return Math.max(t + 3, start + 18);
   }
 }
@@ -377,9 +515,11 @@ export class MusicPlayer {
     this.on = true;
     try { this.on = localStorage.getItem('rc-music') !== 'off'; } catch (e) { /* nic */ }
     this.g = null;
+    this.kit = null;
+    this.kitPromise = null;
     this.timer = null;
     this.next = 0;
-    this.hiddenFade = false;
+    this.base = new URL('../music/', import.meta.url).href;
     document.addEventListener('visibilitychange', () => this.onVisibility());
   }
 
@@ -397,22 +537,36 @@ export class MusicPlayer {
   start() {
     const ctx = this.getCtx();
     if (!ctx || this.g) return;
-    this.g = new Graph(ctx, ctx.destination, LITE ? 2 : 4);
-    const t = ctx.currentTime + 0.2;
-    this.g.out.gain.setValueAtTime(0.0001, t);
-    this.g.out.gain.exponentialRampToValueAtTime(LEVEL, t + 2.5);
-    this.droneEnv = drone(this.g, t, t + 60 * 60 * 6);
-    this.composer = new Composer();
-    this.next = t;
-    this.tick();
-    this.timer = setInterval(() => this.tick(), 500);
+    const g = new Graph(ctx, ctx.destination, LITE ? 2 : 3.5);
+    this.g = g;
+    if (!this.kitPromise) {
+      this.kitPromise = loadKit(ctx, this.base).catch((e) => {
+        console.warn('Hudba: vzorky se nenačetly, hraje syntéza', e);
+        return new SynthKit();
+      });
+    }
+    this.kitPromise.then((kit) => {
+      if (this.g !== g) return; // mezitím vypnuto
+      this.kit = kit;
+      const t = ctx.currentTime + 0.2;
+      g.out.gain.setValueAtTime(0.0001, t);
+      g.out.gain.exponentialRampToValueAtTime(LEVEL, t + 2.5);
+      if (kit.drone && kit.droneNext !== undefined) kit.droneNext = null;
+      this.composer = new Composer(kit);
+      this.next = t;
+      this.tick();
+      this.timer = setInterval(() => this.tick(), 500);
+    });
   }
 
   tick() {
     const g = this.g;
-    if (!g || document.hidden) return;
+    if (!g || !this.composer || document.hidden) return;
     const now = g.ctx.currentTime;
-    if (this.next < now + 0.2) this.next = now + 0.5;
+    if (this.next < now + 0.2) {
+      this.next = now + 0.5;
+      if (this.kit.droneNext !== undefined) this.kit.droneNext = null;
+    }
     if (this.next - now < 3) this.next = this.composer.section(g, this.next);
   }
 
@@ -421,11 +575,13 @@ export class MusicPlayer {
     if (!g) return;
     clearInterval(this.timer);
     this.timer = null;
+    this.composer = null;
     const now = g.ctx.currentTime;
     g.out.gain.cancelScheduledValues(now);
     g.out.gain.setValueAtTime(g.out.gain.value, now);
     g.out.gain.linearRampToValueAtTime(0, now + 0.6);
     g.stopAll(now + 0.7);
+    if (this.kit && this.kit.kind === 'synth') this.kit = null, this.kitPromise = null;
     setTimeout(() => { try { g.duckG.disconnect(); } catch (e) { /* nic */ } }, 900);
     this.g = null;
   }
@@ -462,18 +618,19 @@ export class MusicPlayer {
   }
 
   activeNodes() { return this.g ? this.g.nodes.size : 0; }
+  kitKind() { return this.kit ? this.kit.kind : 'none'; }
 }
 
-// Offline vykreslení pro ověření (bez zvuku): vrátí AudioBuffer
-export async function renderOffline(seconds = 120, rate = 22050, seed = 7, withDrone = true) {
+// Offline vykreslení pro ověření (bez zvuku): vrátí AudioBuffer a přehled oddílů
+export async function renderOffline(seconds = 120, rate = 22050, seed = 7, { base = null, synth = false } = {}) {
   used.clear();
   const ctx = new OfflineAudioContext(2, Math.ceil(seconds * rate), rate);
   const g = new Graph(ctx, ctx.destination, 3);
-  if (withDrone) drone(g, 0.1, seconds);
-  const comp = new Composer(seed);
+  const kit = synth ? new SynthKit() : await loadKit(ctx, base || new URL('../music/', import.meta.url).href);
+  const comp = new Composer(kit, seed);
   let t = 0.1;
   const sections = [];
   while (t < seconds) { const k0 = t; t = comp.section(g, t); sections.push([comp.last, +k0.toFixed(1), +t.toFixed(1)]); }
   const buf = await ctx.startRendering();
-  return { buf, sections, used: [...used].sort() };
+  return { buf, sections, used: [...used].sort(), kit: kit.kind };
 }

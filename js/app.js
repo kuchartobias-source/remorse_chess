@@ -1,14 +1,14 @@
 // Kajícné šachy – aplikace (lobby, deska, online hra)
-import * as E from './engine.js?v=4';
-import { pieceSVG, CHIP_SVG, ICON } from './pieces.js?v=4';
-import { FX } from './fx.js?v=4';
-import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=4';
-import { RULES_HTML } from './rules.js?v=4';
-import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=4';
-import { MusicPlayer } from './music.js?v=4';
+import * as E from './engine.js?v=5';
+import { pieceSVG, CHIP_SVG, ICON } from './pieces.js?v=5';
+import { FX } from './fx.js?v=5';
+import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=5';
+import { RULES_HTML } from './rules.js?v=5';
+import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=5';
+import { MusicPlayer } from './music.js?v=5';
 
 const music = new MusicPlayer(getCtx);
-import { LEVELS } from './ai.js?v=4';
+import { LEVELS } from './ai.js?v=5';
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -1011,7 +1011,7 @@ class Game {
     this.aiWait = new Map();
     this.aiBase = new URL('../model/', import.meta.url).href;
     try {
-      this.worker = new Worker(new URL('./ai-worker.js?v=4', import.meta.url), { type: 'module' });
+      this.worker = new Worker(new URL('./ai-worker.js?v=5', import.meta.url), { type: 'module' });
       this.worker.onmessage = (e) => {
         const cb = this.aiWait.get(e.data.id);
         if (cb) { this.aiWait.delete(e.data.id); cb(e.data); }
@@ -1038,7 +1038,7 @@ class Game {
         return this.aiCall(msg);
       });
     }
-    return import('./ai.js?v=4').then(async (A) => {
+    return import('./ai.js?v=5').then(async (A) => {
       if (!this.aiModel) {
         try { this.aiModel = await A.loadModel(this.aiBase); } catch (e) { this.aiModel = A.materialModel; }
       }
