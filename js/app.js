@@ -698,7 +698,7 @@ class Game {
     if (this.me && r.winner) me = r.winner === this.me ? '<p><b>Vítězíš! Tvé svědomí je čisté.</b></p>' : '<p><b>Prohráváš. Čas na pokání.</b></p>';
     const canRematch = this.mode === 'local' || !!this.me;
     this.openOverlay(`<div class="box"><h2>${title}</h2><p>${this.resultText(r)}</p>${me}<div class="row">`
-      + (canRematch ? '<button class="btn primary" data-re>Odveta</button>' : '')
+      + (canRematch ? `<button class="btn primary" data-re>${this.rematch ? 'Přijmout odvetu' : 'Odveta'}</button>` : '')
       + '<button class="btn" data-x>Prohlédnout desku</button></div></div>', (ov) => {
       const re = ov.querySelector('[data-re]');
       if (re) re.onclick = () => this.rematchNow();
@@ -710,6 +710,12 @@ class Game {
     if (this.mode === 'local') {
       store.del('rc-local');
       location.reload();
+      return;
+    }
+    // Soupeř už odvetu navrhl → připojíme se k jeho místnosti, nezakládáme novou
+    if (this.rematch) {
+      store.set('rc-seat-' + this.rematch.room, this.rematch.c);
+      location.hash = 'hra=' + this.rematch.room;
       return;
     }
     const room = newRoomId();
