@@ -16,17 +16,27 @@ const SVG = {
     <path class="pt" d="M48 1.5 H52 V6 H56.5 V10 H52 V14 H48 V10 H43.5 V6 H48 Z"/>
     ${BASE}`,
 
-  // Inkvizitor – vysoká špičatá kápě s průzory, pochodeň, róba s křížem
+  // Inkvizitor – dominikánský hábit se stolou, biret se třemi hřebínky a bambulí,
+  // otevřená kniha a meč spravedlnosti
   Q: `
-    <path class="pb" d="M38 57 C32 65 28.5 75 27.5 86 H72.5 C71.5 75 68 65 62 57 Z"/>
-    <path class="ps" d="M50 63 V80 M43.5 69 H56.5"/>
-    <path class="pb" d="M50 4 L62.5 44 C64.5 50 64.5 55 62 59 H38 C35.5 55 35.5 50 37.5 44 Z"/>
-    <path class="pl" d="M44.5 53 Q50 56 55.5 53"/>
-    <ellipse class="pd" cx="45" cy="44" rx="2.6" ry="3.6"/>
-    <ellipse class="pd" cx="55" cy="44" rx="2.6" ry="3.6"/>
-    <path class="pt" d="M18.5 47 H25.5 L24.2 76 H19.8 Z"/>
-    <path class="pf" d="M22 25 C15 34 15.5 43 22 47 C28.5 43 29 34 22 25 Z"/>
-    <path class="pf2" d="M22 34 C19 38.5 19.3 42.5 22 44.5 C24.7 42.5 25 38.5 22 34 Z"/>
+    <path class="pb" d="M19.5 10.5 L22.8 16.5 V60 H16.2 V16.5 Z"/>
+    <path class="pl" d="M19.5 18 V57.5" style="stroke-width:1.1"/>
+    <rect class="pt" x="11.3" y="59.4" width="16.4" height="4.4" rx="1.8"/>
+    <rect class="pt" x="17.6" y="63.4" width="3.8" height="11" rx="1.2"/>
+    <circle class="pt" cx="19.5" cy="76.6" r="2.9"/>
+    <path class="pb" d="M35 58 C29 66 26.5 76 26 86 H74 C73.5 76 71 66 65 58 Z"/>
+    <path class="pt" d="M45.5 64 H54.5 V86 H45.5 Z"/>
+    <path class="pb" d="M33.5 52 C38 47.5 62 47.5 66.5 52 L71 64 C61 68.5 39 68.5 29 64 Z"/>
+    <path class="pt" d="M37.5 61.5 Q44 59 50 62 Q56 59 62.5 61.5 V72.5 Q56 70 50 73 Q44 70 37.5 72.5 Z"/>
+    <path class="pl" d="M50 62 V73" style="stroke-width:1.2"/>
+    <path class="pl" d="M40.5 64.8 Q44.5 63.4 47.5 65 M52.5 65 Q55.5 63.4 59.5 64.8 M40.5 68.2 Q44.5 66.8 47.5 68.4 M52.5 68.4 Q55.5 66.8 59.5 68.2" style="stroke-width:.9"/>
+    <ellipse class="pd" cx="50" cy="45.5" rx="8.6" ry="7.8"/>
+    <path class="pb" d="M36 41.5 L37.6 28 H62.4 L64 41.5 Z"/>
+    <path class="pb" d="M38 28.5 Q39.5 20.5 45.3 23.5 V28.5 Z"/>
+    <path class="pb" d="M45 28.5 Q50 16.5 55 28.5 Z"/>
+    <path class="pb" d="M54.7 28.5 V23.5 Q60.5 20.5 62 28.5 Z"/>
+    <path class="pt" d="M36.3 37.6 H63.7 L64.1 41.6 H35.9 Z"/>
+    <circle class="pt" cx="50" cy="18.6" r="3.9"/>
     ${BASE}`,
 
   // Hranice – kůl s otýpkami dřeva (hranice)
