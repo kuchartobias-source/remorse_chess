@@ -53,6 +53,21 @@
         <button class="btn primary" id="btn-create" type="button">Založit online hru</button>
       </div>
       <div class="card">
+        <h2>Proti stroji</h2>
+        <p>Zahraj si proti neuronové síti, která se hru naučila sama hraním proti sobě.</p>
+        <div class="seg" role="group" aria-label="Barva proti stroji" id="ai-color-seg">
+          <button type="button" data-c="w" aria-pressed="true">Bílé</button>
+          <button type="button" data-c="b" aria-pressed="false">Černé</button>
+          <button type="button" data-c="r" aria-pressed="false">Náhodně</button>
+        </div>
+        <div class="seg" role="group" aria-label="Síla stroje" id="ai-level-seg">
+          <button type="button" data-l="1" aria-pressed="false">Poutník</button>
+          <button type="button" data-l="2" aria-pressed="true">Biskup</button>
+          <button type="button" data-l="3" aria-pressed="false">Inkvizitor</button>
+        </div>
+        <button class="btn primary" id="btn-ai" type="button">Hrát proti stroji</button>
+      </div>
+      <div class="card">
         <h2>Na jednom zařízení</h2>
         <p>Oba hráči se střídají u jedné obrazovky – ideální na zkoušení pravidel.</p>
         <div class="seg" role="group" aria-label="Otáčení desky" id="flip-seg">
@@ -95,6 +110,15 @@
         </div>
       </div>
       <div id="banners"></div>
+      <div class="panel chat" id="chat" hidden>
+        <h3>Chat</h3>
+        <div class="chat-log" id="chat-log" aria-live="polite"></div>
+        <div class="chat-quick" id="chat-quick"></div>
+        <form class="chat-form" id="chat-form" autocomplete="off">
+          <input id="chat-input" maxlength="300" placeholder="Napiš zprávu…" aria-label="Zpráva do chatu">
+          <button class="btn small primary" type="submit">Odeslat</button>
+        </form>
+      </div>
       <div class="panel">
         <h3>Kronika</h3>
         <div class="story" id="story"></div>

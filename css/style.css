@@ -427,3 +427,18 @@ footer.foot { text-align: center; color: var(--dim); font-size: 14px; padding: 8
   .piece { transition-duration: .08s; }
   .hero-pieces .hp, .sq.reach::before, .hint.clean .ring, .sq.choice::after { animation: none; }
 }
+
+/* ---------- Chat ---------- */
+.chat-log { max-height: 190px; overflow-y: auto; font-size: 15px; display: flex; flex-direction: column; gap: 3px; padding-right: 4px; scrollbar-width: thin; }
+.chat-log .msg { line-height: 1.35; overflow-wrap: anywhere; }
+.chat-log .msg.mine { color: #f6e7c4; }
+.chat-log .who { font-family: var(--font-title); font-size: 12px; letter-spacing: .04em; }
+.chat-log .who.w { color: #f3ead6; }
+.chat-log .who.b { color: #d2a48f; }
+.chat-log .who.x { color: var(--dim); }
+.chat-empty { color: var(--dim); font-style: italic; font-size: 14px; }
+.chat-quick { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0 6px; }
+.chat-quick .btn { padding: 3px 8px; font-size: 11px; }
+.chat-form { display: flex; gap: 6px; }
+.chat-form input { flex: 1; min-width: 0; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: rgba(0,0,0,.35); color: var(--ink); font: inherit; font-size: 15px; }
+.chat-form input:focus { outline: none; border-color: var(--gold); }

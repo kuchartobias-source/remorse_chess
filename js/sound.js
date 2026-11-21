@@ -182,6 +182,7 @@ export const sfx = {
   lose() { if (ok()) { chord([130.81, 261.63, 311.13, 392], { dur: 3.2, gain: 0.07, attack: 0.1, type: 'square', lp: 1300 }); bell(65.4, { delay: 0.2, dur: 4, gain: 0.35 }); } },
   draw() { if (ok()) chord([196, 293.66, 392], { dur: 2.4, gain: 0.06, attack: 0.12, type: 'square', lp: 1500 }); },
   notify() { if (ok(true)) bell(880, { dur: 1.2, gain: 0.1 }); },
+  chat() { if (ok(true)) { tone({ type: 'triangle', f: 988, dur: 0.12, gain: 0.07 }); tone({ type: 'triangle', f: 1319, delay: 0.09, dur: 0.18, gain: 0.07 }); } },
 };
 
 // Zvuky pro události jednoho tahu (časování odpovídá animacím)

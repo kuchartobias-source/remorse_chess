@@ -5,6 +5,7 @@ import { FX } from './fx.js?v=2';
 import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=2';
 import { RULES_HTML } from './rules.js?v=2';
 import { sfx, playEvents, unlock, isMuted, setMuted } from './sound.js?v=2';
+import { LEVELS } from './ai.js?v=2';
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -86,6 +87,14 @@ function showLobby() {
   $('btn-local').onclick = () => {
     store.del('rc2-local');
     location.hash = 'mistni' + (flip ? '&otacet=1' : '');
+  };
+  let aiColor = 'w', aiLevel = '2';
+  seg('ai-color-seg', 'c', (v) => { aiColor = v; });
+  seg('ai-level-seg', 'l', (v) => { aiLevel = v; });
+  $('btn-ai').onclick = () => {
+    const c = aiColor === 'r' ? (Math.random() < 0.5 ? 'w' : 'b') : aiColor;
+    store.del('rc2-ai');
+    location.hash = `stroj=${c}&uroven=${aiLevel}`;
   };
 }
 
@@ -347,8 +356,10 @@ class BoardView {
 
 // ---------------- Hra ----------------
 class Game {
-  constructor({ mode, room = null, autoFlip = false }) {
+  constructor({ mode, room = null, autoFlip = false, ai = null }) {
     this.mode = mode;
+    this.ai = ai; // { color: barva stroje, level: 1..3 } v režimu proti stroji
+    this.thinking = false;
     this.room = room;
     this.autoFlip = autoFlip;
     this.me = null;
@@ -375,7 +386,7 @@ class Game {
 
   canAct() {
     if (this.result() || !this.synced) return false;
-    if (this.mode === 'local') return true;
+    if (this.mode === 'local') return !this.ai || (this.state.turn !== this.ai.color && !this.thinking);
     return !!this.me && this.state.turn === this.me;
   }
 
@@ -407,6 +418,7 @@ class Game {
     this.refresh(r.events);
     this.persist();
     if (this.mode === 'online') this.sendState();
+    if (this.ai) this.aiTurn(r.events);
     if (this.mode === 'local' && this.autoFlip && !this.result()) {
       const ply = this.state.ply;
       const slow = r.events.some((e) => e.type === 'popeFall' || e.type === 'conclave');
@@ -415,7 +427,8 @@ class Game {
   }
 
   persist() {
-    if (this.mode === 'local') store.set('rc2-local', { a: this.actions, ext: this.ext, flip: this.autoFlip });
+    if (this.ai) store.set('rc2-ai', { a: this.actions, ext: this.ext, color: this.ai.color, level: this.ai.level });
+    else if (this.mode === 'local') store.set('rc2-local', { a: this.actions, ext: this.ext, flip: this.autoFlip });
     else store.set('rc2-game-' + this.room, { a: this.actions, ext: this.ext });
   }
 
@@ -510,7 +523,11 @@ class Game {
   }
 
   presence(c) {
-    if (this.mode !== 'online') return '';
+    if (this.mode !== 'online') {
+      if (!this.ai) return '';
+      if (c !== this.ai.color) return 'ty';
+      return `stroj · ${LEVELS[this.ai.level].name}${this.thinking ? ' · přemýšlí…' : ''}`;
+    }
     if (c === this.me) return 'ty';
     if (!this.synced) return 'načítám…';
     if (!this.seats || !this.seats[c]) return this.me ? 'čeká se na soupeře…' : 'volné místo';
@@ -627,7 +644,8 @@ class Game {
       status = `<b>Konkláve!</b> ${PLAYER[c]}${c === this.me ? ' (ty)' : ''} volí nového Papeže z čistých Biskupů.`;
     } else {
       const t = this.state.turn;
-      status = `Na tahu: <b>${PLAYER[t]}</b>${t === this.me ? ' (ty)' : ''}.`;
+      const machine = this.ai && t === this.ai.color;
+      status = `Na tahu: <b>${PLAYER[t]}</b>${t === this.me ? ' (ty)' : ''}${machine ? (this.thinking ? ' – stroj přemýšlí…' : ' (stroj)') : ''}.`;
     }
     let hint = '';
     if (this.sel >= 0) {
@@ -797,6 +815,11 @@ class Game {
   }
 
   async rematchNow() {
+    if (this.ai) {
+      store.del('rc2-ai');
+      location.hash = `stroj=${this.ai.color}&uroven=${this.ai.level}`;
+      return;
+    }
     if (this.mode === 'local') {
       store.del('rc2-local');
       location.reload();
@@ -826,7 +849,18 @@ class Game {
       this.confirm('Nová hra', 'Opustit tuto hru a vrátit se na úvod? Rozehranou online hru můžeš později znovu otevřít stejným odkazem.', 'Na úvod', () => { location.hash = ''; });
     };
     $('btn-draw').onclick = () => {
-      if (this.mode === 'local') {
+      if (this.ai) {
+        this.confirm('Nabídnout remízu', 'Nabídnout stroji remízu?', 'Nabídnout', () => {
+          this.aiCall({ type: 'draw' }).then((r) => {
+            if (r.ok && r.accept && !this.result()) {
+              this.ext = { winner: null, reason: 'draw' };
+              this.persist();
+              this.refresh();
+              toast('Stroj remízu přijal.');
+            } else toast('Stroj remízu odmítá – věří si.');
+          });
+        });
+      } else if (this.mode === 'local') {
         this.confirm('Remíza', 'Uzavřít remízu dohodou?', 'Remíza', () => { this.ext = { winner: null, reason: 'draw' }; this.persist(); this.refresh(); });
       } else if (this.me) {
         this.confirm('Nabídnout remízu', 'Poslat soupeři nabídku remízy?', 'Nabídnout', () => {
@@ -837,9 +871,9 @@ class Game {
       }
     };
     $('btn-resign').onclick = () => {
-      const loser = this.mode === 'local' ? this.state.turn : this.me;
+      const loser = this.mode === 'local' && !this.ai ? this.state.turn : this.me;
       if (!loser) return;
-      this.confirm('Vzdát se', this.mode === 'local' ? `Opravdu se ${PLAYER[loser]} vzdává?` : 'Opravdu se chceš vzdát?', 'Vzdát se', () => {
+      this.confirm('Vzdát se', this.mode === 'local' && !this.ai ? `Opravdu se ${PLAYER[loser]} vzdává?` : 'Opravdu se chceš vzdát?', 'Vzdát se', () => {
         this.ext = { winner: other(loser), reason: 'resign' };
         this.persist();
         if (this.mode === 'online') this.net.send({ k: 'resign', id: this.cid, c: loser });
@@ -952,6 +986,82 @@ class Game {
     this.act(E.moveToString(ms[0]));
   }
 
+  // ---------- hra proti stroji ----------
+  startAI() {
+    const saved = store.get('rc2-ai');
+    if (saved && Array.isArray(saved.a) && saved.color === this.ai.color && saved.level === this.ai.level) {
+      this.actions = saved.a.filter((x) => typeof x === 'string' && ACTION_RE.test(x));
+      this.ext = saved.ext || null;
+      this.rebuild();
+    }
+    this.me = other(this.ai.color);
+    this.view.setOrient(this.me);
+    this.initAI();
+    this.refresh();
+    this.aiTurn(null);
+  }
+
+  initAI() {
+    this.aiReq = 0;
+    this.aiWait = new Map();
+    this.aiBase = new URL('../model/', import.meta.url).href;
+    try {
+      this.worker = new Worker(new URL('./ai-worker.js?v=2', import.meta.url), { type: 'module' });
+      this.worker.onmessage = (e) => {
+        const cb = this.aiWait.get(e.data.id);
+        if (cb) { this.aiWait.delete(e.data.id); cb(e.data); }
+      };
+      this.worker.onerror = () => { this.worker = null; };
+    } catch (e) {
+      this.worker = null;
+    }
+    this.aiCall({ type: 'load' }).then((r) => {
+      if (r.ok && r.kind !== 'net') toast('Síť se nepodařilo načíst – stroj hraje jen podle materiálu.', 5000);
+    });
+  }
+
+  // Dotaz na stroj (ve Web Workeru, záložně v hlavním vlákně)
+  aiCall(msg) {
+    const id = ++this.aiReq;
+    const payload = { ...msg, id, actions: this.actions.slice(), level: this.ai.level, base: this.aiBase, aiColor: this.ai.color };
+    if (this.worker) {
+      const viaWorker = new Promise((res) => { this.aiWait.set(id, res); this.worker.postMessage(payload); });
+      const fallback = new Promise((res) => setTimeout(() => res(null), 20000));
+      return Promise.race([viaWorker, fallback]).then((r) => {
+        if (r) return r;
+        this.worker = null;
+        return this.aiCall(msg);
+      });
+    }
+    return import('./ai.js?v=2').then(async (A) => {
+      if (!this.aiModel) {
+        try { this.aiModel = await A.loadModel(this.aiBase); } catch (e) { this.aiModel = A.materialModel; }
+      }
+      if (msg.type === 'load') return { ok: true, kind: this.aiModel === A.materialModel ? 'material' : 'net' };
+      if (msg.type === 'move') return { ok: true, action: A.chooseAction(this.aiModel, this.state, this.ai.level) };
+      if (msg.type === 'draw') return { ok: true, accept: A.acceptsDraw(this.aiModel, this.state, this.ai.color) };
+      return { ok: false };
+    });
+  }
+
+  aiTurn(events) {
+    if (!this.ai || this.result() || this.state.turn !== this.ai.color || this.thinking) return;
+    this.thinking = true;
+    this.refreshPanels();
+    const slow = events && events.some((e) => ['popeFall', 'conclave', 'crusade'].includes(e.type));
+    const delay = events ? (slow ? 2600 : 800) : 500;
+    const len = this.actions.length;
+    const t0 = Date.now();
+    this.aiCall({ type: 'move' }).then((r) => {
+      setTimeout(() => {
+        this.thinking = false;
+        if (this.actions.length !== len || this.result()) { this.refreshPanels(); return; }
+        if (r && r.ok && r.action) this.act(r.action);
+        else { toast('Stroj nenašel tah.'); this.refreshPanels(); }
+      }, Math.max(0, delay - (Date.now() - t0)));
+    });
+  }
+
   // ---------- místní hra ----------
   startLocal() {
     const saved = store.get('rc2-local');
@@ -973,6 +1083,9 @@ class Game {
     this.offer = null;
     this.rematch = null;
     this.replied = new Set();
+    this.chat = [];
+    this.chatSeen = new Set();
+    this.setupChat();
     $('invite-url').value = location.origin + location.pathname + '#hra=' + this.room;
 
     const saved = store.get('rc2-game-' + this.room);
@@ -996,6 +1109,59 @@ class Game {
   }
 
   // Celý seznam akcí (~5 znaků na tah) – i partie o 600 půltazích se vejde do limitu zprávy ntfy (4 kB)
+  setupChat() {
+    $('chat').hidden = false;
+    const quick = ['Dobrý tah!', 'Kaj se!', 'Deus vult!', 'Hmm…'];
+    $('chat-quick').innerHTML = '';
+    for (const q of quick) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn small ghost';
+      b.textContent = q;
+      b.onclick = () => this.sendChat(q);
+      $('chat-quick').appendChild(b);
+    }
+    $('chat-form').onsubmit = (e) => {
+      e.preventDefault();
+      const inp = $('chat-input');
+      if (this.sendChat(inp.value)) inp.value = '';
+    };
+  }
+
+  sendChat(text) {
+    const t = String(text || '').trim().slice(0, 300);
+    if (!t || !this.net) return false;
+    const ts = Date.now();
+    this.chatSeen.add(this.cid + ':' + ts);
+    this.chat.push({ c: this.me, text: t, mine: true });
+    this.renderChat();
+    this.net.send({ k: 'chat', id: this.cid, c: this.me, t, ts });
+    return true;
+  }
+
+  renderChat() {
+    const log = $('chat-log');
+    log.innerHTML = '';
+    if (!this.chat.length) {
+      const e = document.createElement('div');
+      e.className = 'chat-empty';
+      e.textContent = 'Zatím žádné zprávy.';
+      log.appendChild(e);
+    }
+    for (const msg of this.chat) {
+      const row = document.createElement('div');
+      row.className = 'msg' + (msg.mine ? ' mine' : '');
+      const who = document.createElement('span');
+      who.className = 'who ' + (msg.c || 'x');
+      who.textContent = (msg.c ? PLAYER[msg.c] : 'Divák') + (msg.mine ? ' (ty)' : '') + ': ';
+      const txt = document.createElement('span');
+      txt.textContent = msg.text;
+      row.append(who, txt);
+      log.appendChild(row);
+    }
+    log.scrollTop = log.scrollHeight;
+  }
+
   statePayload() {
     return { o: 0, a: this.actions.join(' ') };
   }
@@ -1078,6 +1244,20 @@ class Game {
       case 'resign':
         if (c && !this.serverResult()) this.ext = { winner: other(c), reason: 'resign' };
         break;
+      case 'chat': {
+        const text = typeof m.t === 'string' ? m.t.trim().slice(0, 300) : '';
+        const uid = m.id + ':' + m.ts;
+        if (!text || this.chatSeen.has(uid)) break;
+        this.chatSeen.add(uid);
+        this.chat.push({ c, text, mine });
+        if (this.chat.length > 200) this.chat.shift();
+        this.renderChat();
+        if (!fromHistory && !mine) {
+          sfx.chat();
+          if (document.activeElement !== $('chat-input')) toast(`${c ? PLAYER[c] : 'Divák'}: ${text}`, 4500);
+        }
+        break;
+      }
       case 'rematch':
         if (!mine && c && typeof m.room === 'string' && ROOM_RE.test(m.room)) this.rematch = { room: m.room, c: other(c) };
         break;
@@ -1165,6 +1345,13 @@ function main() {
     const g = new Game({ mode: 'online', room });
     window.__game = g;
     g.startOnline();
+  } else if (params.has('stroj')) {
+    $('game').hidden = false;
+    const human = params.get('stroj') === 'b' ? 'b' : 'w';
+    const lv = parseInt(params.get('uroven'), 10);
+    const g = new Game({ mode: 'local', ai: { color: other(human), level: [1, 2, 3].includes(lv) ? lv : 2 } });
+    window.__game = g;
+    g.startAI();
   } else if (params.has('mistni')) {
     $('game').hidden = false;
     const saved = store.get('rc2-local');
