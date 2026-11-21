@@ -3,7 +3,8 @@
 
 const BASE = 'https://ntfy.sh/';
 export const ROOM_RE = /^[a-z0-9]{12}$/;
-const APP = 'rc1';
+// Verze protokolu = verze pravidel (rc2: Poutníci, dosah Hranic skrz vlastní figurky)
+const APP = 'rc2';
 
 export function newRoomId() {
   const a = new Uint8Array(12);
@@ -113,7 +114,14 @@ export class Channel {
     this.lastId = m.id;
     let data;
     try { data = JSON.parse(m.message); } catch (e) { return; }
-    if (!data || typeof data !== 'object' || data.app !== APP || typeof data.k !== 'string') return;
+    if (!data || typeof data !== 'object' || typeof data.k !== 'string') return;
+    if (data.app !== APP) {
+      // zpráva z jiné verze hry (stará pravidla nebo neobnovená stránka soupeře)
+      if (typeof data.app === 'string' && /^rc\d+$/.test(data.app)) {
+        try { this.onMessage({ k: '_version', app: data.app }, fromHistory); } catch (e) { /* nic */ }
+      }
+      return;
+    }
     try { this.onMessage(data, fromHistory); } catch (e) { console.error('Chyba při zpracování zprávy', e); }
   }
 

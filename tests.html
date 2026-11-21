@@ -46,15 +46,71 @@ t('Kající se Hříšník nesmí brát', () => {
   ok(has(s, 'd4d5'));
 });
 
-t('Křižák nepropadá pokání', () => {
-  const s = pos({ e1: 'wK', e8: 'bK', c3: 'wN', d5: 'bQ' });
-  const r = apply(s, 'c3d5');
-  ok(!P(r.state, 'd5').pen);
+t('Výchozí jezdci jsou Poutníci', () => {
+  const s = E.initialState();
+  eq(P(s, 'b1').t, 'N'); eq(P(s, 'g8').t, 'N');
 });
 
-t('Křižák ani Hříšník nesmí odstranit Hranici', () => {
-  const s = pos({ e1: 'wK', e8: 'bK', c3: 'wN', d5: 'bR', c4: 'wP' });
-  ok(!has(s, 'c3d5')); ok(!has(s, 'c4d5'));
+t('Poutník bere a propadá pokání, kající nesmí brát', () => {
+  const s = pos({ e1: 'wK', e8: 'bK', c1: 'wB', c3: 'wN', d5: 'bQ', c8: 'bB' });
+  const r = apply(s, 'c3d5');
+  ok(P(r.state, 'd5').pen);
+  const s2 = pos({ e1: 'wK', e8: 'bK', c1: 'wB', c3: 'wN*', d5: 'bQ', c8: 'bB' });
+  ok(!has(s2, 'c3d5'));
+});
+
+t('Poutník v dosahu Hranice upálí bez pokání', () => {
+  const s = pos({ e1: 'wK', e8: 'bK', c1: 'wB', c3: 'wN', d5: 'bQ', a5: 'wR', c8: 'bB' });
+  ok(!P(apply(s, 'c3d5').state, 'd5').pen);
+});
+
+t('Křižák nepropadá pokání', () => {
+  const s = pos({ e1: 'wK', e8: 'bK', c3: 'wC', d5: 'bQ', c8: 'bB' });
+  const r = apply(s, 'c3d5');
+  ok(!P(r.state, 'd5').pen);
+  eq(r.events.find(e => e.type === 'capture').kind, 'crusade');
+});
+
+t('Poutník, Křižák ani Hříšník nesmí odstranit Hranici', () => {
+  const s = pos({ e1: 'wK', e8: 'bK', c1: 'wB', c3: 'wN', d5: 'bR', c4: 'wP', f3: 'wC', e5: 'bR', c8: 'bB' });
+  ok(!has(s, 'c3d5')); ok(!has(s, 'c4d5')); ok(!has(s, 'f3e5'));
+});
+
+t('Poutník se zpovídá jen u Biskupa', () => {
+  const s = pos({ e1: 'wK', e8: 'bK', d1: 'wN*', c3: 'wB', c8: 'bB' });
+  ok(P(apply(s, 'e1e2').state, 'd1').pen, 'vedle Papeže zůstává kajícný');
+  ok(!P(apply(s, 'c3d2').state, 'd1').pen, 'vedle Biskupa rozhřešen');
+});
+
+t('Ztráta posledního Biskupa: Poutníci se stanou Křižáky a zbaví se pokání', () => {
+  const s = pos({ e1: 'wK', c1: 'wB', b1: 'wN*', g1: 'wN', e8: 'bK', h6: 'bQ', c8: 'bB' }, 'b');
+  const r = apply(s, 'h6c1');
+  eq(P(r.state, 'b1').t, 'C'); ok(!P(r.state, 'b1').pen); eq(P(r.state, 'g1').t, 'C');
+  const ev = r.events.find(e => e.type === 'crusade');
+  ok(ev && ev.color === 'w' && ev.ids.length === 2);
+  eq(P(r.state, 'c8').t, 'B');
+});
+
+t('Konkláve s posledním Biskupem spustí křížovou výpravu', () => {
+  const s = pos({ e1: 'wK', f1: 'wB', g1: 'wN', e8: 'bK', d3: 'bC', c8: 'bB' }, 'b');
+  const r = apply(s, 'd3e1');
+  eq(P(r.state, 'f1').t, 'K'); eq(P(r.state, 'g1').t, 'C');
+  const types = r.events.map(e => e.type);
+  ok(types.indexOf('conclave') < types.indexOf('crusade'));
+});
+
+t('Křižáci zůstanou i po proměně v nového Biskupa; nový Poutník je pak Poutník', () => {
+  let s = pos({ e1: 'wK', g1: 'wC', b7: 'wP', c7: 'wP', e8: 'bK', h8: 'bB' });
+  s = apply(s, 'b7b8b').state;
+  eq(P(s, 'g1').t, 'C'); eq(P(s, 'b8').t, 'B');
+  s = apply(s, 'h8g7').state;
+  s = apply(s, 'c7c8n').state;
+  eq(P(s, 'c8').t, 'N');
+});
+
+t('Proměna v Poutníka bez Biskupů dá rovnou Křižáka', () => {
+  const s = pos({ e1: 'wK', b7: 'wP', e8: 'bK', h8: 'bB' });
+  eq(P(apply(s, 'b7b8n').state, 'b8').t, 'C');
 });
 
 t('Hranice nebere vůbec nic', () => {
@@ -105,11 +161,17 @@ t('Papež strhne Hranici sám', () => {
   ok(has(s, 'e1e2'));
 });
 
-t('Dosah Hranice se počítá před tahem (bere-li figurka z linie, neprosvítá)', () => {
-  // Inkvizitor a3 stojí mezi Hranicí a1 a cílem a5
-  const s = pos({ e1: 'wK', e8: 'bK', a1: 'wR', a3: 'wQ', a5: 'bN' });
-  const r = apply(s, 'a3a5');
-  ok(P(r.state, 'a5').pen);
+t('Dosah Hranice: vlastní figurky neblokují (pozice ze screenshotu)', () => {
+  const s = pos({ d8: 'bK', c8: 'wN', b8: 'bN', a8: 'bR', h8: 'bR', e1: 'wK', c1: 'wB', f8: 'bB' }, 'b');
+  ok(has(s, 'd8c8'), 'černý Papež smí popravit c8');
+  const s2 = pos({ e1: 'wK', e8: 'bK', a1: 'wR', a3: 'wQ', a5: 'bN', c1: 'wB', c8: 'bB' });
+  ok(!P(apply(s2, 'a3a5').state, 'a5').pen, 'Inkvizitor mezi Hranicí a cílem neblokuje');
+});
+
+t('Dosah Hranice: soupeřova figurka blokuje', () => {
+  const s = pos({ e1: 'wK', e8: 'bK', a1: 'wR', a3: 'bN', a5: 'bN', e5: 'wQ', c1: 'wB', c8: 'bB' });
+  ok(P(apply(s, 'e5a5').state, 'a5').pen, 'a3 zastaví výhled');
+  eq(E.rookSources(s.board, 'w', E.sqIndex('a3')), [0]);
 });
 
 t('Žádný šach: Papež smí vstoupit na ohrožené pole', () => {
@@ -207,7 +269,7 @@ t('Zatracení: Papež padl, žádný čistý Biskup', () => {
 });
 
 t('Křižák smí sebrat Papeže', () => {
-  const s = pos({ e1: 'wK', c3: 'wN', d5: 'bK', h8: 'bR' });
+  const s = pos({ e1: 'wK', c3: 'wC', d5: 'bK', h8: 'bR' });
   const r = apply(s, 'c3d5');
   eq(r.state.result.winner, 'w');
 });
@@ -254,7 +316,7 @@ t('Černý Azyl na obě strany a proměna na 1. řadě', () => {
   ok(has(s, 'e8g8')); ok(has(s, 'e8c8'));
   const r = apply(s, 'e8c8');
   eq(P(r.state, 'd8').t, 'R'); eq(P(r.state, 'c8').t, 'K');
-  const s2 = pos({ e1: 'wK', e8: 'bK', b2: 'bP*' }, 'b');
+  const s2 = pos({ e1: 'wK', e8: 'bK', b2: 'bP*', f8: 'bB' }, 'b');
   const r2 = apply(s2, 'b2b1n');
   eq(P(r2.state, 'b1').t, 'N'); ok(!P(r2.state, 'b1').pen);
 });
@@ -291,10 +353,14 @@ t('500 náhodných partií: bez chyb, invarianty, replay = stav', () => {
         if (e.type === 'conclave') stats.conclaves++;
         if (e.type === 'promote') stats.promos++;
         if (e.type === 'absolve') stats.absolves++;
+        if (e.type === 'crusade') stats.crusades = (stats.crusades || 0) + 1;
         if (e.type === 'capture' && (e.kind === 'burn' || e.kind === 'execute')) stats.burns++;
       }
       stats.plies++;
-      for (const p of s.board) if (p && p.pen && 'KNR'.includes(p.t)) throw new Error('kající ' + p.t + ' v partii ' + g);
+      for (const p of s.board) if (p && p.pen && 'KCR'.includes(p.t)) throw new Error('kající ' + p.t + ' v partii ' + g);
+      for (const c of ['w', 'b']) {
+        if (!s.board.some(p => p && p.c === c && p.t === 'B') && s.board.some(p => p && p.c === c && p.t === 'N')) throw new Error('Poutník bez Biskupů');
+      }
       for (const c of ['w', 'b']) {
         const kings = s.board.filter(p => p && p.c === c && p.t === 'K').length;
         const exempt = s.result || (s.conclave && s.conclave.color === c);
@@ -308,7 +374,7 @@ t('500 náhodných partií: bez chyb, invarianty, replay = stav', () => {
     stats.games++;
   }
   out.innerHTML += '   statistika: ' + JSON.stringify(stats) + '\n';
-  if (!stats.conclaves || !stats.damnation || !stats.absolves || !stats.promos || !stats.burns) throw new Error('některá mechanika se v náhodných partiích nevyskytla');
+  if (!stats.conclaves || !stats.damnation || !stats.absolves || !stats.promos || !stats.burns || !stats.crusades) throw new Error('některá mechanika se v náhodných partiích nevyskytla');
 });
 
 out.innerHTML += `\n${pass} prošlo, ${fail} selhalo\n`;

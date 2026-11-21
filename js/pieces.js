@@ -56,8 +56,27 @@ const SVG = {
     <path class="ps" d="M50 33 V50 M43.5 39.5 H56.5"/>
     ${BASE}`,
 
-  // Křižák – hrncová přilba s křížovým výztužením, plášť s křížem
+  // Poutník – široký klobouk s mušlí, poutnická hůl s tykví, pelerína a mošna
   N: `
+    <rect class="pt" x="12.8" y="14" width="4.6" height="72" rx="2.3"/>
+    <circle class="pt" cx="15.1" cy="12.6" r="3.9"/>
+    <path class="pl" d="M17.4 27 L20.5 27.8" style="stroke-width:1.4"/>
+    <circle class="pt" cx="21" cy="30.5" r="3.1"/>
+    <circle class="pt" cx="21" cy="37.4" r="4.6"/>
+    <path class="pb" d="M33 62 C28 69 26.5 78 26.5 86 H73.5 C73.5 78 72 69 67 62 Z"/>
+    <path class="ps" d="M37 64 L63 81"/>
+    <rect class="pt" x="58" y="74.5" width="11.5" height="9" rx="2"/>
+    <path class="pb" d="M34 55 C38 50.5 62 50.5 66 55 L70.5 66.5 C60 71 40 71 29.5 66.5 Z"/>
+    <ellipse class="pd" cx="50" cy="44.5" rx="10" ry="9"/>
+    <ellipse class="pb" cx="50" cy="35" rx="29" ry="6.8"/>
+    <path class="pb" d="M37.5 34 C37.5 19.5 62.5 19.5 62.5 34 Z"/>
+    <path class="pt" d="M38 29.5 H62 V33.6 H38 Z"/>
+    <path class="pt" d="M50 20.5 L43.8 29.2 Q50 32 56.2 29.2 Z"/>
+    <path class="pl" d="M50 21.8 L47 29.6 M50 21.8 V30.6 M50 21.8 L53 29.6" style="stroke-width:1.1"/>
+    ${BASE}`,
+
+  // Křižák – hrncová přilba s křížovým výztužením, plášť s křížem
+  C: `
     <path class="pb" d="M35 70 H65 C71 74 73 79 73 86 H27 C27 79 29 74 35 70 Z"/>
     <path class="ps" d="M50 72 V84 M44 77.5 H56"/>
     <path class="pb" d="M30 27 C30 19 38 15.5 50 15.5 C62 15.5 70 19 70 27 V64 C70 68.5 67 71.5 62.5 71.5 H37.5 C33 71.5 30 68.5 30 64 Z"/>
@@ -99,5 +118,6 @@ export const ICON = {
   halo: '<svg class="ico" viewBox="0 0 20 20"><ellipse cx="10" cy="10" rx="7.5" ry="7.5" fill="none" stroke="#e8b84a" stroke-width="2.4"/><circle cx="10" cy="10" r="2.6" fill="#f3d27a"/></svg>',
   crown: '<svg class="ico" viewBox="0 0 20 20"><path d="M3 15 L4 6 L7.5 10 L10 4 L12.5 10 L16 6 L17 15 Z" fill="#e8b84a"/></svg>',
   sword: '<svg class="ico" viewBox="0 0 20 20"><path d="M15.5 2 L18 4.5 L8.5 14 L6 11.5 Z M4.5 11 L9 15.5 L7.5 17 L6 15.5 L3.5 18 L2 16.5 L4.5 14 L3 12.5 Z" fill="#cfd6de"/></svg>',
+  cross: '<svg class="ico" viewBox="0 0 20 20"><path d="M8.3 1.5 H11.7 V6.5 H17 V9.9 H11.7 V18.5 H8.3 V9.9 H3 V6.5 H8.3 Z" fill="#d8303f" stroke="#fff3df" stroke-width=".9"/></svg>',
   logs: '<svg class="ico" viewBox="0 0 20 20"><rect x="2" y="11" width="16" height="5" rx="2.5" fill="#8b5a33"/><rect x="5" y="6" width="10" height="5" rx="2.5" fill="#a06a3c"/><path d="M14 3 L6 18" stroke="#f07a1a" stroke-width="1.6"/></svg>',
 };

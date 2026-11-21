@@ -238,11 +238,14 @@ button { font: inherit; color: inherit; }
 .piece.dragging { transition: none; z-index: 10; }
 .piece.dragging .pc { transform: scale(1.12) translateY(-4%); filter: drop-shadow(0 10px 8px rgba(0,0,0,.5)); }
 .piece .pc, .piece .chip { position: absolute; inset: 4%; width: 92%; height: 92%; overflow: visible; }
-.piece .pc { transition: transform .25s, filter .25s; filter: drop-shadow(0 2px 1.5px rgba(0,0,0,.55)); }
+.piece .pc { transition: transform .55s cubic-bezier(.3, 1.3, .5, 1), filter .5s; transform-origin: 50% 92%; filter: drop-shadow(0 2px 1.5px rgba(0,0,0,.55)); }
 .piece.b .pc { filter: drop-shadow(0 0 .6px rgba(255, 228, 190, .85)) drop-shadow(0 2px 1.5px rgba(0,0,0,.55)); }
 .piece .chip { display: none; }
 .piece.pen .chip { display: block; }
-.piece.pen .pc { transform: translateY(-6%); }
+/* kající se figurka se ukloní a pohasne */
+.piece.pen .pc { transform: translateY(-6%) rotate(-6deg) scale(.95); }
+.piece.w.pen .pc { filter: brightness(.86) saturate(.8) drop-shadow(0 2px 1.5px rgba(0,0,0,.55)); }
+.piece.b.pen .pc { filter: brightness(.78) drop-shadow(0 0 .6px rgba(255, 228, 190, .85)) drop-shadow(0 2px 1.5px rgba(0,0,0,.55)); }
 .piece.chip-in .chip { animation: chipdrop .55s cubic-bezier(.3, 1.4, .5, 1); }
 @keyframes chipdrop { from { transform: translateY(-60%) scale(.6); opacity: 0; } 60% { opacity: 1; } }
 .piece.chip-out .chip { display: block; animation: chipout .7s ease-in forwards; }

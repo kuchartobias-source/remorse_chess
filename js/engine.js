@@ -4,7 +4,11 @@
 //  - Pořadí na konci tahu: tah → pokání → proměna ruší pokání → zpověď všech
 //    kajících figurek hráče na tahu → konkláve / zatracení → kontrola, zda má
 //    soupeř legální tah.
-//  - „Dosah Hranice“ = běžný paprsek věže v pozici PŘED tahem (žádné prosvěcování).
+//  - „Dosah Hranice“ = paprsek věže v pozici PŘED tahem; vlastní figurky výhled neblokují,
+//    zastaví ho až první soupeřova figurka (ta je ještě v dosahu).
+//  - Jezdci začínají jako Poutníci (N): táhnou jako jezdec, podléhají pokání, zpověď jen u Biskupa,
+//    Hranici odstranit nesmí. Jakmile strana nemá žádného Biskupa, všichni její Poutníci se
+//    natrvalo stanou Křižáky (C) a zbaví se pokání.
 //  - Kající se Hříšník nesmí brát ani mimochodem (en passant jen neuděluje pokání).
 //  - Kající se Biskup zpovídat smí, ale nesmí být zvolen papežem.
 //  - Hranice (věž) nebere nikdy nic, ani soupeřovu Hranici.
@@ -12,7 +16,7 @@
 
 export const FILES = 'abcdefgh';
 export const NAMES = {
-  K: 'Papež', Q: 'Inkvizitor', R: 'Hranice', B: 'Biskup', N: 'Křižák', P: 'Hříšník',
+  K: 'Papež', Q: 'Inkvizitor', R: 'Hranice', B: 'Biskup', N: 'Poutník', C: 'Křižák', P: 'Hříšník',
 };
 export const other = (c) => (c === 'w' ? 'b' : 'w');
 export const fileOf = (i) => i & 7;
@@ -31,7 +35,7 @@ const ORTHO = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 const DIAG = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
 
 // Kdo může zpovídat koho
-export const CONFESSORS = { P: ['B'], Q: ['B', 'K'], B: ['K'] };
+export const CONFESSORS = { P: ['B'], N: ['B'], Q: ['B', 'K'], B: ['K'] };
 
 function at(f, r) { return f >= 0 && f < 8 && r >= 0 && r < 8 ? r * 8 + f : -1; }
 
@@ -62,21 +66,30 @@ export function cloneState(s) {
 }
 
 // Je pole `target` v dosahu některé Hranice barvy `color`? (pozice před tahem)
+// Vlastní figurky výhled neblokují; zastaví ho první soupeřova figurka.
 export function inRookReach(board, color, target) {
+  return rookSources(board, color, target, true).length > 0;
+}
+
+// Pole Hranic barvy `color`, které vidí pole `target`
+export function rookSources(board, color, target, firstOnly = false) {
+  const out = [];
   for (let i = 0; i < 64; i++) {
     const p = board[i];
     if (!p || p.c !== color || p.t !== 'R') continue;
     for (const [df, dr] of ORTHO) {
       let f = fileOf(i) + df, r = rankOf(i) + dr;
+      let hit = false;
       while (f >= 0 && f < 8 && r >= 0 && r < 8) {
         const j = r * 8 + f;
-        if (j === target) return true;
-        if (board[j]) break;
+        if (j === target) { hit = true; break; }
+        if (board[j] && board[j].c !== color) break;
         f += df; r += dr;
       }
+      if (hit) { out.push(i); if (firstOnly) return out; break; }
     }
   }
-  return false;
+  return out;
 }
 
 export function rookReachSquares(board, color) {
@@ -95,10 +108,11 @@ export function captureKind(board, p, victim, to) {
   }
   switch (p.t) {
     case 'R': return null;
-    case 'N': return 'crusade';
+    case 'C': return 'crusade';
     case 'K': return inRookReach(board, p.c, to) ? 'execute' : null;
     case 'Q':
     case 'B':
+    case 'N':
       if (p.pen) return null;
       return inRookReach(board, p.c, to) ? 'burn' : 'penance';
     case 'P':
@@ -127,7 +141,8 @@ function targets(state, from) {
   const p = board[from];
   const out = [];
   switch (p.t) {
-    case 'N': pushRay(board, from, KNIGHT, false, out); break;
+    case 'N':
+    case 'C': pushRay(board, from, KNIGHT, false, out); break;
     case 'B': pushRay(board, from, DIAG, true, out); break;
     case 'R': pushRay(board, from, ORTHO, true, out); break;
     case 'Q': pushRay(board, from, [...ORTHO, ...DIAG], true, out); break;
@@ -235,7 +250,31 @@ function crownPope(state, sq, events) {
   events.push({ type: 'conclave', sq, color: b.c, id: b.id });
 }
 
+// Strana bez Biskupů: všichni její Poutníci natrvalo berou kříž (stávají se Křižáky, bez pokání)
+function takeTheCross(state, events) {
+  for (const c of ['w', 'b']) {
+    let bishops = 0;
+    const pilgrims = [];
+    for (let i = 0; i < 64; i++) {
+      const p = state.board[i];
+      if (!p || p.c !== c) continue;
+      if (p.t === 'B') bishops++;
+      else if (p.t === 'N') pilgrims.push(i);
+    }
+    if (bishops > 0 || pilgrims.length === 0) continue;
+    const ids = [];
+    for (const i of pilgrims) {
+      const p = state.board[i];
+      p.t = 'C';
+      p.pen = false;
+      ids.push(p.id);
+    }
+    events.push({ type: 'crusade', color: c, sqs: pilgrims, ids });
+  }
+}
+
 function finishTurn(state, events) {
+  if (!state.result) takeTheCross(state, events);
   // Na začátku tahu nemá hráč legální tah → prohrává
   if (!state.result && !state.conclave && legalMoves(state).length === 0) {
     state.result = { winner: other(state.turn), reason: 'nomoves' };
@@ -254,7 +293,9 @@ function applyMove(state, m) {
 
   events.push({ type: 'move', from: m.from, to: m.to, id: p.id, piece: { ...p } });
   if (victim) {
-    events.push({ type: 'capture', sq: victimSq, kind: m.kind, piece: { ...victim }, by: { ...p } });
+    // Hranice, které oběť „viděly“ (pozice před tahem) – pro animaci ohnivé čáry
+    const rooks = (m.kind === 'burn' || m.kind === 'execute') ? rookSources(board, mover, m.to) : [];
+    events.push({ type: 'capture', sq: victimSq, kind: m.kind, piece: { ...victim }, by: { ...p }, rooks });
     board[victimSq] = null;
   }
   board[m.to] = p;

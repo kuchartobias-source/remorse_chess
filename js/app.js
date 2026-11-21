@@ -1,9 +1,10 @@
 // Kajícné šachy – aplikace (lobby, deska, online hra)
-import * as E from './engine.js';
-import { pieceSVG, CHIP_SVG, ICON } from './pieces.js';
-import { FX } from './fx.js';
-import { Channel, newRoomId, clientId, ROOM_RE } from './net.js';
-import { RULES_HTML } from './rules.js';
+import * as E from './engine.js?v=2';
+import { pieceSVG, CHIP_SVG, ICON } from './pieces.js?v=2';
+import { FX } from './fx.js?v=2';
+import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=2';
+import { RULES_HTML } from './rules.js?v=2';
+import { sfx, playEvents, unlock, isMuted, setMuted } from './sound.js?v=2';
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -15,7 +16,7 @@ const other = E.other;
 const NAME = E.NAMES;
 const PLAYER = { w: 'Bílý', b: 'Černý' };
 const SIDE = { w: 'bílé', b: 'černé' };
-const ACC = { K: 'Papeže', Q: 'Inkvizitora', R: 'Hranici', B: 'Biskupa', N: 'Křižáka', P: 'Hříšníka' };
+const ACC = { K: 'Papeže', Q: 'Inkvizitora', R: 'Hranici', B: 'Biskupa', N: 'Poutníka', C: 'Křižáka', P: 'Hříšníka' };
 const GEN = { K: 'Papeže', B: 'Biskupa' };
 const ACTION_RE = /^([a-h][1-8][a-h][1-8][qrbn]?|@[a-h][1-8])$/;
 const cap1 = (s) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -26,13 +27,15 @@ const params = new URLSearchParams(location.hash.slice(1));
 const INFO = {
   K: 'Papež – bere živé figurky jen v dosahu své Hranice (poprava), soupeřovu Hranici strhne sám. Zpovídá Inkvizitora a Biskupy.',
   Q: 'Inkvizitor – po zabití propadá pokání (kromě upálení na hranici). Zpověď u Biskupa nebo Papeže.',
-  R: 'Hranice – sama nikdy nebere. Soupeřovy figurky v jejím dosahu lze upálit bez pokání.',
+  R: 'Hranice – sama nikdy nebere. Soupeřovy figurky v jejím dosahu (řada a sloupec; vlastní figurky výhled neblokují, soupeřova ho zastaví) lze upálit bez pokání.',
   B: 'Biskup – zpovídá Hříšníky a Inkvizitora, sám se zpovídá u Papeže. Čistý Biskup může být zvolen Papežem.',
-  N: 'Křižák – zabíjí bez pokání (odpustek), Hranici ale odstranit nesmí.',
+  N: 'Poutník – táhne jako jezdec, po zabití propadá pokání (kromě upálení na hranici), zpověď jen u Biskupa. Hranici odstranit nesmí. Když strana přijde o všechny Biskupy, Poutníci se stanou Křižáky.',
+  C: 'Křižák – táhne jako jezdec a zabíjí bez pokání (odpustek). Hranici odstranit nesmí.',
   P: 'Hříšník – po zabití propadá pokání (i při upálení), kromě tajného hříchu. Zpověď u Biskupa.',
 };
 const PEN_INFO = {
   P: 'Kaje se – nesmí brát, dokud nestojí vodorovně či svisle vedle svého Biskupa.',
+  N: 'Kaje se – nesmí brát živé figurky, dokud nestojí vodorovně či svisle vedle svého Biskupa.',
   Q: 'Kaje se – nesmí brát živé figurky, dokud nestojí vedle Biskupa nebo Papeže. Hranici strhnout smí.',
   B: 'Kaje se – nesmí brát živé figurky a nemůže být zvolen Papežem, dokud se nevyzpovídá u Papeže. Hranici strhnout smí.',
 };
@@ -60,7 +63,7 @@ function setupRules() {
 // ---------------- Lobby ----------------
 function showLobby() {
   $('lobby').hidden = false;
-  $('hero-pieces').innerHTML = ['P', 'N', 'B', 'K', 'Q', 'R'].map((t, i) => `<span class="hp ${i % 2 ? 'b' : 'w'}">${pieceSVG(t)}</span>`).join('');
+  $('hero-pieces').innerHTML = ['P', 'N', 'B', 'K', 'Q', 'R', 'C'].map((t, i) => `<span class="hp ${i % 2 ? 'b' : 'w'}">${pieceSVG(t)}</span>`).join('');
   let color = 'w', flip = false;
   const seg = (id, attr, cb) => {
     const el = $(id);
@@ -76,12 +79,12 @@ function showLobby() {
   $('btn-create').onclick = () => {
     const room = newRoomId();
     const c = color === 'r' ? (Math.random() < 0.5 ? 'w' : 'b') : color;
-    store.set('rc-seat-' + room, c);
-    store.set('rc-host-' + room, true);
+    store.set('rc2-seat-' + room, c);
+    store.set('rc2-host-' + room, true);
     location.hash = 'hra=' + room;
   };
   $('btn-local').onclick = () => {
-    store.del('rc-local');
+    store.del('rc2-local');
     location.hash = 'mistni' + (flip ? '&otacet=1' : '');
   };
 }
@@ -93,7 +96,7 @@ class BoardView {
     this.sqLayer = $('squares');
     this.hintLayer = $('hints');
     this.pieceLayer = $('pieces');
-    this.fx = new FX($('fx'), (sq) => this.posOf(sq));
+    this.fx = new FX($('fx'), (sq) => this.posOf(sq), $('fx-under'));
     this.els = new Map();
     this.sqEls = new Array(64);
     this.orient = 'w';
@@ -175,7 +178,9 @@ class BoardView {
   sync(state, events = null) {
     const evs = events || [];
     const capEv = evs.find((e) => e.type === 'capture');
+    const mvEv = evs.find((e) => e.type === 'move');
     const special = new Set(evs.filter((e) => ['promote', 'conclave', 'penance', 'absolve'].includes(e.type)).map((e) => e.id));
+    for (const e of evs) if (e.type === 'crusade') e.ids.forEach((id) => special.add(id));
     const present = new Set();
     for (let sq = 0; sq < 64; sq++) {
       const p = state.board[sq];
@@ -186,8 +191,10 @@ class BoardView {
       if (el._sq !== sq) {
         this.place(el, sq);
         if (events) {
+          const hop = mvEv && mvEv.id === p.id && (mvEv.piece.t === 'N' || mvEv.piece.t === 'C');
           el.classList.add('moving');
-          setTimeout(() => el.classList.remove('moving'), 330);
+          if (hop) el.classList.add('hop');
+          setTimeout(() => el.classList.remove('moving', 'hop'), 360);
         }
       }
       el._t = p.t;
@@ -197,14 +204,21 @@ class BoardView {
     for (const [id, el] of this.els) {
       if (present.has(id)) continue;
       this.els.delete(id);
-      if (events && capEv && capEv.piece.id === id) this.kill(el, capEv.kind);
+      if (events && capEv && capEv.piece.id === id) this.kill(el, capEv.kind, capEv.piece.t === 'K');
       else el.remove();
     }
-    if (events) this.animate(evs);
+    if (events) {
+      if (document.hidden) {
+        for (const id of special) { const el = this.els.get(id); if (el) this.applyLook(el); }
+      } else {
+        this.animate(evs);
+        playEvents(evs);
+      }
+    }
   }
 
-  kill(el, kind) {
-    const v = { penance: 'blood', burn: 'burn', execute: 'burn', crusade: 'fall', pyre: 'pyre', ep: 'quiet' }[kind] || 'quiet';
+  kill(el, kind, pope = false) {
+    const v = pope ? 'pope' : ({ penance: 'blood', burn: 'burn', execute: 'burn', crusade: 'fall', pyre: 'pyre', ep: 'quiet' }[kind] || 'quiet');
     el.classList.add('die');
     setTimeout(() => el.classList.add('die-' + v), 170);
     setTimeout(() => el.remove(), 1500);
@@ -214,19 +228,39 @@ class BoardView {
     const later = (ms, fn) => setTimeout(fn, ms);
     const get = (id) => this.els.get(id);
     const popeFell = evs.some((e) => e.type === 'popeFall');
+    const mv = evs.find((e) => e.type === 'move');
+    if (mv && !evs.some((e) => e.type === 'capture')) later(270, () => this.fx.dust(mv.to));
     for (const e of evs) {
       switch (e.type) {
         case 'capture':
           if (e.kind === 'penance') later(200, () => this.fx.blood(e.sq));
-          else if (e.kind === 'burn' || e.kind === 'execute') later(120, () => this.fx.fire(e.sq, true));
-          else if (e.kind === 'crusade') { later(160, () => this.fx.slash(e.sq)); later(260, () => this.fx.blood(e.sq)); }
-          else if (e.kind === 'pyre') later(220, () => this.fx.fire(e.sq, false));
+          else if (e.kind === 'burn' || e.kind === 'execute') {
+            // plamen běží od každé Hranice, která oběť viděla
+            (e.rooks || []).forEach((r) => this.fx.fireLine(r, e.sq));
+            later(280, () => this.fx.fire(e.sq, true));
+            later(420, () => this.fx.scorch(e.sq));
+            later(650, () => this.fx.ash(e.sq));
+          } else if (e.kind === 'crusade') {
+            later(160, () => this.fx.slash(e.sq));
+            later(260, () => this.fx.blood(e.sq));
+            const el = mv && get(mv.id);
+            if (el) {
+              const a = this.posOf(mv.from), b = this.posOf(mv.to);
+              el.style.setProperty('--rx', Math.sign(b.x - a.x) * 14 + '%');
+              el.style.setProperty('--ry', Math.sign(b.y - a.y) * 14 + '%');
+              later(290, () => { el.classList.add('recoil'); later(380, () => el.classList.remove('recoil')); });
+            }
+          } else if (e.kind === 'pyre') {
+            later(200, () => this.fx.logs(e.sq));
+            later(260, () => this.fx.fire(e.sq, false));
+          } else if (e.kind === 'ep') later(140, () => this.fx.shadow(e.sq));
           break;
         case 'penance': {
           const el = get(e.id);
           if (!el || evs.some((x) => x.type === 'promote' && x.id === e.id)) break;
           const absolved = evs.some((x) => x.type === 'absolve' && x.id === e.id);
-          later(300, () => {
+          later(300, () => this.fx.bloodDrop(e.sq));
+          later(680, () => {
             el.classList.add('pen', 'chip-in');
             later(650, () => el.classList.remove('chip-in'));
             if (!absolved) this.applyLook(el);
@@ -236,10 +270,10 @@ class BoardView {
         case 'absolve': {
           const el = get(e.id);
           if (!el) break;
-          const t0 = evs.some((x) => x.type === 'penance' && x.id === e.id) ? 1000 : 380;
+          const t0 = evs.some((x) => x.type === 'penance' && x.id === e.id) ? 1300 : 400;
           later(t0, () => this.fx.beam(e.by, e.sq));
-          later(t0 + 150, () => { this.fx.halo(e.sq); el.classList.add('chip-out', 'glow'); });
-          later(t0 + 850, () => { el.classList.remove('chip-out'); this.applyLook(el); });
+          later(t0 + 150, () => { this.fx.halo(e.sq); this.fx.shards(e.sq); el.classList.add('chip-out', 'glow'); });
+          later(t0 + 700, () => { el.classList.remove('chip-out'); this.applyLook(el); });
           later(t0 + 1500, () => el.classList.remove('glow'));
           break;
         }
@@ -261,13 +295,33 @@ class BoardView {
         case 'conclave': {
           const el = get(e.id);
           if (!el) break;
-          const t0 = popeFell ? 900 : 150;
+          const t0 = popeFell ? 1400 : 150;
           later(t0, () => this.fx.smoke(e.sq));
+          later(t0 + 300, () => this.fx.tiaraDrop(e.sq));
+          later(t0 + 450, () => this.fx.ribbon('HABEMUS PAPAM'));
           later(t0 + 1300, () => {
             this.applyLook(el);
             el.classList.add('morph');
             this.fx.halo(e.sq);
             later(800, () => el.classList.remove('morph'));
+          });
+          break;
+        }
+        case 'crusade': {
+          const t0 = popeFell ? 3000 : 600;
+          later(t0, () => this.fx.ribbon(`<i class="cross">${ICON.cross}</i>DEUS VULT<i class="cross">${ICON.cross}</i>`, 'crusade', 2400));
+          e.ids.forEach((id, i) => {
+            const el = get(id);
+            if (!el) return;
+            const t1 = t0 + 350 + i * 160;
+            later(t1, () => el.classList.add('shed'));
+            later(t1 + 380, () => {
+              el.classList.remove('shed');
+              this.applyLook(el);
+              el.classList.add('slam');
+              this.fx.dust(el._sq);
+              later(520, () => el.classList.remove('slam'));
+            });
           });
           break;
         }
@@ -345,7 +399,7 @@ class Game {
 
   act(a) {
     let r;
-    try { r = E.applyAction(this.state, a); } catch (e) { toast('Tento tah není podle pravidel povolen.'); return; }
+    try { r = E.applyAction(this.state, a); } catch (e) { sfx.error(); toast('Tento tah není podle pravidel povolen.'); return; }
     this.hist.push({ a, color: this.state.turn, events: r.events, after: r.state });
     this.actions.push(a);
     this.state = r.state;
@@ -361,8 +415,8 @@ class Game {
   }
 
   persist() {
-    if (this.mode === 'local') store.set('rc-local', { a: this.actions, ext: this.ext, flip: this.autoFlip });
-    else store.set('rc-game-' + this.room, { a: this.actions, ext: this.ext });
+    if (this.mode === 'local') store.set('rc2-local', { a: this.actions, ext: this.ext, flip: this.autoFlip });
+    else store.set('rc2-game-' + this.room, { a: this.actions, ext: this.ext });
   }
 
   // ---------- vykreslení ----------
@@ -375,6 +429,7 @@ class Game {
   }
 
   refreshPanels() {
+    this.renderBoardMood();
     this.renderMarks();
     this.renderHints();
     this.renderPlayers();
@@ -383,6 +438,25 @@ class Game {
     this.renderControls();
     this.renderBanners();
     this.renderNet();
+  }
+
+  // Potemnělá deska během konkláve, rudá viněta a zešedlé figurky poraženého
+  renderBoardMood() {
+    const b = this.view.el;
+    const res = this.result();
+    const sede = !res && !!this.state.conclave;
+    b.classList.toggle('sede', sede);
+    let smoke = b.querySelector('.sede-smoke');
+    if (sede && !smoke) {
+      smoke = document.createElement('div');
+      smoke.className = 'sede-smoke';
+      smoke.innerHTML = '<i></i><i></i><i></i>';
+      b.appendChild(smoke);
+    } else if (!sede && smoke) smoke.remove();
+    const loser = res && res.winner ? other(res.winner) : null;
+    b.classList.toggle('damned', !!loser);
+    b.classList.toggle('lose-w', loser === 'w');
+    b.classList.toggle('lose-b', loser === 'b');
   }
 
   renderMarks() {
@@ -468,9 +542,13 @@ class Game {
     let s = `${mini(mv.piece.t, mv.piece.c)}${E.sqName(mv.from)}${cap ? '×' : '–'}${E.sqName(mv.to)}`;
     if (cap) s += { penance: ICON.blood, burn: ICON.fire, execute: ICON.fire, crusade: ICON.sword, pyre: ICON.logs, ep: '' }[cap.kind] || '';
     const pr = h.events.find((e) => e.type === 'promote');
-    if (pr) s += `${ICON.crown}${mini(pr.t, mv.piece.c)}`;
+    if (pr) {
+      const cr = h.events.find((e) => e.type === 'crusade' && e.ids.includes(pr.id));
+      s += `${ICON.crown}${mini(cr ? 'C' : pr.t, mv.piece.c)}`;
+    }
     if (h.events.some((e) => e.type === 'absolve')) s += ICON.halo;
     if (h.events.some((e) => e.type === 'popeFall')) s += ' †';
+    if (h.events.some((e) => e.type === 'crusade')) s += ICON.cross;
     return s;
   }
 
@@ -515,11 +593,15 @@ class Game {
     } else if (mv) {
       out.push(`${cap1(adj(mv.piece.c, mv.piece.t))} ${NAME[mv.piece.t]} táhne ${E.sqName(mv.from)}–${E.sqName(mv.to)}.`);
     }
+    const crusadeOf = (id) => evs.find((x) => x.type === 'crusade' && x.ids.includes(id));
+    const promoted = evs.find((x) => x.type === 'promote');
     for (const e of evs) {
-      if (e.type === 'promote') out.push(`Spása! Hříšník se na ${E.sqName(e.sq)} proměnil v ${ACC[e.t]}${e.cleansed ? ' a je očištěn od pokání' : ''}.`);
+      if (e.type === 'promote') out.push(`Spása! Hříšník se na ${E.sqName(e.sq)} proměnil v ${crusadeOf(e.id) ? ACC.C : ACC[e.t]}${e.cleansed ? ' a je očištěn od pokání' : ''}.`);
+      if (e.type === 'crusade' && promoted && e.ids.length === 1 && e.ids[0] === promoted.id) continue;
       if (e.type === 'absolve') out.push(`${NAME[e.t]} na ${E.sqName(e.sq)} se vyzpovídal u ${GEN[e.byT]} a získal rozhřešení.`);
       if (e.type === 'popeFall') out.push(`${PLAYER[e.color]} Papež padl!`);
       if (e.type === 'conclave') out.push(`Habemus papam! ${cap1(adj(e.color, 'B'))} Biskup na ${E.sqName(e.sq)} usedá na papežský stolec.`);
+      if (e.type === 'crusade') out.push(`${PLAYER[e.color]} přišel o všechny Biskupy – Poutníci berou kříž a stávají se Křižáky. Deus vult!`);
     }
     return out;
   }
@@ -584,6 +666,7 @@ class Game {
       if (this.rematch && this.me) {
         b.push(`<div class="banner">Soupeř tě vyzývá k <b>odvetě</b> – budeš hrát za ${SIDE[this.rematch.c]}.<div class="row"><button class="btn small primary" data-act="rematch-yes">Přijmout odvetu</button></div></div>`);
       }
+      if (this.oldVersion) b.push('<div class="banner warn">Do místnosti přišla zpráva ze starší verze hry (jiná pravidla). Obnovte prosím oba stránku (Ctrl+F5); starou rozehranou partii nelze dohrát – založte novou.</div>');
       if (this.seatClash) b.push('<div class="banner warn">Za tvou barvu je přihlášeno ještě jiné okno nebo zařízení. Hraj prosím jen z jednoho.</div>');
       if (this.synced && !this.me && !this.overlayEl) {
         const takeover = ['w', 'b'].map((c) => `<button class="btn small" data-act="seat-${c}">Hrát za ${SIDE[c]}</button>`).join('');
@@ -599,7 +682,7 @@ class Game {
     if (act === 'accept' && this.offer) this.net.send({ k: 'accept', id: this.cid, c: this.me, n: this.offer.n });
     if (act === 'decline' && this.offer) { this.net.send({ k: 'decline', id: this.cid, c: this.me, n: this.offer.n }); this.offer = null; this.refreshPanels(); }
     if (act === 'rematch-yes' && this.rematch) {
-      store.set('rc-seat-' + this.rematch.room, this.rematch.c);
+      store.set('rc2-seat-' + this.rematch.room, this.rematch.c);
       location.hash = 'hra=' + this.rematch.room;
     }
     if (act === 'seat-w' || act === 'seat-b') {
@@ -678,7 +761,11 @@ class Game {
 
   askPromo(ms) {
     const c = this.state.turn;
-    const opts = ['Q', 'R', 'B', 'N'].map((t) => `<button type="button" data-t="${t}">${mini(t, c)}<small>${NAME[t]}</small></button>`).join('');
+    const noBishop = !this.state.board.some((p) => p && p.c === c && p.t === 'B');
+    const opts = ['Q', 'R', 'B', 'N'].map((t) => {
+      const shown = t === 'N' && noBishop ? 'C' : t;
+      return `<button type="button" data-t="${t}">${mini(shown, c)}<small>${NAME[shown]}</small></button>`;
+    }).join('');
     this.openOverlay(`<div class="box"><h2>Spása!</h2><p>Hříšník došel na konec cesty a je vykoupen. V co se promění?</p>`
       + `<div class="promo-opts">${opts}</div><div class="row" style="margin-top:12px"><button class="btn small ghost" data-x>Zpět</button></div></div>`, (ov) => {
       ov.querySelectorAll('[data-t]').forEach((b) => {
@@ -693,6 +780,9 @@ class Game {
   }
 
   showFinal(r) {
+    if (r.reason === 'draw') sfx.draw();
+    else if (!this.me || r.winner === this.me) sfx.win();
+    else sfx.lose();
     const title = { damnation: 'Zatracení', nomoves: 'Bez tahu', resign: 'Kapitulace', draw: 'Remíza' }[r.reason] || 'Konec hry';
     let me = '';
     if (this.me && r.winner) me = r.winner === this.me ? '<p><b>Vítězíš! Tvé svědomí je čisté.</b></p>' : '<p><b>Prohráváš. Čas na pokání.</b></p>';
@@ -708,19 +798,19 @@ class Game {
 
   async rematchNow() {
     if (this.mode === 'local') {
-      store.del('rc-local');
+      store.del('rc2-local');
       location.reload();
       return;
     }
     // Soupeř už odvetu navrhl → připojíme se k jeho místnosti, nezakládáme novou
     if (this.rematch) {
-      store.set('rc-seat-' + this.rematch.room, this.rematch.c);
+      store.set('rc2-seat-' + this.rematch.room, this.rematch.c);
       location.hash = 'hra=' + this.rematch.room;
       return;
     }
     const room = newRoomId();
     const c = other(this.me);
-    store.set('rc-seat-' + room, c);
+    store.set('rc2-seat-' + room, c);
     this.closeOverlay();
     toast('Zakládám odvetu…');
     await Promise.race([this.net.send({ k: 'rematch', id: this.cid, c, room }), new Promise((r) => setTimeout(r, 8000))]);
@@ -779,6 +869,7 @@ class Game {
   clearSel() { this.sel = -1; this.selMoves = []; }
 
   select(sq) {
+    if (this.sel !== sq) sfx.select();
     this.sel = sq;
     this.selMoves = this.legal.filter((m) => m.from === sq);
     this.renderMarks();
@@ -863,7 +954,7 @@ class Game {
 
   // ---------- místní hra ----------
   startLocal() {
-    const saved = store.get('rc-local');
+    const saved = store.get('rc2-local');
     if (saved && Array.isArray(saved.a)) {
       this.actions = saved.a.filter((x) => typeof x === 'string' && ACTION_RE.test(x));
       this.ext = saved.ext || null;
@@ -884,15 +975,15 @@ class Game {
     this.replied = new Set();
     $('invite-url').value = location.origin + location.pathname + '#hra=' + this.room;
 
-    const saved = store.get('rc-game-' + this.room);
+    const saved = store.get('rc2-game-' + this.room);
     if (saved && Array.isArray(saved.a)) {
       this.actions = saved.a.filter((x) => typeof x === 'string' && ACTION_RE.test(x));
       this.ext = saved.ext || null;
       this.rebuild();
     }
     const urlSeat = params.get('barva');
-    const seat = store.get('rc-seat-' + this.room);
-    if (urlSeat === 'w' || urlSeat === 'b') { this.me = urlSeat; store.set('rc-seat-' + this.room, urlSeat); }
+    const seat = store.get('rc2-seat-' + this.room);
+    if (urlSeat === 'w' || urlSeat === 'b') { this.me = urlSeat; store.set('rc2-seat-' + this.room, urlSeat); }
     else if (seat === 'w' || seat === 'b') this.me = seat;
     this.view.setOrient(this.me === 'b' ? 'b' : 'w');
     this.refresh();
@@ -920,7 +1011,7 @@ class Game {
 
   claim(c) {
     this.me = c;
-    store.set('rc-seat-' + this.room, c);
+    store.set('rc2-seat-' + this.room, c);
     this.seats[c] = this.cid;
     this.closeOverlay();
     this.view.setOrient(c);
@@ -949,6 +1040,7 @@ class Game {
 
   onMsg(m, fromHistory) {
     if (m.k === '_synced') { this.onSynced(); return; }
+    if (m.k === '_version') { if (!this.oldVersion) { this.oldVersion = true; if (!fromHistory) this.renderBanners(); } return; }
     const mine = m.id === this.cid;
     const c = m.c === 'w' || m.c === 'b' ? m.c : null;
     if (typeof m.a === 'string') this.mergeServer(Number.isInteger(m.o) ? m.o : 0, m.a);
@@ -1041,13 +1133,30 @@ class Game {
     const evs = animate && grow >= 1 ? this.hist[this.hist.length - 1].events : null;
     this.persist();
     this.refresh(evs);
-    if (grow >= 1 && document.hidden && this.canAct()) document.title = '● Tvůj tah – Kajícné šachy';
+    if (grow >= 1 && document.hidden && this.canAct()) { document.title = '● Tvůj tah – Kajícné šachy'; sfx.notify(); }
   }
 }
 
 // ---------------- Start ----------------
+const SOUND_ON = '<svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>';
+const SOUND_OFF = '<svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+
+function setupSound() {
+  const btn = $('btn-sound');
+  const paint = () => {
+    btn.innerHTML = isMuted() ? SOUND_OFF : SOUND_ON;
+    btn.title = isMuted() ? 'Zapnout zvuk' : 'Vypnout zvuk';
+    btn.setAttribute('aria-label', btn.title);
+  };
+  paint();
+  btn.onclick = () => { setMuted(!isMuted()); paint(); if (!isMuted()) sfx.select(); };
+  document.addEventListener('pointerdown', unlock, { passive: true });
+  document.addEventListener('keydown', unlock);
+}
+
 function main() {
   setupRules();
+  setupSound();
   addEventListener('hashchange', () => location.reload());
   $('home-link').onclick = (e) => { e.preventDefault(); location.hash = ''; if (!location.hash) location.reload(); };
   const room = params.get('hra');
@@ -1058,7 +1167,7 @@ function main() {
     g.startOnline();
   } else if (params.has('mistni')) {
     $('game').hidden = false;
-    const saved = store.get('rc-local');
+    const saved = store.get('rc2-local');
     const g = new Game({ mode: 'local', autoFlip: params.get('otacet') === '1' || !!(saved && saved.flip) });
     window.__game = g;
     g.startLocal();

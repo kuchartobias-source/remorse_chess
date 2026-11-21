@@ -10,7 +10,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=2">
+  <link rel="stylesheet" href="css/fx.css?v=2">
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -26,6 +27,7 @@
       <b>Kajícné šachy</b>
     </a>
     <nav>
+      <button class="btn small ghost icon" id="btn-sound" type="button" aria-label="Zvuk"></button>
       <button class="btn small ghost" id="btn-rules" type="button">Pravidla</button>
       <button class="btn small ghost" id="btn-new" type="button" hidden>Nová hra</button>
     </nav>
@@ -61,7 +63,7 @@
       </div>
       <div class="card">
         <h2>Pravidla</h2>
-        <p>Hříšníci, Biskupové, Inkvizitor, Křižáci, Hranice a Papež. Žádný šach – zato pokání, zpověď a konkláve.</p>
+        <p>Hříšníci, Poutníci, Biskupové, Inkvizitor, Hranice a Papež. Žádný šach – zato pokání, zpověď, konkláve a křížové výpravy.</p>
         <button class="btn" id="btn-rules2" type="button">Přečíst pravidla</button>
       </div>
     </section>
@@ -74,6 +76,7 @@
       <div class="frame">
         <div class="board" id="board">
           <div class="squares" id="squares"></div>
+          <div class="fx under" id="fx-under"></div>
           <div class="hints" id="hints"></div>
           <div class="pieces" id="pieces"></div>
           <div class="fx" id="fx"></div>
@@ -121,6 +124,6 @@
     <div class="rbody" id="rules-body"></div>
   </dialog>
 
-  <script type="module" src="js/app.js"></script>
+  <script type="module" src="js/app.js?v=2"></script>
 </body>
 </html>
