@@ -3,3 +3,4 @@ __pycache__/
 .claude/
 dev/
 ai/
+*_kajicne_backup/

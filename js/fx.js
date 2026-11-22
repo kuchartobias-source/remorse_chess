@@ -214,6 +214,65 @@ export class FX {
     setTimeout(() => el.remove(), ms + 100);
   }
 
+  // ---- Hranice a Žár ----
+  // jiskry a uhlíky, když se Hranice zvedne ze svého pole
+  embers(sq) {
+    if (this.off) return;
+    const c = this.cell(sq, 1400);
+    this.add(c, 'glowfire');
+    for (let i = 0; i < n(10); i++) {
+      this.add(c, 'ember', { left: rnd(15, 80) + '%', '--dx': rnd(-90, 90) + '%', 'animation-delay': rnd(0, 300) + 'ms' });
+    }
+    this.add(c, 'scorchring');
+  }
+
+  // dopad Hranice: kruh jisker
+  sparks(sq) {
+    if (this.off) return;
+    const c = this.cell(sq, 1000);
+    for (let i = 0; i < n(12); i++) {
+      const a = rnd(Math.PI * 1.05, Math.PI * 1.95);
+      const d = rnd(40, 90);
+      this.add(c, 'spark', { '--dx': Math.cos(a) * d + '%', '--dy': Math.sin(a) * d * 0.7 + '%', 'animation-delay': rnd(0, 60) + 'ms' });
+    }
+  }
+
+  // Žár roste: sloup plamenů a prstenec dosahu
+  heatUp(sq, level = 2) {
+    if (this.off) return;
+    const c = this.cell(sq, 2000);
+    this.add(c, 'heatpillar');
+    for (let i = 0; i < n(7 + level * 3); i++) {
+      this.add(c, 'flame', {
+        left: rnd(5, 70) + '%', '--d': rnd(700, 1300) + 'ms', '--sk': rnd(-12, 12) + 'deg',
+        'animation-delay': rnd(0, 450) + 'ms', height: rnd(55, 95) + '%',
+      });
+    }
+    for (let i = 0; i < n(10); i++) {
+      this.add(c, 'ember', { left: rnd(15, 85) + '%', '--dx': rnd(-120, 120) + '%', 'animation-delay': rnd(150, 800) + 'ms' });
+    }
+    const ring = this.add(c, 'reachring', { '--r': (level * 2 + 1) * 100 + '%' });
+    ring.style.animationDelay = '200ms';
+  }
+
+  // Žár uhasne: pára a kouř
+  extinguish(sq) {
+    if (this.off) return;
+    const c = this.cell(sq, 2600);
+    for (let i = 0; i < n(10); i++) {
+      this.add(c, 'steam', { '--dx': rnd(-70, 70) + '%', '--d': rnd(1200, 2000) + 'ms', 'animation-delay': rnd(0, 500) + 'ms' });
+    }
+    this.add(c, 'quench');
+  }
+
+  // Monitum: pulzující varovný kruh pod Papežem
+  warn(sq) {
+    if (this.off) return;
+    const c = this.cell(sq, 2200, true);
+    this.add(c, 'warnring');
+    this.add(c, 'warnring second');
+  }
+
   clear() {
     this.layer.innerHTML = '';
     this.under.innerHTML = '';

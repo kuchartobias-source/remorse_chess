@@ -1,22 +1,22 @@
-// Kajícné šachy – herní pravidla (čistý modul bez DOM)
+// Schizma – herní pravidla (čistý modul bez DOM)
 //
 // Výklad nejasných míst pravidel (viz také RULES-NOTES.md):
-//  - Pořadí na konci tahu: tah → pokání → proměna ruší pokání → zpověď všech
-//    kajících figurek hráče na tahu → konkláve / zatracení → kontrola, zda má
-//    soupeř legální tah.
-//  - „Dosah Hranice“ = paprsek věže v pozici PŘED tahem; vlastní figurky výhled neblokují,
-//    zastaví ho až první soupeřova figurka (ta je ještě v dosahu).
-//  - Jezdci začínají jako Poutníci (N): táhnou jako jezdec, podléhají pokání, zpověď jen u Biskupa,
-//    Hranici odstranit nesmí. Jakmile strana nemá žádného Biskupa, všichni její Poutníci se
-//    natrvalo stanou Křižáky (C) a zbaví se pokání.
-//  - Kající se Hříšník nesmí brát ani mimochodem (en passant jen neuděluje pokání).
-//  - Kající se Biskup zpovídat smí, ale nesmí být zvolen papežem.
-//  - Hranice (věž) nebere nikdy nic, ani soupeřovu Hranici.
-//  - Papež bere živou figurku (i soupeřova papeže) jen s podporou Hranice, nikdy nepropadá pokání.
+//  - Pořadí na konci tahu: tah → pokání → proměna ruší pokání → Žár (inkvizice / ztráta Inkvizitora)
+//    → zpověď všech kajících figurek hráče na tahu → pád Papeže (konkláve / Anathema)
+//    → Křížová výprava (strana bez Kardinálů) → Monitum → kontrola, zda má soupeř legální tah (Interdikt).
+//  - Dosah Hranice = čtverec o poloměru úrovně Žáru (1–3) kolem Hranice; překážky ho neblokují.
+//  - Hranice se přemisťuje skokem na libovolné volné pole ve svém poloměru, nikdy nebere a nelze ji odstranit.
+//  - Kající se figurka nesmí odstranit žádnou soupeřovu figurku (ani upálením, ani mimochodem).
+//  - Papež bere jen upálením (cíl v dosahu jeho Hranice) a padne jen upálením (je v dosahu soupeřovy
+//    Hranice); Hříšník ho odstranit nesmí nikdy. Papež nikdy nepropadá pokání.
+//  - Křižák v dosahu Hranice upaluje, mimo něj bere s odpustkem – v obou případech bez pokání.
+//  - Křížová výprava se vyhlásí, jakmile strana nemá žádného Kardinála (i když se poslední stal Papežem);
+//    je to trvalý příznak strany – proměna v jezdce pak dává vždy Křižáka.
+//  - Kající se Kardinál zpovídat smí, ale nesmí být zvolen Papežem.
 
 export const FILES = 'abcdefgh';
 export const NAMES = {
-  K: 'Papež', Q: 'Inkvizitor', R: 'Hranice', B: 'Biskup', N: 'Poutník', C: 'Křižák', P: 'Hříšník',
+  K: 'Papež', Q: 'Inkvizitor', R: 'Hranice', B: 'Kardinál', N: 'Misionář', C: 'Křižák', P: 'Hříšník',
 };
 export const other = (c) => (c === 'w' ? 'b' : 'w');
 export const fileOf = (i) => i & 7;
@@ -34,20 +34,22 @@ const KING = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -
 const ORTHO = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 const DIAG = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
 
-// Kdo může zpovídat koho
-export const CONFESSORS = { P: ['B'], N: ['B'], Q: ['B', 'K'], B: ['K'] };
+// Kdo může zpovídat koho. Kardinál zpovídá jen „kardinálně“ (vodorovně/svisle), Papež i diagonálně.
+export const CONFESSORS = { P: ['B', 'K'], N: ['B', 'K'], Q: ['B', 'K'], B: ['K'] };
+export const PROMOS = ['Q', 'B', 'N'];
 
 function at(f, r) { return f >= 0 && f < 8 && r >= 0 && r < 8 ? r * 8 + f : -1; }
+const cheb = (a, b) => Math.max(Math.abs(fileOf(a) - fileOf(b)), Math.abs(rankOf(a) - rankOf(b)));
 
-// Mód hry: 'poutnici' (jezdci začínají jako Poutníci) nebo 'krizaci' (jezdci jsou od začátku Křižáci;
-// i proměna v jezdce dá Křižáka)
-export const VARIANTS = ['poutnici', 'krizaci'];
+// Úroveň Žáru podle počtu inkvizic: 0 → 1, 1–2 → 2, 3 → 3 (maximum)
+export const heatLevel = (inq) => (inq >= 3 ? 3 : inq >= 1 ? 2 : 1);
+export const heatOf = (state, color) => heatLevel(state.inq[color]);
 
-export function initialState(variant = 'poutnici') {
+export function initialState() {
   const board = Array(64).fill(null);
-  const back = variant === 'krizaci' ? 'RCBQKBCR' : 'RNBQKBNR';
+  const back = 'RNBQKBNR';
   let id = 0;
-  const mk = (t, c) => ({ id: ++id, t, c, pen: false, moved: false });
+  const mk = (t, c) => ({ id: ++id, t, c, pen: false });
   for (let f = 0; f < 8; f++) {
     board[f] = mk(back[f], 'w');
     board[8 + f] = mk('P', 'w');
@@ -56,7 +58,10 @@ export function initialState(variant = 'poutnici') {
     board[48 + f] = mk('P', 'b');
     board[56 + f] = mk(back[f], 'b');
   }
-  return { board, turn: 'w', ep: -1, conclave: null, result: null, ply: 0, history: [], variant };
+  return {
+    board, turn: 'w', ep: -1, conclave: null, result: null, ply: 0, history: [],
+    inq: { w: 0, b: 0 }, crusade: { w: false, b: false },
+  };
 }
 
 export function cloneState(s) {
@@ -65,65 +70,48 @@ export function cloneState(s) {
     turn: s.turn, ep: s.ep,
     conclave: s.conclave ? { ...s.conclave, options: [...s.conclave.options] } : null,
     result: s.result ? { ...s.result } : null,
-    ply: s.ply, history: [...s.history], variant: s.variant,
+    ply: s.ply, history: [...s.history],
+    inq: { ...s.inq }, crusade: { ...s.crusade },
   };
 }
 
-// Je pole `target` v dosahu některé Hranice barvy `color`? (pozice před tahem)
-// Vlastní figurky výhled neblokují; zastaví ho první soupeřova figurka.
-export function inRookReach(board, color, target) {
-  return rookSources(board, color, target, true).length > 0;
-}
-
-// Pole Hranic barvy `color`, které vidí pole `target`
-export function rookSources(board, color, target, firstOnly = false) {
+// Pole Hranic barvy `color`, v jejichž dosahu leží `target`
+export function rookSources(state, color, target) {
+  const rad = heatOf(state, color);
   const out = [];
-  for (let i = 0; i < 64; i++) {
-    const p = board[i];
-    if (!p || p.c !== color || p.t !== 'R') continue;
-    for (const [df, dr] of ORTHO) {
-      let f = fileOf(i) + df, r = rankOf(i) + dr;
-      let hit = false;
-      while (f >= 0 && f < 8 && r >= 0 && r < 8) {
-        const j = r * 8 + f;
-        if (j === target) { hit = true; break; }
-        if (board[j] && board[j].c !== color) break;
-        f += df; r += dr;
-      }
-      if (hit) { out.push(i); if (firstOnly) return out; break; }
-    }
-  }
+  state.board.forEach((p, i) => {
+    if (p && p.c === color && p.t === 'R' && cheb(i, target) <= rad) out.push(i);
+  });
   return out;
 }
 
-export function rookReachSquares(board, color) {
+export function inRookReach(state, color, target) {
+  const rad = heatOf(state, color);
+  const { board } = state;
+  for (let i = 0; i < 64; i++) {
+    const p = board[i];
+    if (p && p.c === color && p.t === 'R' && cheb(i, target) <= rad) return true;
+  }
+  return false;
+}
+
+export function rookReachSquares(state, color) {
   const out = [];
-  for (let i = 0; i < 64; i++) if (inRookReach(board, color, i)) out.push(i);
+  for (let i = 0; i < 64; i++) if (inRookReach(state, color, i)) out.push(i);
   return out;
 }
 
 // Smí figurka `p` odstranit figurku `victim` na poli `to`? Vrací druh braní, nebo null.
-//  kind: 'penance' (bere a propadá pokání), 'burn' (upálení – bez pokání),
-//        'crusade' (Křižák), 'pyre' (odstranění Hranice), 'execute' (Papež s Hranicí),
-//        'ep' (tajný hřích)
-export function captureKind(board, p, victim, to) {
-  if (victim.t === 'R') {
-    return (p.t === 'K' || p.t === 'Q' || p.t === 'B') ? 'pyre' : null;
-  }
-  switch (p.t) {
-    case 'R': return null;
-    case 'C': return 'crusade';
-    case 'K': return inRookReach(board, p.c, to) ? 'execute' : null;
-    case 'Q':
-    case 'B':
-    case 'N':
-      if (p.pen) return null;
-      return inRookReach(board, p.c, to) ? 'burn' : 'penance';
-    case 'P':
-      if (p.pen) return null;
-      return 'penance';
-    default: return null;
-  }
+//  kind: 'penance' (bere a propadá pokání), 'burn' (upálení na hranici – bez pokání),
+//        'crusade' (Křižák mimo dosah Hranice), 'execute' (Papež upaluje), 'ep' (tajný hřích)
+export function captureKind(state, p, victim, to) {
+  if (victim.t === 'R' || p.t === 'R' || p.pen) return null;
+  const reach = inRookReach(state, p.c, to);
+  if (p.t === 'P') return victim.t === 'K' ? null : 'penance';
+  if (p.t === 'K') return reach ? 'execute' : null;
+  if (victim.t === 'K') return reach ? 'burn' : null;
+  if (reach) return 'burn';
+  return p.t === 'C' ? 'crusade' : 'penance';
 }
 
 function pushRay(board, from, dirs, slide, out) {
@@ -148,9 +136,20 @@ function targets(state, from) {
     case 'N':
     case 'C': pushRay(board, from, KNIGHT, false, out); break;
     case 'B': pushRay(board, from, DIAG, true, out); break;
-    case 'R': pushRay(board, from, ORTHO, true, out); break;
     case 'Q': pushRay(board, from, [...ORTHO, ...DIAG], true, out); break;
     case 'K': pushRay(board, from, KING, false, out); break;
+    case 'R': {
+      // skok na volné pole v poloměru Žáru
+      const rad = heatOf(state, p.c);
+      const f0 = fileOf(from), r0 = rankOf(from);
+      for (let r = r0 - rad; r <= r0 + rad; r++) {
+        for (let f = f0 - rad; f <= f0 + rad; f++) {
+          const j = at(f, r);
+          if (j >= 0 && j !== from && !board[j]) out.push(j);
+        }
+      }
+      break;
+    }
     default: break;
   }
   return out;
@@ -170,22 +169,22 @@ export function legalMoves(state) {
       const lastRank = p.c === 'w' ? 7 : 0;
       const add = (to, kind, extra = {}) => {
         if (rankOf(to) === lastRank) {
-          for (const promo of ['Q', 'R', 'B', 'N']) moves.push({ from, to, kind, promo, ...extra });
+          for (const promo of PROMOS) moves.push({ from, to, kind, promo, ...extra });
         } else moves.push({ from, to, kind, ...extra });
       };
       const one = at(f, r + dir);
       if (one >= 0 && !board[one]) {
         add(one, null);
-        const startRank = p.c === 'w' ? 1 : 6;
+        // Hříšník smí kdykoliv postoupit o 2 pole, jsou-li obě pole volná
         const two = at(f, r + 2 * dir);
-        if (r === startRank && !board[two]) add(two, null, { double: true });
+        if (two >= 0 && !board[two]) add(two, null, { double: true });
       }
       for (const df of [-1, 1]) {
         const to = at(f + df, r + dir);
         if (to < 0) continue;
         const v = board[to];
         if (v && v.c !== p.c) {
-          const kind = captureKind(board, p, v, to);
+          const kind = captureKind(state, p, v, to);
           if (kind) add(to, kind);
         } else if (!v && to === state.ep && !p.pen) {
           add(to, 'ep', { epVictim: at(f + df, r) });
@@ -197,23 +196,9 @@ export function legalMoves(state) {
       const v = board[to];
       if (v && v.c === p.c) continue;
       if (v) {
-        const kind = captureKind(board, p, v, to);
+        const kind = captureKind(state, p, v, to);
         if (kind) moves.push({ from, to, kind });
       } else moves.push({ from, to, kind: null });
-    }
-    // Azyl (rošáda) – bez podmínek týkajících se šachu
-    if (p.t === 'K' && !p.moved && p.orig !== false) {
-      const home = p.c === 'w' ? 0 : 56;
-      if (from === home + 4) {
-        for (const [rookF, kingF, rookTo] of [[7, 6, 5], [0, 2, 3]]) {
-          const rk = board[home + rookF];
-          if (!rk || rk.t !== 'R' || rk.c !== p.c || rk.moved) continue;
-          const lo = Math.min(rookF, 4) + 1, hi = Math.max(rookF, 4);
-          let free = true;
-          for (let x = lo; x < hi; x++) if (board[home + x]) free = false;
-          if (free) moves.push({ from, to: home + kingF, kind: null, castle: { from: home + rookF, to: home + rookTo } });
-        }
-      }
     }
   }
   return moves;
@@ -223,10 +208,17 @@ export function moveToString(m) {
   return sqName(m.from) + sqName(m.to) + (m.promo ? m.promo.toLowerCase() : '');
 }
 
-export function cleanBishops(state, color) {
+export function cleanCardinals(state, color) {
   const out = [];
   state.board.forEach((p, i) => { if (p && p.c === color && p.t === 'B' && !p.pen) out.push(i); });
   return out;
+}
+
+// Smí zpovídat figurka q figurku na poli i (q stojí na poli j)?
+function confessorFits(p, q, i, j) {
+  if (!(CONFESSORS[p.t] || []).includes(q.t)) return false;
+  if (q.t === 'K') return cheb(i, j) === 1;
+  return Math.abs(fileOf(i) - fileOf(j)) + Math.abs(rankOf(i) - rankOf(j)) === 1;
 }
 
 function confess(state, color, events) {
@@ -234,12 +226,11 @@ function confess(state, color, events) {
   for (let i = 0; i < 64; i++) {
     const p = board[i];
     if (!p || p.c !== color || !p.pen) continue;
-    const allowed = CONFESSORS[p.t] || [];
-    for (const [df, dr] of ORTHO) {
+    for (const [df, dr] of KING) {
       const j = at(fileOf(i) + df, rankOf(i) + dr);
       if (j < 0) continue;
       const q = board[j];
-      if (q && q.c === color && allowed.includes(q.t)) {
+      if (q && q.c === color && confessorFits(p, q, i, j)) {
         p.pen = false;
         events.push({ type: 'absolve', sq: i, by: j, id: p.id, t: p.t, byT: q.t });
         break;
@@ -250,38 +241,44 @@ function confess(state, color, events) {
 
 function crownPope(state, sq, events) {
   const b = state.board[sq];
-  b.t = 'K'; b.pen = false; b.moved = true; b.orig = false;
+  b.t = 'K'; b.pen = false;
   events.push({ type: 'conclave', sq, color: b.c, id: b.id });
 }
 
-// Strana bez Biskupů: všichni její Poutníci natrvalo berou kříž (stávají se Křižáky, bez pokání)
+// Strana bez Kardinálů vyhlásí Křížovou výpravu: Misionáři se natrvalo stávají Křižáky (bez pokání)
 function takeTheCross(state, events) {
   for (const c of ['w', 'b']) {
-    let bishops = 0;
-    const pilgrims = [];
+    if (state.crusade[c]) continue;
+    let cardinals = 0;
+    const missionaries = [];
     for (let i = 0; i < 64; i++) {
       const p = state.board[i];
       if (!p || p.c !== c) continue;
-      if (p.t === 'B') bishops++;
-      else if (p.t === 'N') pilgrims.push(i);
+      if (p.t === 'B') cardinals++;
+      else if (p.t === 'N') missionaries.push(i);
     }
-    if (bishops > 0 || pilgrims.length === 0) continue;
+    if (cardinals > 0) continue;
+    state.crusade[c] = true;
     const ids = [];
-    for (const i of pilgrims) {
+    for (const i of missionaries) {
       const p = state.board[i];
       p.t = 'C';
       p.pen = false;
       ids.push(p.id);
     }
-    events.push({ type: 'crusade', color: c, sqs: pilgrims, ids });
+    events.push({ type: 'crusade', color: c, sqs: missionaries, ids });
   }
+}
+
+export function popeSquare(state, color) {
+  return state.board.findIndex((p) => p && p.c === color && p.t === 'K');
 }
 
 function finishTurn(state, events) {
   if (!state.result) takeTheCross(state, events);
-  // Na začátku tahu nemá hráč legální tah → prohrává
+  // Na začátku tahu nemá hráč legální tah → Interdikt, prohrává
   if (!state.result && !state.conclave && legalMoves(state).length === 0) {
-    state.result = { winner: other(state.turn), reason: 'nomoves' };
+    state.result = { winner: other(state.turn), reason: 'interdict' };
     events.push({ type: 'gameover', result: state.result });
   }
 }
@@ -292,56 +289,80 @@ function applyMove(state, m) {
   const { board } = state;
   const p = board[m.from];
   const mover = p.c;
-  let victimSq = m.kind === 'ep' ? m.epVictim : (board[m.to] ? m.to : -1);
-  let victim = victimSq >= 0 ? board[victimSq] : null;
+  const foe = other(mover);
+  const victimSq = m.kind === 'ep' ? m.epVictim : (board[m.to] ? m.to : -1);
+  const victim = victimSq >= 0 ? board[victimSq] : null;
+  const popeWasInReach = (() => {
+    const ps = popeSquare(state, foe);
+    return ps >= 0 && inRookReach(state, mover, ps);
+  })();
 
   events.push({ type: 'move', from: m.from, to: m.to, id: p.id, piece: { ...p } });
   if (victim) {
-    // Hranice, které oběť „viděly“ (pozice před tahem) – pro animaci ohnivé čáry
-    const rooks = (m.kind === 'burn' || m.kind === 'execute') ? rookSources(board, mover, m.to) : [];
+    // Hranice, v jejichž dosahu oběť stála – pro animaci ohnivé čáry
+    const rooks = (m.kind === 'burn' || m.kind === 'execute') ? rookSources(state, mover, victimSq) : [];
     events.push({ type: 'capture', sq: victimSq, kind: m.kind, piece: { ...victim }, by: { ...p }, rooks });
     board[victimSq] = null;
   }
   board[m.to] = p;
   board[m.from] = null;
-  p.moved = true;
-  if (m.castle) {
-    const rk = board[m.castle.from];
-    board[m.castle.to] = rk; board[m.castle.from] = null; rk.moved = true;
-    events.push({ type: 'castle', from: m.castle.from, to: m.castle.to, id: rk.id });
-  }
   if (m.kind === 'penance') {
     p.pen = true;
     events.push({ type: 'penance', sq: m.to, id: p.id });
   }
   if (m.promo) {
-    p.t = m.promo === 'N' && state.variant === 'krizaci' ? 'C' : m.promo;
+    p.t = m.promo === 'N' && state.crusade[mover] ? 'C' : m.promo;
     const hadPen = p.pen;
     p.pen = false;
     events.push({ type: 'promote', sq: m.to, t: p.t, id: p.id, cleansed: hadPen });
   }
-  state.ep = m.double ? (m.from + m.to) / 2 : -1;
+  state.ep = m.double && !m.promo ? (m.from + m.to) / 2 : -1;
+
+  // Žár Hranic: inkvizice zvyšuje, ztráta posledního Inkvizitora ruší
+  if (victim && p.t === 'Q' && !m.promo) {
+    const before = heatOf(state, mover);
+    state.inq[mover] = Math.min(3, state.inq[mover] + 1);
+    const after = heatOf(state, mover);
+    events.push({ type: 'inquisition', color: mover, inq: state.inq[mover] });
+    if (after > before) events.push({ type: 'heat', color: mover, level: after, rooks: rookSquares(state, mover) });
+  }
+  if (victim && victim.t === 'Q' && state.inq[foe] > 0 && !board.some((x) => x && x.c === foe && x.t === 'Q')) {
+    state.inq[foe] = 0;
+    events.push({ type: 'heatLost', color: foe, rooks: rookSquares(state, foe) });
+  }
 
   confess(state, mover, events);
 
-  state.turn = other(mover);
+  state.turn = foe;
   state.ply += 1;
 
   if (victim && victim.t === 'K') {
-    const loser = victim.c;
-    events.push({ type: 'popeFall', color: loser, sq: victimSq });
-    const options = cleanBishops(state, loser);
+    events.push({ type: 'popeFall', color: foe, sq: victimSq });
+    const options = cleanCardinals(state, foe);
     if (options.length === 0) {
-      state.result = { winner: mover, reason: 'damnation' };
+      state.result = { winner: mover, reason: 'anathema' };
       events.push({ type: 'gameover', result: state.result });
     } else if (options.length === 1) {
       crownPope(state, options[0], events);
     } else {
-      state.conclave = { color: loser, options };
+      state.conclave = { color: foe, options };
     }
   }
   finishTurn(state, events);
+  // Monitum: soupeřův Papež se nově ocitl v dosahu mých Hranic
+  if (!state.result && !state.conclave) {
+    const ps = popeSquare(state, foe);
+    if (ps >= 0 && !popeWasInReach && inRookReach(state, mover, ps)) {
+      events.push({ type: 'monitum', color: foe, sq: ps, by: mover });
+    }
+  }
   return events;
+}
+
+function rookSquares(state, color) {
+  const out = [];
+  state.board.forEach((p, i) => { if (p && p.c === color && p.t === 'R') out.push(i); });
+  return out;
 }
 
 // Akce: tah "e2e4" / "e7e8q", nebo volba papeže "@c8"
@@ -372,8 +393,8 @@ export function applyAction(state, action) {
   return { state: s, events };
 }
 
-export function replay(actions, variant = 'poutnici') {
-  let s = initialState(variant);
+export function replay(actions) {
+  let s = initialState();
   for (const a of actions) s = applyAction(s, a).state;
   return s;
 }
@@ -383,7 +404,6 @@ export const KIND_LABEL = {
   penance: 'braní s pokáním',
   burn: 'upálení na hranici',
   crusade: 'křížová výprava',
-  pyre: 'stržení hranice',
   execute: 'poprava na hranici',
   ep: 'tajný hřích',
 };

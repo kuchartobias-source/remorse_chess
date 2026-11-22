@@ -1,6 +1,7 @@
-# Kajícné šachy (Remorse Chess)
+# Schizma
 
-Online hra šachové varianty **Kajícné šachy** – s pokáním, zpovědí, upalováním na hranici a konkláve.
+Online hra šachové varianty **Schizma** – dva papežové, jen jedna pravá víra. Pokání, zpověď,
+Žár Hranic, upalování na hranici, Monitum, konkláve a křížové výpravy.
 
 **Hrát:** https://kuchartobias-source.github.io/remorse_chess/
 
@@ -12,8 +13,9 @@ Online hra šachové varianty **Kajícné šachy** – s pokáním, zpovědí, u
 
 Rozehranou hru lze kdykoliv znovu otevřít stejným odkazem (aplikace si pamatuje, za kterou barvu hraješ).
 V online hře je i **chat** (s rychlými frázemi). K dispozici je také režim **Na jednom zařízení**
-a **Proti stroji** – soupeřem je neuronová síť, která se hru naučila sama hraním proti sobě
-(tři úrovně: Poutník, Biskup, Inkvizitor; výpočet běží přímo v prohlížeči).
+a **Proti stroji** – soupeřem je neuronová síť, která se hru učí sama hraním proti sobě
+(tři úrovně: Misionář, Kardinál, Inkvizitor; výpočet běží přímo v prohlížeči). Dokud není síť pro
+Schizma natrénovaná, hraje stroj podle materiálu.
 
 ## Technika
 
@@ -24,11 +26,13 @@ a **Proti stroji** – soupeřem je neuronová síť, která se hru naučila sam
   pod náhodným 12znakovým názvem místnosti, žádná jména ani osobní údaje. Server zprávy drží asi 12 hodin;
   rozehraná partie je navíc uložená v prohlížeči obou hráčů. Bezplatný limit ntfy.sh je 250 zpráv denně na IP adresu (počítají se tahy i zprávy v chatu).
 - Výklad nejasných míst pravidel je v [RULES-NOTES.md](RULES-NOTES.md).
-- Síť pro hru proti stroji: `model/net.bin` (MLP 1436 → 192 → 64 → 1, váhy float32) a `js/ai.js`
-  (kódování pozice, hodnocení, prohledávání 1–2 půltahů); počítá se ve Web Workeru.
+- Síť pro hru proti stroji: `model/net.bin` (MLP 1698 → 192 → 64 → 1, váhy float32) a `js/ai.js`
+  (kódování pozice včetně úrovně Žáru, hodnocení, prohledávání 1–2 půltahů); počítá se ve Web Workeru.
 
 Grafika figurek i animace jsou vlastní tvorba (SVG + CSS). Zvukové efekty se syntetizují přímo
 v prohlížeči (WebAudio). Hudba na pozadí je vlastní skladba – kantikum v dórském modu na D (antifona,
 verše na recitačním tónu, organum v kvintách, mezihra se žaltářem a zvony) – kterou hrají skutečné
 nahrávky: nástroje z VCSL (CC0) a sbor a hlas z FluidR3 GM od Franka Wena (CC BY 3.0).
 Podrobnosti a licence: [music/CREDITS.md](music/CREDITS.md). Zapíná a vypíná se ikonou noty.
+
+Předchozí varianta (Kajícné šachy) je dostupná v historii repozitáře.

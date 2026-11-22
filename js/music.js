@@ -1,4 +1,4 @@
-// Hudba na pozadí Kajícných šachů – vlastní skladba: kantikum v dórském modu na D.
+// Hudba na pozadí Schizmatu – vlastní skladba: kantikum v dórském modu na D.
 // Hrají skutečné nahrávky nástrojů a hlasů (music/, licence v music/CREDITS.md); když se
 // nenačtou, zazní záložní syntéza přes WebAudio. Forma (smyčka ~2 min):
 //   úvod (bordun + zvon) → antifona (sólový kantor) → 2 verše (sbor na recitačním tónu)
@@ -603,7 +603,7 @@ export class MusicPlayer {
   constructor(getCtx) {
     this.getCtx = getCtx;
     this.on = true;
-    try { this.on = localStorage.getItem('rc-music') !== 'off'; } catch (e) { /* nic */ }
+    try { this.on = localStorage.getItem('sz-music') !== 'off'; } catch (e) { /* nic */ }
     this.g = null;
     this.kit = null;
     this.kitPromise = null;
@@ -617,7 +617,7 @@ export class MusicPlayer {
 
   setOn(on) {
     this.on = on;
-    try { localStorage.setItem('rc-music', on ? 'on' : 'off'); } catch (e) { /* nic */ }
+    try { localStorage.setItem('sz-music', on ? 'on' : 'off'); } catch (e) { /* nic */ }
     if (on) this.start(); else this.stop();
   }
 
@@ -701,7 +701,7 @@ export class MusicPlayer {
   react(evs) {
     let lvl = 1, hold = 0;
     for (const e of evs) {
-      const m = { popeFall: [0.25, 3.5], conclave: [0.3, 3.2], crusade: [0.35, 3], absolve: [0.55, 1.6], gameover: [0.12, 9] }[e.type];
+      const m = { popeFall: [0.25, 3.5], conclave: [0.3, 3.2], crusade: [0.35, 3], heat: [0.4, 2.2], absolve: [0.55, 1.6], gameover: [0.12, 9] }[e.type];
       if (m && m[0] < lvl) { lvl = m[0]; hold = Math.max(hold, m[1]); }
     }
     if (lvl < 1) this.duck(lvl, hold);

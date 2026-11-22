@@ -2,11 +2,10 @@
 // Do zpráv se neposílají žádná jména ani osobní údaje – jen tahy a stav místnosti.
 
 const BASE = 'https://ntfy.sh/';
-// Kód místnosti: 12 znaků, mód Křižáci od začátku má příponu „-k“ (stará verze stránky ji nepozná)
-export const ROOM_RE = /^[a-z0-9]{12}(-k)?$/;
-export const variantOfRoom = (room) => (room && room.endsWith('-k') ? 'krizaci' : 'poutnici');
-// Verze protokolu = verze pravidel (rc2: Poutníci, dosah Hranic skrz vlastní figurky)
-const APP = 'rc2';
+// Kód místnosti: 12 znaků
+export const ROOM_RE = /^[a-z0-9]{12}$/;
+// Verze protokolu = verze pravidel (sz1: Schizma)
+const APP = 'sz1';
 
 export function newRoomId() {
   const a = new Uint8Array(12);
@@ -27,7 +26,7 @@ export function clientId() {
 
 export class Channel {
   constructor(room, { onMessage, onStatus }) {
-    this.topic = 'kajicne-sachy-' + room;
+    this.topic = 'schizma-sachy-' + room;
     this.onMessage = onMessage;
     this.onStatus = onStatus || (() => {});
     this.seen = new Set();
@@ -119,7 +118,7 @@ export class Channel {
     if (!data || typeof data !== 'object' || typeof data.k !== 'string') return;
     if (data.app !== APP) {
       // zpráva z jiné verze hry (stará pravidla nebo neobnovená stránka soupeře)
-      if (typeof data.app === 'string' && /^rc\d+$/.test(data.app)) {
+      if (typeof data.app === 'string' && /^(rc|sz)\d+$/.test(data.app)) {
         try { this.onMessage({ k: '_version', app: data.app }, fromHistory); } catch (e) { /* nic */ }
       }
       return;

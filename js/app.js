@@ -1,14 +1,14 @@
-// Kajícné šachy – aplikace (lobby, deska, online hra)
-import * as E from './engine.js?v=6';
-import { pieceSVG, CHIP_SVG, ICON } from './pieces.js?v=6';
-import { FX } from './fx.js?v=6';
-import { Channel, newRoomId, clientId, ROOM_RE, variantOfRoom } from './net.js?v=6';
-import { RULES_HTML } from './rules.js?v=6';
-import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=6';
-import { MusicPlayer } from './music.js?v=6';
+// Schizma – aplikace (lobby, deska, online hra)
+import * as E from './engine.js?v=7';
+import { pieceSVG, CHIP_SVG, HEAT_SVG, ICON } from './pieces.js?v=7';
+import { FX } from './fx.js?v=7';
+import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=7';
+import { RULES_HTML } from './rules.js?v=7';
+import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=7';
+import { MusicPlayer } from './music.js?v=7';
 
 const music = new MusicPlayer(getCtx);
-import { LEVELS } from './ai.js?v=6';
+import { LEVELS } from './ai.js?v=7';
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -20,35 +20,31 @@ const other = E.other;
 const NAME = E.NAMES;
 const PLAYER = { w: 'Bílý', b: 'Černý' };
 const SIDE = { w: 'bílé', b: 'černé' };
-const MODE_NAME = { poutnici: 'Poutníci', krizaci: 'Křižáci od začátku' };
-const MODE_DESC = {
-  poutnici: 'Jezdci začínají jako Poutníci a Křižáky se stanou, až strana přijde o všechny Biskupy.',
-  krizaci: 'Jezdci jsou od prvního tahu Křižáci – zabíjejí bez pokání. Poutníci se nevyskytují.',
-};
-const modeSuffix = (v) => (v === 'krizaci' ? '-k' : '');
-const modeParam = (v) => (v === 'krizaci' ? '&mod=k' : '');
-const ACC = { K: 'Papeže', Q: 'Inkvizitora', R: 'Hranici', B: 'Biskupa', N: 'Poutníka', C: 'Křižáka', P: 'Hříšníka' };
-const GEN = { K: 'Papeže', B: 'Biskupa' };
-const ACTION_RE = /^([a-h][1-8][a-h][1-8][qrbn]?|@[a-h][1-8])$/;
+const SIDE_HR = { w: 'Bílé', b: 'Černé' };
+const ACC = { K: 'Papeže', Q: 'Inkvizitora', R: 'Hranici', B: 'Kardinála', N: 'Misionáře', C: 'Křižáka', P: 'Hříšníka' };
+const GEN = { K: 'Papeže', B: 'Kardinála' };
+const ACTION_RE = /^([a-h][1-8][a-h][1-8][qbn]?|@[a-h][1-8])$/;
+const KEY = 'sz1-';
+const inqWord = (n) => (n >= 1 && n <= 4 ? 'inkvizice' : 'inkvizic');
 const cap1 = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const adj = (c, t) => (t === 'R' ? (c === 'w' ? 'bílá' : 'černá') : (c === 'w' ? 'bílý' : 'černý'));
 const mini = (t, c) => `<span class="mini ${c}">${pieceSVG(t)}</span>`;
 const params = new URLSearchParams(location.hash.slice(1));
 
 const INFO = {
-  K: 'Papež – bere živé figurky jen v dosahu své Hranice (poprava), soupeřovu Hranici strhne sám. Zpovídá Inkvizitora a Biskupy.',
-  Q: 'Inkvizitor – po zabití propadá pokání (kromě upálení na hranici). Zpověď u Biskupa nebo Papeže.',
-  R: 'Hranice – sama nikdy nebere. Soupeřovy figurky v jejím dosahu (řada a sloupec; vlastní figurky výhled neblokují, soupeřova ho zastaví) lze upálit bez pokání.',
-  B: 'Biskup – zpovídá Hříšníky a Inkvizitora, sám se zpovídá u Papeže. Čistý Biskup může být zvolen Papežem.',
-  N: 'Poutník – táhne jako jezdec, po zabití propadá pokání (kromě upálení na hranici), zpověď jen u Biskupa. Hranici odstranit nesmí. Když strana přijde o všechny Biskupy, Poutníci se stanou Křižáky.',
-  C: 'Křižák – táhne jako jezdec a zabíjí bez pokání (odpustek). Hranici odstranit nesmí.',
-  P: 'Hříšník – po zabití propadá pokání (i při upálení), kromě tajného hříchu. Zpověď u Biskupa.',
+  K: 'Papež – táhne o 1 pole. Soupeřovu figurku smí odstranit jen Upálením (cíl v dosahu jeho Hranice) a sám padne jen Upálením v dosahu soupeřovy Hranice – Hříšník ho odstranit nesmí. Pokání nepropadá. Zpovídá všechny (i diagonálně).',
+  Q: 'Inkvizitor – po zabití mimo dosah Hranice propadá pokání. Každé jeho odstranění soupeře je inkvizice a rozpaluje Žár Hranic. Zpověď u Kardinála nebo Papeže.',
+  R: 'Hranice – nebere a nelze ji odstranit. Skáče na volné pole v poloměru Žáru (1–3). Soupeřovy figurky v jejím dosahu lze upálit bez pokání (neplatí pro Hříšníky).',
+  B: 'Kardinál – zpovídá Hříšníky, Misionáře a Inkvizitora (jen vodorovně a svisle), sám se zpovídá u Papeže. Čistý Kardinál může být zvolen Papežem.',
+  N: 'Misionář – táhne jako jezdec, po zabití mimo dosah Hranice propadá pokání. Zpověď u Kardinála nebo Papeže. Když strana přijde o posledního Kardinála, stane se Křižákem.',
+  C: 'Křižák – táhne jako jezdec a díky papežskému odpustku nikdy nepropadá pokání. Papeže smí odstranit jen v dosahu Hranice.',
+  P: 'Hříšník – smí kdykoliv o 1 nebo 2 pole vpřed. Nikdy neupaluje: každé zabití znamená pokání (kromě tajného hříchu). Papeže odstranit nesmí. Zpověď u Kardinála nebo Papeže.',
 };
 const PEN_INFO = {
-  P: 'Kaje se – nesmí brát, dokud nestojí vodorovně či svisle vedle svého Biskupa.',
-  N: 'Kaje se – nesmí brát živé figurky, dokud nestojí vodorovně či svisle vedle svého Biskupa.',
-  Q: 'Kaje se – nesmí brát živé figurky, dokud nestojí vedle Biskupa nebo Papeže. Hranici strhnout smí.',
-  B: 'Kaje se – nesmí brát živé figurky a nemůže být zvolen Papežem, dokud se nevyzpovídá u Papeže. Hranici strhnout smí.',
+  P: 'Kaje se – nesmí brát (ani mimochodem), dokud nestojí vodorovně či svisle vedle Kardinála nebo kdekoliv vedle Papeže.',
+  N: 'Kaje se – nesmí brát, dokud nestojí vodorovně či svisle vedle Kardinála nebo kdekoliv vedle Papeže.',
+  Q: 'Kaje se – nesmí brát, dokud nestojí vodorovně či svisle vedle Kardinála nebo kdekoliv vedle Papeže.',
+  B: 'Kaje se – nesmí brát a nemůže být zvolen Papežem, dokud se nevyzpovídá u Papeže.',
 };
 
 let toastTimer = null;
@@ -85,33 +81,26 @@ function showLobby() {
       };
     });
   };
-  let gameMode = store.get('rc-mode') === 'krizaci' ? 'krizaci' : 'poutnici';
-  const paintMode = () => {
-    $('mode-seg').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.m === gameMode)));
-    $('mode-desc').textContent = MODE_DESC[gameMode];
-  };
-  paintMode();
-  seg('mode-seg', 'm', (v) => { gameMode = v; store.set('rc-mode', v); paintMode(); });
   seg('color-seg', 'c', (v) => { color = v; });
   seg('flip-seg', 'f', (v) => { flip = v === '1'; });
   $('btn-create').onclick = () => {
-    const room = newRoomId() + modeSuffix(gameMode);
+    const room = newRoomId();
     const c = color === 'r' ? (Math.random() < 0.5 ? 'w' : 'b') : color;
-    store.set('rc2-seat-' + room, c);
-    store.set('rc2-host-' + room, true);
+    store.set(KEY + 'seat-' + room, c);
+    store.set(KEY + 'host-' + room, true);
     location.hash = 'hra=' + room;
   };
   $('btn-local').onclick = () => {
-    store.del('rc2-local');
-    location.hash = 'mistni' + (flip ? '&otacet=1' : '') + modeParam(gameMode);
+    store.del(KEY + 'local');
+    location.hash = 'mistni' + (flip ? '&otacet=1' : '');
   };
   let aiColor = 'w', aiLevel = '2';
   seg('ai-color-seg', 'c', (v) => { aiColor = v; });
   seg('ai-level-seg', 'l', (v) => { aiLevel = v; });
   $('btn-ai').onclick = () => {
     const c = aiColor === 'r' ? (Math.random() < 0.5 ? 'w' : 'b') : aiColor;
-    store.del('rc2-ai');
-    location.hash = `stroj=${c}&uroven=${aiLevel}` + modeParam(gameMode);
+    store.del(KEY + 'ai');
+    location.hash = `stroj=${c}&uroven=${aiLevel}`;
   };
 }
 
@@ -179,12 +168,14 @@ class BoardView {
 
   createPiece(p, sq) {
     const el = document.createElement('div');
-    el.className = 'piece ' + p.c;
-    el.innerHTML = CHIP_SVG + pieceSVG(p.t);
+    el.className = 'piece ' + p.c + (p.t === 'R' ? ' rook' : '');
+    el.innerHTML = (p.t === 'R' ? HEAT_SVG + '<span class="rflame"><i></i><i></i><i></i></span>' : CHIP_SVG) + pieceSVG(p.t);
     el._shownT = p.t;
     el._t = p.t;
     el._pen = p.pen;
+    el._heat = el._shownHeat = p.t === 'R' ? (this.heat ? this.heat[p.c] : 1) : 0;
     el.classList.toggle('pen', p.pen);
+    if (p.t === 'R') el.dataset.heat = el._heat;
     this.place(el, sq);
     this.pieceLayer.appendChild(el);
     this.els.set(p.id, el);
@@ -198,6 +189,10 @@ class BoardView {
       el._shownT = el._t;
     }
     el.classList.toggle('pen', el._pen);
+    if (el._t === 'R' && el._shownHeat !== el._heat) {
+      el._shownHeat = el._heat;
+      el.dataset.heat = el._heat;
+    }
   }
 
   // Srovná DOM se stavem; `events` (události posledního tahu) spustí animace
@@ -205,8 +200,14 @@ class BoardView {
     const evs = events || [];
     const capEv = evs.find((e) => e.type === 'capture');
     const mvEv = evs.find((e) => e.type === 'move');
+    this.heat = { w: E.heatOf(state, 'w'), b: E.heatOf(state, 'b') };
     const special = new Set(evs.filter((e) => ['promote', 'conclave', 'penance', 'absolve'].includes(e.type)).map((e) => e.id));
     for (const e of evs) if (e.type === 'crusade') e.ids.forEach((id) => special.add(id));
+    for (const e of evs) {
+      if (e.type === 'heat' || e.type === 'heatLost') {
+        state.board.forEach((x) => { if (x && x.t === 'R' && x.c === e.color) special.add(x.id); });
+      }
+    }
     const present = new Set();
     for (let sq = 0; sq < 64; sq++) {
       const p = state.board[sq];
@@ -217,14 +218,17 @@ class BoardView {
       if (el._sq !== sq) {
         this.place(el, sq);
         if (events) {
+          const leap = mvEv && mvEv.id === p.id && mvEv.piece.t === 'R';
           const hop = mvEv && mvEv.id === p.id && (mvEv.piece.t === 'N' || mvEv.piece.t === 'C');
           el.classList.add('moving');
           if (hop) el.classList.add('hop');
-          setTimeout(() => el.classList.remove('moving', 'hop'), 360);
+          if (leap) el.classList.add('leap');
+          setTimeout(() => el.classList.remove('moving', 'hop', 'leap'), leap ? 560 : 360);
         }
       }
       el._t = p.t;
       el._pen = p.pen;
+      el._heat = p.t === 'R' ? this.heat[p.c] : 0;
       if (!special.has(p.id)) this.applyLook(el);
     }
     for (const [id, el] of this.els) {
@@ -245,7 +249,7 @@ class BoardView {
   }
 
   kill(el, kind, pope = false) {
-    const v = pope ? 'pope' : ({ penance: 'blood', burn: 'burn', execute: 'burn', crusade: 'fall', pyre: 'pyre', ep: 'quiet' }[kind] || 'quiet');
+    const v = pope ? 'pope' : ({ penance: 'blood', burn: 'burn', execute: 'burn', crusade: 'fall', ep: 'quiet' }[kind] || 'quiet');
     el.classList.add('die');
     setTimeout(() => el.classList.add('die-' + v), 170);
     setTimeout(() => el.remove(), 1500);
@@ -256,7 +260,10 @@ class BoardView {
     const get = (id) => this.els.get(id);
     const popeFell = evs.some((e) => e.type === 'popeFall');
     const mv = evs.find((e) => e.type === 'move');
-    if (mv && !evs.some((e) => e.type === 'capture')) later(270, () => this.fx.dust(mv.to));
+    if (mv && mv.piece.t === 'R') {
+      later(40, () => this.fx.embers(mv.from));
+      later(470, () => { this.fx.dust(mv.to); this.fx.sparks(mv.to); });
+    } else if (mv && !evs.some((e) => e.type === 'capture')) later(270, () => this.fx.dust(mv.to));
     for (const e of evs) {
       switch (e.type) {
         case 'capture':
@@ -277,9 +284,6 @@ class BoardView {
               el.style.setProperty('--ry', Math.sign(b.y - a.y) * 14 + '%');
               later(290, () => { el.classList.add('recoil'); later(380, () => el.classList.remove('recoil')); });
             }
-          } else if (e.kind === 'pyre') {
-            later(200, () => this.fx.logs(e.sq));
-            later(260, () => this.fx.fire(e.sq, false));
           } else if (e.kind === 'ep') later(140, () => this.fx.shadow(e.sq));
           break;
         case 'penance': {
@@ -334,6 +338,34 @@ class BoardView {
           });
           break;
         }
+        case 'heat': {
+          const t0 = 650;
+          later(t0, () => this.fx.ribbon(`<i class="cross">${ICON.heat}</i>ŽÁR ${'I'.repeat(e.level)}<i class="cross">${ICON.heat}</i>`, 'heat', 2200));
+          e.rooks.forEach((sq, i) => {
+            later(t0 + 250 + i * 180, () => {
+              this.fx.heatUp(sq, e.level);
+              const x = this.pieceAt(sq);
+              if (x) { this.applyLook(x); x.classList.add('heat-in'); later(900, () => x.classList.remove('heat-in')); }
+            });
+          });
+          break;
+        }
+        case 'heatLost': {
+          const t0 = 700;
+          e.rooks.forEach((sq, i) => {
+            later(t0 + i * 160, () => {
+              this.fx.extinguish(sq);
+              const x = this.pieceAt(sq);
+              if (x) { x.classList.add('heat-out'); later(650, () => { x.classList.remove('heat-out'); this.applyLook(x); }); }
+            });
+          });
+          break;
+        }
+        case 'monitum': {
+          const t0 = popeFell ? 3000 : 700;
+          later(t0, () => { this.fx.ribbon(`<i class="cross">${ICON.monitum}</i>MONITUM!<i class="cross">${ICON.monitum}</i>`, 'monitum', 2000); this.fx.warn(e.sq); });
+          break;
+        }
         case 'crusade': {
           const t0 = popeFell ? 3000 : 600;
           later(t0, () => this.fx.ribbon(`<i class="cross">${ICON.cross}</i>DEUS VULT<i class="cross">${ICON.cross}</i>`, 'crusade', 2400));
@@ -357,6 +389,11 @@ class BoardView {
     }
   }
 
+  pieceAt(sq) {
+    for (const el of this.els.values()) if (el._sq === sq) return el;
+    return null;
+  }
+
   showHints(list) {
     this.hintLayer.innerHTML = list.map((h) => {
       const { x, y } = this.posOf(h.sq);
@@ -367,23 +404,22 @@ class BoardView {
   mark(map) {
     for (let sq = 0; sq < 64; sq++) {
       const el = this.sqEls[sq];
-      for (const cls of ['last', 'sel', 'reach', 'choice']) el.classList.toggle(cls, !!(map[cls] && map[cls].has(sq)));
+      for (const cls of ['last', 'sel', 'reach', 'reach2', 'choice', 'danger']) el.classList.toggle(cls, !!(map[cls] && map[cls].has(sq)));
     }
   }
 }
 
 // ---------------- Hra ----------------
 class Game {
-  constructor({ mode, room = null, autoFlip = false, ai = null, variant = 'poutnici' }) {
+  constructor({ mode, room = null, autoFlip = false, ai = null }) {
     this.mode = mode;
-    this.variant = variant;
     this.ai = ai; // { color: barva stroje, level: 1..3 } v režimu proti stroji
     this.thinking = false;
     this.room = room;
     this.autoFlip = autoFlip;
     this.me = null;
     this.actions = [];
-    this.state = E.initialState(variant);
+    this.state = E.initialState();
     this.hist = [];
     this.legal = [];
     this.ext = null;
@@ -398,7 +434,7 @@ class Game {
     this.view = new BoardView();
     this.bindBoard();
     this.bindControls();
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) document.title = 'Kajícné šachy'; });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) document.title = 'Schizma'; });
   }
 
   result() { return this.state.result || this.ext; }
@@ -411,7 +447,7 @@ class Game {
 
   // Přepočítá stav a historii z this.actions (neplatný konec zahodí)
   rebuild() {
-    let s = E.initialState(this.variant);
+    let s = E.initialState();
     const hist = [];
     const good = [];
     for (const a of this.actions) {
@@ -446,9 +482,9 @@ class Game {
   }
 
   persist() {
-    if (this.ai) store.set('rc2-ai', { a: this.actions, ext: this.ext, color: this.ai.color, level: this.ai.level, variant: this.variant });
-    else if (this.mode === 'local') store.set('rc2-local', { a: this.actions, ext: this.ext, flip: this.autoFlip, variant: this.variant });
-    else store.set('rc2-game-' + this.room, { a: this.actions, ext: this.ext });
+    if (this.ai) store.set(KEY + 'ai', { a: this.actions, ext: this.ext, color: this.ai.color, level: this.ai.level });
+    else if (this.mode === 'local') store.set(KEY + 'local', { a: this.actions, ext: this.ext, flip: this.autoFlip });
+    else store.set(KEY + 'game-' + this.room, { a: this.actions, ext: this.ext });
   }
 
   // ---------- vykreslení ----------
@@ -461,7 +497,6 @@ class Game {
   }
 
   refreshPanels() {
-    $('mode-tag').textContent = 'Mód: ' + MODE_NAME[this.variant];
     this.renderBoardMood();
     this.renderMarks();
     this.renderHints();
@@ -504,7 +539,16 @@ class Game {
     const map = { last, sel: new Set(this.sel >= 0 ? [this.sel] : []) };
     if (this.reach) {
       const c = this.mode === 'online' && this.me ? this.me : this.state.turn;
-      map.reach = new Set(E.rookReachSquares(this.state.board, c));
+      map.reach = new Set(E.rookReachSquares(this.state, c));
+      map.reach2 = new Set(E.rookReachSquares(this.state, other(c)));
+    }
+    // Papež v dosahu soupeřových Hranic (hrozí mu poprava)
+    if (!this.result()) {
+      map.danger = new Set();
+      for (const c of ['w', 'b']) {
+        const ps = E.popeSquare(this.state, c);
+        if (ps >= 0 && E.inRookReach(this.state, other(c), ps)) map.danger.add(ps);
+      }
     }
     if (this.state.conclave && this.canAct()) map.choice = new Set(this.state.conclave.options);
     this.view.mark(map);
@@ -523,7 +567,7 @@ class Game {
         if (m.kind) {
           cls += ' cap ' + (m.kind === 'penance' ? 'pen' : 'clean');
           inner += '<div class="ring"></div>';
-          const ic = { penance: ICON.blood, burn: ICON.fire, execute: ICON.fire, crusade: ICON.sword, pyre: ICON.logs }[m.kind];
+          const ic = { penance: ICON.blood, burn: ICON.fire, execute: ICON.fire, crusade: ICON.sword }[m.kind];
           if (ic) inner += `<div class="badge">${ic}</div>`;
         } else inner += '<div class="dotm"></div>';
         if (absolve) inner += `<div class="badge2">${ICON.halo}</div>`;
@@ -564,7 +608,11 @@ class Game {
       const mark = turn ? `<span class="turnmark">${conclave ? 'KONKLÁVE' : 'NA TAHU'}</span>` : '';
       const pres = this.presence(c);
       const caps = this.captured(c).map((p) => mini(p.t, p.c)).join('');
-      el.innerHTML = `<span class="disc ${c}"></span><div><div class="who">${PLAYER[c]}${pres === 'ty' ? ' (ty)' : ''}</div>`
+      const lv = E.heatOf(this.state, c);
+      const inq = this.state.inq[c];
+      const heat = `<span class="heatbadge lv${lv}" title="Žár Hranic: úroveň ${lv} (dosah ${lv} pole), ${inq} ${inqWord(inq)}">${ICON.heat}Žár ${lv}<small>${inq >= 3 ? 'max' : inq + '/' + (inq >= 1 ? 3 : 1)}</small></span>`;
+      const cru = this.state.crusade[c] ? `<span class="crubadge" title="Křížová výprava vyhlášena">${ICON.cross}</span>` : '';
+      el.innerHTML = `<span class="disc ${c}"></span><div><div class="who">${PLAYER[c]}${pres === 'ty' ? ' (ty)' : ''} ${heat}${cru}</div>`
         + `<div class="meta">${pres && pres !== 'ty' ? pres + ' ' : ''}${mark}</div></div><div class="caps">${caps}</div>`;
     };
     put($('pl-top'), other(this.view.orient));
@@ -575,9 +623,8 @@ class Game {
     if (h.a[0] === '@') return `${ICON.crown} konkláve ${h.a.slice(1)}`;
     const mv = h.events.find((e) => e.type === 'move');
     const cap = h.events.find((e) => e.type === 'capture');
-    if (h.events.some((e) => e.type === 'castle')) return `${mini('K', mv.piece.c)} Azyl ${mv.to % 8 === 6 ? 'krátký' : 'dlouhý'}`;
     let s = `${mini(mv.piece.t, mv.piece.c)}${E.sqName(mv.from)}${cap ? '×' : '–'}${E.sqName(mv.to)}`;
-    if (cap) s += { penance: ICON.blood, burn: ICON.fire, execute: ICON.fire, crusade: ICON.sword, pyre: ICON.logs, ep: '' }[cap.kind] || '';
+    if (cap) s += { penance: ICON.blood, burn: ICON.fire, execute: ICON.fire, crusade: ICON.sword, ep: '' }[cap.kind] || '';
     const pr = h.events.find((e) => e.type === 'promote');
     if (pr) {
       const cr = h.events.find((e) => e.type === 'crusade' && e.ids.includes(pr.id));
@@ -586,6 +633,8 @@ class Game {
     if (h.events.some((e) => e.type === 'absolve')) s += ICON.halo;
     if (h.events.some((e) => e.type === 'popeFall')) s += ' †';
     if (h.events.some((e) => e.type === 'crusade')) s += ICON.cross;
+    if (h.events.some((e) => e.type === 'heat')) s += ICON.heat;
+    if (h.events.some((e) => e.type === 'monitum')) s += ICON.monitum;
     return s;
   }
 
@@ -621,12 +670,11 @@ class Game {
         penance: `${A} zabil ${V} na ${at} a propadá pokání.`,
         burn: `${A} upálil ${V} na ${at} – v dosahu Hranice, bez pokání.`,
         execute: `${A} nechal na ${at} popravit ${V} na hranici.`,
-        crusade: `${A} pobil ${V} na ${at}. Odpustek ho chrání před pokáním.`,
-        pyre: `${A} strhl soupeřovu Hranici na ${at}.`,
+        crusade: `${A} pobil ${V} na ${at}. Papežský odpustek ho chrání před pokáním.`,
         ep: `${A} spáchal tajný hřích – mimochodem sebral Hříšníka na ${at}, bez pokání.`,
       }[cap.kind]);
-    } else if (evs.some((e) => e.type === 'castle')) {
-      out.push(`${cap1(adj(mv.piece.c, 'K'))} Papež nalezl Azyl u své Hranice.`);
+    } else if (mv && mv.piece.t === 'R') {
+      out.push(`${cap1(adj(mv.piece.c, 'R'))} Hranice se přenesla ${E.sqName(mv.from)}–${E.sqName(mv.to)}.`);
     } else if (mv) {
       out.push(`${cap1(adj(mv.piece.c, mv.piece.t))} ${NAME[mv.piece.t]} táhne ${E.sqName(mv.from)}–${E.sqName(mv.to)}.`);
     }
@@ -637,8 +685,16 @@ class Game {
       if (e.type === 'crusade' && promoted && e.ids.length === 1 && e.ids[0] === promoted.id) continue;
       if (e.type === 'absolve') out.push(`${NAME[e.t]} na ${E.sqName(e.sq)} se vyzpovídal u ${GEN[e.byT]} a získal rozhřešení.`);
       if (e.type === 'popeFall') out.push(`${PLAYER[e.color]} Papež padl!`);
-      if (e.type === 'conclave') out.push(`Habemus papam! ${cap1(adj(e.color, 'B'))} Biskup na ${E.sqName(e.sq)} usedá na papežský stolec.`);
-      if (e.type === 'crusade') out.push(`${PLAYER[e.color]} přišel o všechny Biskupy – Poutníci berou kříž a stávají se Křižáky. Deus vult!`);
+      if (e.type === 'conclave') out.push(`Habemus papam! ${cap1(adj(e.color, 'B'))} Kardinál na ${E.sqName(e.sq)} usedá na papežský stolec.`);
+      if (e.type === 'crusade') {
+        out.push(e.ids.length
+          ? `${PLAYER[e.color]} přišel o posledního Kardinála – Křížová výprava! Misionáři se natrvalo stávají Křižáky. Deus vult!`
+          : `${PLAYER[e.color]} přišel o posledního Kardinála – vyhlašuje Křížovou výpravu. Deus vult!`);
+      }
+      if (e.type === 'inquisition' && !evs.some((x) => x.type === 'heat')) out.push(`Inkvizice! ${PLAYER[e.color]} Inkvizitor má na kontě ${e.inq >= 3 ? '3 a více' : e.inq} ${inqWord(e.inq)}.`);
+      if (e.type === 'heat') out.push(`${SIDE_HR[e.color]} Hranice planou: Žár ${e.level}. úrovně – dosah i skok ${e.level} pole.`);
+      if (e.type === 'heatLost') out.push(`${PLAYER[e.color]} přišel o posledního Inkvizitora – Žár jeho Hranic uhasl na 1. úroveň.`);
+      if (e.type === 'monitum') out.push(`<b>Monitum!</b> ${PLAYER[e.color]} Papež na ${E.sqName(e.sq)} stojí v dosahu soupeřovy Hranice.`);
     }
     return out;
   }
@@ -647,8 +703,8 @@ class Game {
     if (r.reason === 'draw') return 'Remíza dohodou.';
     const L = PLAYER[other(r.winner)], W = PLAYER[r.winner];
     return {
-      damnation: `Zatracení! ${L} už nemá čistého Biskupa, kterého by dosadil na papežský stolec. Vítězí ${W}.`,
-      nomoves: `${L} nemá žádný povolený tah a prohrává. Vítězí ${W}.`,
+      anathema: `Anathema! ${L} Papež padl a není čistý Kardinál, kterého by šlo dosadit na papežský stolec. Vítězí ${W}.`,
+      interdict: `Interdikt! ${L} nemá žádný povolený tah a prohrává. Vítězí ${W}.`,
       resign: `${L} se vzdal. Vítězí ${W}.`,
     }[r.reason] || `Vítězí ${W}.`;
   }
@@ -661,7 +717,7 @@ class Game {
     if (res) status = `<b>${this.resultText(res)}</b>`;
     else if (this.state.conclave) {
       const c = this.state.conclave.color;
-      status = `<b>Konkláve!</b> ${PLAYER[c]}${c === this.me ? ' (ty)' : ''} volí nového Papeže z čistých Biskupů.`;
+      status = `<b>Konkláve!</b> ${PLAYER[c]}${c === this.me ? ' (ty)' : ''} volí nového Papeže z čistých Kardinálů.`;
     } else {
       const t = this.state.turn;
       const machine = this.ai && t === this.ai.color;
@@ -670,13 +726,23 @@ class Game {
     let hint = '';
     if (this.sel >= 0) {
       const p = this.state.board[this.sel];
-      if (p) hint = `${INFO[p.t]}${p.pen ? ' <b>' + PEN_INFO[p.t] + '</b>' : ''}`;
+      if (p) hint = this.pieceTip(p);
     }
     const fresh = this.storyLen !== this.hist.length;
     this.storyLen = this.hist.length;
     const cls = fresh ? 'ev new' : 'ev';
     $('story').innerHTML = lines.map((l) => `<div class="${cls}">${l}</div>`).join('')
       + `<div class="ev">${status}</div>` + (hint ? `<div class="tip">${hint}</div>` : '');
+  }
+
+  pieceTip(p) {
+    let s = INFO[p.t] + (p.pen ? ' <b>' + PEN_INFO[p.t] + '</b>' : '');
+    if (p.t === 'R') {
+      const lv = E.heatOf(this.state, p.c);
+      const n = this.state.inq[p.c];
+      s += ` <b>Žár ${lv}. úrovně – dosah ${lv} pole (${n} ${inqWord(n)}).</b>`;
+    }
+    return s;
   }
 
   renderControls() {
@@ -720,7 +786,7 @@ class Game {
     if (act === 'accept' && this.offer) this.net.send({ k: 'accept', id: this.cid, c: this.me, n: this.offer.n });
     if (act === 'decline' && this.offer) { this.net.send({ k: 'decline', id: this.cid, c: this.me, n: this.offer.n }); this.offer = null; this.refreshPanels(); }
     if (act === 'rematch-yes' && this.rematch) {
-      store.set('rc2-seat-' + this.rematch.room, this.rematch.c);
+      store.set(KEY + 'seat-' + this.rematch.room, this.rematch.c);
       location.hash = 'hra=' + this.rematch.room;
     }
     if (act === 'seat-w' || act === 'seat-b') {
@@ -767,7 +833,7 @@ class Game {
       const n = this.state.conclave.options.length;
       setTimeout(() => {
         if (!this.state.conclave) return;
-        this.openOverlay(`<div class="box"><h2>Papež padl!</h2><p>Konkláve: vyber jednoho ze svých ${n} čistých Biskupů – stane se novým Papežem.</p>`
+        this.openOverlay(`<div class="box"><h2>Papež padl!</h2><p>Konkláve: vyber jednoho ze svých ${n} čistých Kardinálů – stane se novým Papežem.</p>`
           + '<div class="row"><button class="btn primary" data-close>Vybrat na šachovnici</button></div></div>', (ov) => {
           ov.querySelector('[data-close]').onclick = () => this.closeOverlay();
         });
@@ -799,9 +865,9 @@ class Game {
 
   askPromo(ms) {
     const c = this.state.turn;
-    const noBishop = this.variant === 'krizaci' || !this.state.board.some((p) => p && p.c === c && p.t === 'B');
-    const opts = ['Q', 'R', 'B', 'N'].map((t) => {
-      const shown = t === 'N' && noBishop ? 'C' : t;
+    const crusade = this.state.crusade[c];
+    const opts = E.PROMOS.map((t) => {
+      const shown = t === 'N' && crusade ? 'C' : t;
       return `<button type="button" data-t="${t}">${mini(shown, c)}<small>${NAME[shown]}</small></button>`;
     }).join('');
     this.openOverlay(`<div class="box"><h2>Spása!</h2><p>Hříšník došel na konec cesty a je vykoupen. V co se promění?</p>`
@@ -822,7 +888,7 @@ class Game {
     if (r.reason === 'draw') sfx.draw();
     else if (!this.me || r.winner === this.me) sfx.win();
     else sfx.lose();
-    const title = { damnation: 'Zatracení', nomoves: 'Bez tahu', resign: 'Kapitulace', draw: 'Remíza' }[r.reason] || 'Konec hry';
+    const title = { anathema: 'Anathema', interdict: 'Interdikt', resign: 'Kapitulace', draw: 'Remíza' }[r.reason] || 'Konec hry';
     let me = '';
     if (this.me && r.winner) me = r.winner === this.me ? '<p><b>Vítězíš! Tvé svědomí je čisté.</b></p>' : '<p><b>Prohráváš. Čas na pokání.</b></p>';
     const canRematch = this.mode === 'local' || !!this.me;
@@ -837,24 +903,24 @@ class Game {
 
   async rematchNow() {
     if (this.ai) {
-      store.del('rc2-ai');
-      location.hash = `stroj=${this.ai.color}&uroven=${this.ai.level}` + modeParam(this.variant);
+      store.del(KEY + 'ai');
+      location.hash = `stroj=${this.ai.color}&uroven=${this.ai.level}`;
       return;
     }
     if (this.mode === 'local') {
-      store.del('rc2-local');
+      store.del(KEY + 'local');
       location.reload();
       return;
     }
     // Soupeř už odvetu navrhl → připojíme se k jeho místnosti, nezakládáme novou
     if (this.rematch) {
-      store.set('rc2-seat-' + this.rematch.room, this.rematch.c);
+      store.set(KEY + 'seat-' + this.rematch.room, this.rematch.c);
       location.hash = 'hra=' + this.rematch.room;
       return;
     }
-    const room = newRoomId() + modeSuffix(this.variant);
+    const room = newRoomId();
     const c = other(this.me);
-    store.set('rc2-seat-' + room, c);
+    store.set(KEY + 'seat-' + room, c);
     this.closeOverlay();
     toast('Zakládám odvetu…');
     await Promise.race([this.net.send({ k: 'rematch', id: this.cid, c, room }), new Promise((r) => setTimeout(r, 8000))]);
@@ -908,7 +974,7 @@ class Game {
     };
     if (navigator.share) {
       $('btn-share').hidden = false;
-      $('btn-share').onclick = () => navigator.share({ title: 'Kajícné šachy', text: 'Zahraj si se mnou Kajícné šachy!', url: $('invite-url').value }).catch(() => {});
+      $('btn-share').onclick = () => navigator.share({ title: 'Schizma', text: 'Zahraj si se mnou Schizma – šachovou variantu!', url: $('invite-url').value }).catch(() => {});
     }
   }
 
@@ -941,12 +1007,12 @@ class Game {
     if (sq < 0) return;
     if (this.state.conclave && this.canAct()) {
       if (this.state.conclave.options.includes(sq)) this.act('@' + E.sqName(sq));
-      else toast('Vyber jednoho ze zvýrazněných čistých Biskupů.');
+      else toast('Vyber jednoho ze zvýrazněných čistých Kardinálů.');
       return;
     }
     if (!this.canAct()) {
       const p = this.state.board[sq];
-      if (p) { this.sel = -1; this.renderStory(); const t = $('story'); t.insertAdjacentHTML('beforeend', `<div class="tip">${INFO[p.t]}${p.pen ? ' <b>' + PEN_INFO[p.t] + '</b>' : ''}</div>`); }
+      if (p) { this.sel = -1; this.renderStory(); const t = $('story'); t.insertAdjacentHTML('beforeend', `<div class="tip">${this.pieceTip(p)}</div>`); }
       if (this.mode === 'online' && this.me && !this.result() && this.synced) toast('Teď je na tahu soupeř.');
       return;
     }
@@ -964,7 +1030,7 @@ class Game {
     }
     if (p && p.c !== this.state.turn) {
       this.deselect();
-      $('story').insertAdjacentHTML('beforeend', `<div class="tip">${INFO[p.t]}${p.pen ? ' <b>' + PEN_INFO[p.t] + '</b>' : ''}</div>`);
+      $('story').insertAdjacentHTML('beforeend', `<div class="tip">${this.pieceTip(p)}</div>`);
       return;
     }
     this.deselect();
@@ -1009,9 +1075,8 @@ class Game {
 
   // ---------- hra proti stroji ----------
   startAI() {
-    const saved = store.get('rc2-ai');
-    if (saved && Array.isArray(saved.a) && saved.color === this.ai.color && saved.level === this.ai.level
-      && (saved.variant || 'poutnici') === this.variant) {
+    const saved = store.get(KEY + 'ai');
+    if (saved && Array.isArray(saved.a) && saved.color === this.ai.color && saved.level === this.ai.level) {
       this.actions = saved.a.filter((x) => typeof x === 'string' && ACTION_RE.test(x));
       this.ext = saved.ext || null;
       this.rebuild();
@@ -1026,11 +1091,9 @@ class Game {
   initAI() {
     this.aiReq = 0;
     this.aiWait = new Map();
-    const own = this.variant === 'krizaci' ? '../model-krizaci/' : '../model/';
-    this.aiBases = [new URL(own, import.meta.url).href];
-    if (this.variant === 'krizaci') this.aiBases.push(new URL('../model/', import.meta.url).href);
+    this.aiBases = [new URL('../model/', import.meta.url).href];
     try {
-      this.worker = new Worker(new URL('./ai-worker.js?v=6', import.meta.url), { type: 'module' });
+      this.worker = new Worker(new URL('./ai-worker.js?v=7', import.meta.url), { type: 'module' });
       this.worker.onmessage = (e) => {
         const cb = this.aiWait.get(e.data.id);
         if (cb) { this.aiWait.delete(e.data.id); cb(e.data); }
@@ -1040,15 +1103,14 @@ class Game {
       this.worker = null;
     }
     this.aiCall({ type: 'load' }).then((r) => {
-      if (r.ok && r.kind === 'net-fallback') toast('Síť pro mód Křižáci se ještě učí – zatím hraje síť z módu Poutníci.', 5000);
-      else if (r.ok && r.kind !== 'net') toast('Síť se nepodařilo načíst – stroj hraje jen podle materiálu.', 5000);
+      if (r.ok && r.kind !== 'net') toast('Neuronová síť pro Schizma se ještě učí – stroj zatím hraje jen podle materiálu.', 5000);
     });
   }
 
   // Dotaz na stroj (ve Web Workeru, záložně v hlavním vlákně)
   aiCall(msg) {
     const id = ++this.aiReq;
-    const payload = { ...msg, id, actions: this.actions.slice(), level: this.ai.level, bases: this.aiBases, aiColor: this.ai.color, variant: this.variant };
+    const payload = { ...msg, id, actions: this.actions.slice(), level: this.ai.level, bases: this.aiBases, aiColor: this.ai.color };
     if (this.worker) {
       const viaWorker = new Promise((res) => { this.aiWait.set(id, res); this.worker.postMessage(payload); });
       const fallback = new Promise((res) => setTimeout(() => res(null), 20000));
@@ -1058,7 +1120,7 @@ class Game {
         return this.aiCall(msg);
       });
     }
-    return import('./ai.js?v=6').then(async (A) => {
+    return import('./ai.js?v=7').then(async (A) => {
       if (!this.aiModel) {
         this.aiKind = 'material';
         this.aiModel = A.materialModel;
@@ -1077,7 +1139,7 @@ class Game {
     if (!this.ai || this.result() || this.state.turn !== this.ai.color || this.thinking) return;
     this.thinking = true;
     this.refreshPanels();
-    const slow = events && events.some((e) => ['popeFall', 'conclave', 'crusade'].includes(e.type));
+    const slow = events && events.some((e) => ['popeFall', 'conclave', 'crusade', 'heat', 'monitum'].includes(e.type));
     const delay = events ? (slow ? 2600 : 800) : 500;
     const len = this.actions.length;
     const t0 = Date.now();
@@ -1093,8 +1155,8 @@ class Game {
 
   // ---------- místní hra ----------
   startLocal() {
-    const saved = store.get('rc2-local');
-    if (saved && Array.isArray(saved.a) && (saved.variant || 'poutnici') === this.variant) {
+    const saved = store.get(KEY + 'local');
+    if (saved && Array.isArray(saved.a)) {
       this.actions = saved.a.filter((x) => typeof x === 'string' && ACTION_RE.test(x));
       this.ext = saved.ext || null;
       this.rebuild();
@@ -1106,7 +1168,7 @@ class Game {
   // ---------- online hra ----------
   startOnline() {
     this.cid = clientId();
-    this.server = { actions: [], state: E.initialState(this.variant) };
+    this.server = { actions: [], state: E.initialState() };
     this.seats = { w: null, b: null };
     this.opp = { seen: false };
     this.offer = null;
@@ -1117,15 +1179,15 @@ class Game {
     this.setupChat();
     $('invite-url').value = location.origin + location.pathname + '#hra=' + this.room;
 
-    const saved = store.get('rc2-game-' + this.room);
+    const saved = store.get(KEY + 'game-' + this.room);
     if (saved && Array.isArray(saved.a)) {
       this.actions = saved.a.filter((x) => typeof x === 'string' && ACTION_RE.test(x));
       this.ext = saved.ext || null;
       this.rebuild();
     }
     const urlSeat = params.get('barva');
-    const seat = store.get('rc2-seat-' + this.room);
-    if (urlSeat === 'w' || urlSeat === 'b') { this.me = urlSeat; store.set('rc2-seat-' + this.room, urlSeat); }
+    const seat = store.get(KEY + 'seat-' + this.room);
+    if (urlSeat === 'w' || urlSeat === 'b') { this.me = urlSeat; store.set(KEY + 'seat-' + this.room, urlSeat); }
     else if (seat === 'w' || seat === 'b') this.me = seat;
     this.view.setOrient(this.me === 'b' ? 'b' : 'w');
     this.refresh();
@@ -1140,7 +1202,7 @@ class Game {
   // Celý seznam akcí (~5 znaků na tah) – i partie o 600 půltazích se vejde do limitu zprávy ntfy (4 kB)
   setupChat() {
     $('chat').hidden = false;
-    const quick = ['Dobrý tah!', 'Kaj se!', 'Deus vult!', 'Hmm…'];
+    const quick = ['Dobrý tah!', 'Kaj se!', 'Monitum!', 'Deus vult!'];
     $('chat-quick').innerHTML = '';
     for (const q of quick) {
       const b = document.createElement('button');
@@ -1206,7 +1268,7 @@ class Game {
 
   claim(c) {
     this.me = c;
-    store.set('rc2-seat-' + this.room, c);
+    store.set(KEY + 'seat-' + this.room, c);
     this.seats[c] = this.cid;
     this.closeOverlay();
     this.view.setOrient(c);
@@ -1314,7 +1376,7 @@ class Game {
     const text = free.length === 1
       ? `Soupeř už sedí za ${SIDE[other(free[0])]} a čeká na tebe.`
       : 'Vyber si barvu.';
-    this.openOverlay(`<div class="box"><h2>Vstup do hry</h2><p>${text}</p><p>Mód: <b>${MODE_NAME[this.variant]}</b></p><div class="row">${btns}<button class="btn ghost" data-x>Jen se dívat</button></div></div>`, (ov) => {
+    this.openOverlay(`<div class="box"><h2>Vstup do hry</h2><p>${text}</p><div class="row">${btns}<button class="btn ghost" data-x>Jen se dívat</button></div></div>`, (ov) => {
       ov.querySelectorAll('[data-c]').forEach((b) => { b.onclick = () => this.claim(b.dataset.c); });
       ov.querySelector('[data-x]').onclick = () => { this.closeOverlay(); this.refreshPanels(); };
     });
@@ -1342,7 +1404,7 @@ class Game {
     const evs = animate && grow >= 1 ? this.hist[this.hist.length - 1].events : null;
     this.persist();
     this.refresh(evs);
-    if (grow >= 1 && document.hidden && this.canAct()) { document.title = '● Tvůj tah – Kajícné šachy'; sfx.notify(); }
+    if (grow >= 1 && document.hidden && this.canAct()) { document.title = '● Tvůj tah – Schizma'; sfx.notify(); }
   }
 }
 
@@ -1384,22 +1446,20 @@ function main() {
   const room = params.get('hra');
   if (room && ROOM_RE.test(room)) {
     $('game').hidden = false;
-    const g = new Game({ mode: 'online', room, variant: variantOfRoom(room) });
+    const g = new Game({ mode: 'online', room });
     window.__game = g;
     g.startOnline();
   } else if (params.has('stroj')) {
     $('game').hidden = false;
     const human = params.get('stroj') === 'b' ? 'b' : 'w';
     const lv = parseInt(params.get('uroven'), 10);
-    const g = new Game({ mode: 'local', ai: { color: other(human), level: [1, 2, 3].includes(lv) ? lv : 2 },
-      variant: params.get('mod') === 'k' ? 'krizaci' : 'poutnici' });
+    const g = new Game({ mode: 'local', ai: { color: other(human), level: [1, 2, 3].includes(lv) ? lv : 2 } });
     window.__game = g;
     g.startAI();
   } else if (params.has('mistni')) {
     $('game').hidden = false;
-    const saved = store.get('rc2-local');
-    const g = new Game({ mode: 'local', autoFlip: params.get('otacet') === '1' || !!(saved && saved.flip),
-      variant: params.get('mod') === 'k' ? 'krizaci' : 'poutnici' });
+    const saved = store.get(KEY + 'local');
+    const g = new Game({ mode: 'local', autoFlip: params.get('otacet') === '1' || !!(saved && saved.flip) });
     window.__game = g;
     g.startLocal();
   } else {

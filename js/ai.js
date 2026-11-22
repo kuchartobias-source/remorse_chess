@@ -1,24 +1,26 @@
-// Umělá inteligence Kajícných šachů: hodnotová síť (MLP natrénovaná samohrou v ai/train.py)
+// Umělá inteligence Schizmatu: hodnotová síť (MLP natrénovaná samohrou v ai/train.py)
 // + prohledávání o 1–2 půltahy. Kódování pozice odpovídá přesně ai/nn.py.
-import * as E from './engine.js?v=6';
+import * as E from './engine.js?v=7';
 
-const CLASSES = ['P', 'P*', 'N', 'N*', 'C', 'B', 'B*', 'R', 'Q', 'Q*', 'K'];
+const CLASSES = ['P', 'P*', 'N', 'N*', 'C', 'B', 'B*', 'R1', 'R2', 'R3', 'Q', 'Q*', 'K'];
 const NCLS = CLASSES.length;
-const CLS = { P: [0, 1], N: [2, 3], C: [4, 4], B: [5, 6], R: [7, 7], Q: [8, 9], K: [10, 10] };
+const CLS = { P: [0, 1], N: [2, 3], C: [4, 4], B: [5, 6], Q: [10, 11], K: [12, 12] };
 export const N_PLANES = 2 * NCLS * 64;
-export const N_EXTRA = 2 * NCLS + 4 + 1 + 1;
+export const N_EXTRA = 2 * NCLS + 2 + 2 + 1 + 1 + 2;
 export const N_IN = N_PLANES + N_EXTRA;
 
 // Vrátí { idx: aktivní indexy rovin, ex: Float32Array(N_EXTRA) } z pohledu hráče na tahu
 export function encode(st) {
   const me = st.turn;
+  const op = E.other(me);
+  const lv = { w: E.heatOf(st, 'w'), b: E.heatOf(st, 'b') };
   const flip = me === 'w' ? 0 : 56;
   const idx = [];
   const counts = new Array(2 * NCLS).fill(0);
   for (let sq = 0; sq < 64; sq++) {
     const p = st.board[sq];
     if (!p) continue;
-    const cl = CLS[p.t][p.pen ? 1 : 0];
+    const cl = p.t === 'R' ? 6 + lv[p.c] : CLS[p.t][p.pen ? 1 : 0];
     const plane = (p.c === me ? 0 : NCLS) + cl;
     idx.push(plane * 64 + (sq ^ flip));
     counts[plane]++;
@@ -26,18 +28,15 @@ export function encode(st) {
   const ex = new Float32Array(N_EXTRA);
   for (let i = 0; i < 2 * NCLS; i++) ex[i] = counts[i] * 0.25;
   const o = 2 * NCLS;
-  [me, E.other(me)].forEach((color, k) => {
-    const home = color === 'w' ? 0 : 56;
-    const kp = st.board[home + 4];
-    if (kp && kp.c === color && kp.t === 'K' && !kp.moved && kp.orig !== false) {
-      [7, 0].forEach((corner, j) => {
-        const r = st.board[home + corner];
-        if (r && r.c === color && r.t === 'R' && !r.moved) ex[o + 2 * k + j] = 1;
-      });
-    }
-  });
+  ex[o] = st.inq[me] / 3;
+  ex[o + 1] = st.inq[op] / 3;
+  ex[o + 2] = st.crusade[me] ? 1 : 0;
+  ex[o + 3] = st.crusade[op] ? 1 : 0;
   ex[o + 4] = st.ep >= 0 ? 1 : 0;
   ex[o + 5] = st.conclave && st.conclave.color === me ? 1 : 0;
+  const pm = E.popeSquare(st, me), po = E.popeSquare(st, op);
+  ex[o + 6] = pm >= 0 && E.inRookReach(st, op, pm) ? 1 : 0;
+  ex[o + 7] = po >= 0 && E.inRookReach(st, me, po) ? 1 : 0;
   return { idx, ex };
 }
 
@@ -102,7 +101,7 @@ export async function loadModel(base) {
 }
 
 // Náhradní hodnocení (klasický materiál), kdyby se síť nenačetla
-const MAT = { P: 1, N: 3, C: 3, B: 3, R: 5, Q: 9, K: 0 };
+const MAT = { P: 1, N: 3, C: 3.5, B: 3, R: 0, Q: 9, K: 0 };
 export const materialModel = {
   value(st) {
     let m = 0;
@@ -132,10 +131,10 @@ function actionValues(model, st) {
   return out;
 }
 
-// Úrovně: 1 Poutník (náhodnější), 2 Biskup (1 půltah), 3 Inkvizitor (2 půltahy u nejlepších tahů)
+// Úrovně: 1 Misionář (náhodnější), 2 Kardinál (1 půltah), 3 Inkvizitor (2 půltahy u nejlepších tahů)
 export const LEVELS = {
-  1: { name: 'Poutník', tau: 0.22, eps: 0.08, depth: 1 },
-  2: { name: 'Biskup', tau: 0.03, eps: 0, depth: 1 },
+  1: { name: 'Misionář', tau: 0.22, eps: 0.08, depth: 1 },
+  2: { name: 'Kardinál', tau: 0.03, eps: 0, depth: 1 },
   3: { name: 'Inkvizitor', tau: 0, eps: 0, depth: 2, top: 40 },
 };
 

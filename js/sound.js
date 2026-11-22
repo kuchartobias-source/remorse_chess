@@ -1,10 +1,10 @@
-// Zvukové efekty Kajícných šachů – vše syntetizováno přes WebAudio (žádné nahrávky).
+// Zvukové efekty Schizmatu – vše syntetizováno přes WebAudio (žádné nahrávky).
 
 let ctx = null;
 let master = null;
 let noiseBuf = null;
 let muted = false;
-try { muted = localStorage.getItem('rc-sound') === 'off'; } catch (e) { /* nic */ }
+try { muted = localStorage.getItem('sz-sound') === 'off'; } catch (e) { /* nic */ }
 
 export const isMuted = () => muted;
 export const audioState = () => (ctx ? ctx.state : 'none');
@@ -13,7 +13,7 @@ export const getCtx = () => ctx;
 
 export function setMuted(m) {
   muted = m;
-  try { localStorage.setItem('rc-sound', m ? 'off' : 'on'); } catch (e) { /* nic */ }
+  try { localStorage.setItem('sz-sound', m ? 'off' : 'on'); } catch (e) { /* nic */ }
   if (master) master.gain.value = m ? 0 : 0.85;
   if (!m) unlock();
 }
@@ -116,7 +116,32 @@ export const sfx = {
   error() { if (ok()) tone({ type: 'square', f: 95, dur: 0.12, gain: 0.08, lp: 450 }); },
   move(delay = 0.2) { if (ok()) knock(delay, rnd(0.92, 1.08)); },
   hop(delay = 0.05) { if (ok()) { knock(delay, 1.15, 0.28); knock(delay + 0.24, rnd(0.95, 1.05), 0.5); } },
-  castle() { if (ok()) { knock(0.15, 0.9); knock(0.32, 1.1, 0.4); } },
+  // Hranice se přenese skokem: praskot polen, dopad
+  leap(delay = 0.05) {
+    if (!ok()) return;
+    for (let i = 0; i < 6; i++) noise({ delay: delay + rnd(0, 0.35), dur: 0.015, gain: rnd(0.05, 0.16), type: 'highpass', f: 2400, q: 0.7, attack: 0.001 });
+    knock(delay + 0.45, 0.8, 0.55);
+    tone({ f: 95, f2: 50, delay: delay + 0.45, dur: 0.3, gain: 0.35 });
+  },
+  // Žár Hranic roste: hukot ohně a stoupající tón
+  heat(delay = 0.65, level = 2) {
+    if (!ok()) return;
+    noise({ delay, dur: 1.4, gain: 0.32, f: 220, f2: 1800, q: 0.7, attack: 0.35 });
+    tone({ type: 'sawtooth', f: 98, f2: level >= 3 ? 196 : 147, delay, dur: 1.3, gain: 0.12, attack: 0.3, lp: 700 });
+    for (let i = 0; i < 16; i++) noise({ delay: delay + rnd(0.2, 1.5), dur: 0.012, gain: rnd(0.05, 0.18), type: 'highpass', f: 2600, q: 0.7, attack: 0.001 });
+  },
+  // Žár uhasne: syčení páry
+  extinguish(delay = 0.7) {
+    if (!ok()) return;
+    noise({ delay, dur: 1.1, gain: 0.3, type: 'highpass', f: 3500, f2: 1200, q: 0.5, attack: 0.02 });
+    tone({ f: 160, f2: 70, delay, dur: 0.7, gain: 0.2 });
+  },
+  // Monitum: dvojí varovný úder zvonu
+  monitum(delay = 0.7) {
+    if (!ok()) return;
+    bell(311.13, { delay, dur: 1.2, gain: 0.16 });
+    bell(311.13, { delay: delay + 0.32, dur: 1.6, gain: 0.2 });
+  },
   penance(delay = 0.18) {
     if (!ok()) return;
     noise({ delay, dur: 0.28, gain: 0.55, type: 'lowpass', f: 900, f2: 160, q: 0.8 });
@@ -139,12 +164,6 @@ export const sfx = {
     noise({ delay, dur: 0.13, gain: 0.5, type: 'highpass', f: 1800, f2: 6000, q: 0.8, attack: 0.01 });
     for (const [r, a] of [[1, 1], [1.48, 0.7], [2.13, 0.5], [2.93, 0.35]]) tone({ f: 1230 * r, delay: delay + 0.1, dur: 0.55, gain: 0.16 * a, attack: 0.002 });
     tone({ f: 120, f2: 60, delay: delay + 0.12, dur: 0.2, gain: 0.35 });
-  },
-  pyre(delay = 0.15) {
-    if (!ok()) return;
-    for (let i = 0; i < 7; i++) knock(delay + rnd(0, 0.55), rnd(0.6, 1.3), rnd(0.25, 0.5));
-    tone({ f: 90, f2: 45, delay, dur: 0.35, gain: 0.5 });
-    noise({ delay, dur: 0.6, gain: 0.2, type: 'lowpass', f: 700, f2: 200 });
   },
   secret(delay = 0.1) {
     if (!ok()) return;
@@ -193,16 +212,15 @@ export function playEvents(evs) {
   const mv = evs.find((e) => e.type === 'move');
   const cap = evs.find((e) => e.type === 'capture');
   const popeFell = evs.some((e) => e.type === 'popeFall');
-  if (evs.some((e) => e.type === 'castle')) sfx.castle();
-  else if (cap) {
+  if (cap) {
     if (cap.kind === 'penance') sfx.penance();
     else if (cap.kind === 'burn') sfx.burn(cap.rooks && cap.rooks.length ? 0.05 : 0.1);
     else if (cap.kind === 'execute') sfx.burn(0.05, true);
     else if (cap.kind === 'crusade') sfx.crusade();
-    else if (cap.kind === 'pyre') sfx.pyre();
     else if (cap.kind === 'ep') sfx.secret();
   } else if (mv) {
-    if (mv.piece.t === 'N' || mv.piece.t === 'C') sfx.hop();
+    if (mv.piece.t === 'R') sfx.leap();
+    else if (mv.piece.t === 'N' || mv.piece.t === 'C') sfx.hop();
     else sfx.move();
   }
   for (const e of evs) {
@@ -211,5 +229,8 @@ export function playEvents(evs) {
     if (e.type === 'popeFall') sfx.popeFall();
     if (e.type === 'conclave') sfx.conclave(popeFell ? 2.1 : 1.3);
     if (e.type === 'crusade') sfx.crusadeCall(popeFell ? 3.2 : 0.6);
+    if (e.type === 'heat') sfx.heat(0.65, e.level);
+    if (e.type === 'heatLost') sfx.extinguish();
+    if (e.type === 'monitum') sfx.monitum(popeFell ? 3 : 0.7);
   }
 }

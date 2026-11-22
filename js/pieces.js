@@ -1,4 +1,4 @@
-// Vlastní SVG figurky Kajícných šachů (viewBox 100×100).
+// Vlastní SVG figurky Schizmatu (viewBox 100×100).
 // Třídy: pb = tělo, pt = zdobení (zlato), pd = tmavé detaily, ps = zlaté linky, pl = obrysové linky, pf = plamen.
 
 const BASE = '<path class="pb" d="M17 94 C17 88 21 85.5 27 85 H73 C79 85.5 83 88 83 94 Z"/>';
@@ -54,35 +54,34 @@ const SVG = {
     <circle class="pt" cx="31" cy="64" r="3.7"/>
     ${BASE}`,
 
-  // Biskup – mitra s rozštěpem a křížem, berla
+  // Kardinál – galero (široký klobouk se šňůrami a střapci), mozzetta a pektorální kříž
   B: `
-    <rect class="pt" x="71.5" y="22" width="4.5" height="63" rx="2.2"/>
-    <path class="pt" d="M73.8 26 C73 13 89 10.5 90 21 C90.8 29 81 30.5 80.5 24 C80.2 20.5 84.5 20 85 22.5 C84 18 76.5 19 76 26 Z"/>
-    <path class="pb" d="M36 58 H64 C68 66 70 76 70 86 H30 C30 76 32 66 36 58 Z"/>
-    <path class="ps" d="M50 63 V77 M45 68 H55"/>
-    <path class="pb" d="M50 12 C58 20 66.5 29 66.5 43 V60 H33.5 V43 C33.5 29 42 20 50 12 Z"/>
-    <path class="pd" d="M50 13.5 L46.5 19 L50 31 L53.5 19 Z"/>
-    <path class="pt" d="M33.5 53 H66.5 V59.5 H33.5 Z"/>
-    <path class="ps" d="M50 33 V50 M43.5 39.5 H56.5"/>
+    <path class="pb" d="M35 60 C30 68 27.5 77 27 86 H73 C72.5 77 70 68 65 60 Z"/>
+    <path class="ps" d="M50 68 V85"/>
+    <circle class="pt" cx="50" cy="72" r="1.3"/><circle class="pt" cx="50" cy="77" r="1.3"/><circle class="pt" cx="50" cy="82" r="1.3"/>
+    <path class="pb" d="M33.5 53.5 C38 49 62 49 66.5 53.5 L71 66 C61 70.5 39 70.5 29 66 Z"/>
+    <path class="pt" d="M48.3 55 H51.7 V58.4 H55.1 V61.6 H51.7 V68 H48.3 V61.6 H44.9 V58.4 H48.3 Z"/>
+    <ellipse class="pd" cx="50" cy="44.5" rx="8.6" ry="7.8"/>
+    <path class="pl" d="M25 35.5 Q19.5 45 21.5 58 M75 35.5 Q80.5 45 78.5 58 M23 41 Q15.5 47 15.5 53 M77 41 Q84.5 47 84.5 53" style="stroke-width:1.5"/>
+    <path class="pt" d="M21.5 56.5 L17.6 65 H25.4 Z"/>
+    <path class="pt" d="M78.5 56.5 L74.6 65 H82.4 Z"/>
+    <path class="pt" d="M15.5 51.5 L12.3 58.5 H18.7 Z"/>
+    <path class="pt" d="M84.5 51.5 L81.3 58.5 H87.7 Z"/>
+    <ellipse class="pb" cx="50" cy="35" rx="27.5" ry="6.4"/>
+    <path class="pb" d="M38.5 34.5 C38.5 21 61.5 21 61.5 34.5 Z"/>
+    <path class="pt" d="M38.8 30 H61.2 V33.6 H38.8 Z"/>
     ${BASE}`,
 
-  // Poutník – široký klobouk s mušlí, poutnická hůl s tykví, pelerína a mošna
+  // Misionář – mnich s tonzurou v hábitu s kapucí, provazem a procesním křížem
   N: `
-    <rect class="pt" x="12.8" y="14" width="4.6" height="72" rx="2.3"/>
-    <circle class="pt" cx="15.1" cy="12.6" r="3.9"/>
-    <path class="pl" d="M17.4 27 L20.5 27.8" style="stroke-width:1.4"/>
-    <circle class="pt" cx="21" cy="30.5" r="3.1"/>
-    <circle class="pt" cx="21" cy="37.4" r="4.6"/>
-    <path class="pb" d="M33 62 C28 69 26.5 78 26.5 86 H73.5 C73.5 78 72 69 67 62 Z"/>
-    <path class="ps" d="M37 64 L63 81"/>
-    <rect class="pt" x="58" y="74.5" width="11.5" height="9" rx="2"/>
-    <path class="pb" d="M34 55 C38 50.5 62 50.5 66 55 L70.5 66.5 C60 71 40 71 29.5 66.5 Z"/>
-    <ellipse class="pd" cx="50" cy="44.5" rx="10" ry="9"/>
-    <ellipse class="pb" cx="50" cy="35" rx="29" ry="6.8"/>
-    <path class="pb" d="M37.5 34 C37.5 19.5 62.5 19.5 62.5 34 Z"/>
-    <path class="pt" d="M38 29.5 H62 V33.6 H38 Z"/>
-    <path class="pt" d="M50 20.5 L43.8 29.2 Q50 32 56.2 29.2 Z"/>
-    <path class="pl" d="M50 21.8 L47 29.6 M50 21.8 V30.6 M50 21.8 L53 29.6" style="stroke-width:1.1"/>
+    <path class="pt" d="M72 7 H77 V14 H84 V19 H77 V86 H72 V19 H65 V14 H72 Z"/>
+    <path class="pb" d="M36 59 C30.5 67 27.5 76 27 86 H73 C72.5 76 70 67 64 59 Z"/>
+    <path class="ps" d="M32.5 72 Q50 77.5 67.5 72 M55 75.5 L56.5 85 M58 75 L61 83"/>
+    <path class="pb" d="M34 52 C39 47.5 61 47.5 66 52 L69.5 62 C59 66.5 41 66.5 30.5 62 Z"/>
+    <circle class="pb" cx="74.5" cy="56" r="5"/>
+    <circle class="pb" cx="50" cy="38.5" r="11"/>
+    <path class="pd" d="M39.2 36.5 Q50 44 60.8 36.5 L61 41 Q50 48 39 41 Z"/>
+    <path class="pd" d="M44 45.5 Q50 50 56 45.5 Q55 51 50 51.5 Q45 51 44 45.5 Z"/>
     ${BASE}`,
 
   // Křižák – hrncová přilba s křížovým výztužením, plášť s křížem
@@ -121,6 +120,17 @@ export const CHIP_SVG = `<svg class="chip" viewBox="0 0 100 100" aria-hidden="tr
   <ellipse cx="50" cy="89" rx="33" ry="6.3" fill="none" stroke="#ffd9c0" stroke-width="1"/>
 </svg>`;
 
+// Žetony Žáru (leží pod Hranicí): 1 žeton = 2. úroveň, 2 žetony = 3. úroveň
+const heatChip = (dy) => `<g transform="translate(0 ${dy})">
+  <ellipse cx="50" cy="92.5" rx="45" ry="9.5" fill="#6b2a05"/>
+  <ellipse cx="50" cy="89" rx="45" ry="9.5" fill="#f07a1a" stroke="#4a1a02" stroke-width="1.2"/>
+  <ellipse cx="50" cy="89" rx="45" ry="9.5" fill="none" stroke="#ffe28a" stroke-width="3.4" stroke-dasharray="3 6 9 6"/>
+  <ellipse cx="50" cy="89" rx="31" ry="5.8" fill="none" stroke="#ffd36b" stroke-width="1"/>
+</g>`;
+export const HEAT_SVG = `<svg class="heat" viewBox="0 0 100 100" aria-hidden="true">
+  <g class="h1">${heatChip(0)}</g><g class="h2">${heatChip(-6.5)}</g>
+</svg>`;
+
 // Malé ikony pro výpis tahů
 export const ICON = {
   blood: '<svg class="ico" viewBox="0 0 20 20"><path d="M10 2 C6 8 4.5 10.5 4.5 13 A5.5 5.5 0 0 0 15.5 13 C15.5 10.5 14 8 10 2 Z" fill="#c3172f"/></svg>',
@@ -129,5 +139,7 @@ export const ICON = {
   crown: '<svg class="ico" viewBox="0 0 20 20"><path d="M3 15 L4 6 L7.5 10 L10 4 L12.5 10 L16 6 L17 15 Z" fill="#e8b84a"/></svg>',
   sword: '<svg class="ico" viewBox="0 0 20 20"><path d="M15.5 2 L18 4.5 L8.5 14 L6 11.5 Z M4.5 11 L9 15.5 L7.5 17 L6 15.5 L3.5 18 L2 16.5 L4.5 14 L3 12.5 Z" fill="#cfd6de"/></svg>',
   cross: '<svg class="ico" viewBox="0 0 20 20"><path d="M8.3 1.5 H11.7 V6.5 H17 V9.9 H11.7 V18.5 H8.3 V9.9 H3 V6.5 H8.3 Z" fill="#d8303f" stroke="#fff3df" stroke-width=".9"/></svg>',
+  monitum: '<svg class="ico" viewBox="0 0 20 20"><path d="M10 1.8 L19 17.6 H1 Z" fill="#f07a1a" stroke="#4a1a02" stroke-width="1"/><path d="M9 6.8 H11 L10.7 12.6 H9.3 Z M9 14 H11 V16 H9 Z" fill="#2b1203"/></svg>',
+  heat: '<svg class="ico" viewBox="0 0 20 20"><ellipse cx="10" cy="16" rx="8" ry="2.6" fill="#f07a1a"/><path d="M10 2 C6 7 5.5 9.5 5.5 11.5 A4.5 4.5 0 0 0 14.5 11.5 C14.5 9 12.5 7.5 12 5 C11 6.8 10.5 7.4 10 7.8 C10.3 5.8 10.3 3.6 10 2 Z" fill="#ffb12e"/></svg>',
   logs: '<svg class="ico" viewBox="0 0 20 20"><rect x="2" y="11" width="16" height="5" rx="2.5" fill="#8b5a33"/><rect x="5" y="6" width="10" height="5" rx="2.5" fill="#a06a3c"/><path d="M14 3 L6 18" stroke="#f07a1a" stroke-width="1.6"/></svg>',
 };
