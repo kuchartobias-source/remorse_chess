@@ -1,8 +1,8 @@
-// Hudba na pozadí Schizmatu – vlastní skladba: kantikum v dórském modu na D.
-// Hrají skutečné nahrávky nástrojů a hlasů (music/, licence v music/CREDITS.md); když se
-// nenačtou, zazní záložní syntéza přes WebAudio. Forma (smyčka ~2 min):
-//   úvod (bordun + zvon) → antifona (sólový kantor) → 2 verše (sbor na recitačním tónu)
-//   → antifona jako organum v paralelních kvintách → mezihra (drnkané úryvky, zvon) → antifona …
+// Hudba na pozadí Schizmatu – vlastní skladba: kantikum v dórském modu na D, čistě instrumentální.
+// Hrají skutečné nahrávky nástrojů (music/, licence v music/CREDITS.md); když se nenačtou,
+// zazní záložní syntéza přes WebAudio. Forma (smyčka ~2 min):
+//   úvod (bordun + zvon) → antifona (sólové varhany) → 2 verše (harfa a žaltář na recitačním tónu)
+//   → antifona jako organum v paralelních kvintách (varhany) → mezihra (drnkané úryvky, zvon) → antifona …
 // Ladění je pythagorejské od D, aby kvinty proti bordunu zněly čistě.
 
 const LITE = (() => {
@@ -44,6 +44,15 @@ const FRAGMENTS = [ // úryvky antifony o oktávu výš pro mezihru
   [['F4', 1], ['E4', 1], ['D4', 3]],
 ];
 
+const GAIN_ORGAN_SOLO = 0.072;
+const GAIN_ORGAN_DUO = 0.072;
+
+function octaveUp(name) {
+  const m = /^([A-G]b?)(\d)$/.exec(name);
+  const up = m[1] + (+m[2] + 1);
+  return ALLOWED.has(up) ? up : name;
+}
+
 function rep(name, n, units) { return Array.from({ length: n }, () => [name, units]); }
 
 function verse(rng) {
@@ -65,8 +74,8 @@ function mulberry(seed) {
 }
 
 // ---------- nástroje ----------
-const VOWEL_A = [[730, 6, 1.0], [1090, 7, 0.55], [2440, 9, 0.22]];
-const VOWEL_O = [[570, 6, 1.0], [840, 7, 0.6], [2410, 9, 0.18]];
+// záložní syntéza: měkký flétnový / varhanní rejstřík (žádné samohlásky)
+const FLUTE = [[420, 0.6, 1.0], [1200, 0.9, 0.3]];
 
 class Graph {
   constructor(ctx, dest, reverbSeconds) {
@@ -142,7 +151,7 @@ function makeIR(ctx, seconds) {
   return buf;
 }
 
-function voice(g, { t0, t1, pan = 0, detune = 0, vowel = VOWEL_A, gain = 0.09 }) {
+function voice(g, { t0, t1, pan = 0, detune = 0, vowel = FLUTE, gain = 0.09 }) {
   const { ctx } = g;
   const osc = ctx.createOscillator();
   osc.type = 'sawtooth';
@@ -301,22 +310,6 @@ function drone(g, t0, t1) {
 export class SampleKit {
   constructor(banks) {
     this.banks = banks; // { nástroj: [{ name, freq, buf }] }
-    // zpívané nahrávky srovná na stejnou hlasitost ustálené části (různé nahrávky zní jinak silně)
-    for (const inst of ['voice', 'choir']) {
-      const list = banks[inst] || [];
-      for (const e of list) e.rms = steadyRms(e.buf);
-      const sorted = list.map((e) => e.rms).filter((x) => x > 0).sort((x, y) => x - y);
-      const med = sorted[Math.floor(sorted.length / 2)] || 1;
-      for (const e of list) e.norm = e.rms > 0 ? Math.max(0.6, Math.min(1.7, med / e.rms)) : 1;
-    }
-    // nahrávky sboru mají různě jasnou barvu – vyrovná se na společnou (střední) jasnost
-    const choir = this.banks.choir || [];
-    for (const e of choir) e.cent = brightness(e.buf);
-    const cs = choir.map((e) => e.cent).filter((x) => x > 0).sort((x, y) => x - y);
-    const cmed = cs[Math.floor(cs.length / 2)] || 1;
-    for (const e of choir) e.eq = e.cent > 0 ? Math.max(-5, Math.min(5, 12 * Math.log2(cmed / e.cent))) : 0;
-    // výškový filtr mění i hlasitost – vyrovná se přibližně (zhruba třetina zesílení filtru)
-    for (const e of choir) e.norm = (e.norm || 1) * Math.pow(10, (-0.35 * e.eq) / 20);
     this.droneNext = null;
     this.kind = 'samples';
   }
@@ -351,7 +344,7 @@ export class SampleKit {
     g.track(src, t + Math.min(maxLen, hold + release * 2.5) + 0.02);
   }
 
-  // zpívaná fráze legato (jako zpěvák – hlas se mezi tóny nepřerušuje a plynule klouže):
+  // melodie legato (tón se mezi notami nepřerušuje a plynule přejde na další výšku):
   //  - každý tón zpívá nahrávka nejbližší jeho výšce, takže se nahrávka přelaďuje jen málo
   //    (přeladění zrychlením posouvá i barvu samohlásky – formanty)
   //  - zbylý posun barvy vyrovnává výškový filtr (čím výš je nahrávka přeladěná, tím víc ztlumí výšky)
@@ -360,15 +353,12 @@ export class SampleKit {
   //  - přechod na jinou nahrávku: obě zní během prolnutí na stejné, klouzající výšce, takže je slyšet
   //    jediný hlas, který mění tón, ne dva různé hlasy
   //  - stejný tón po sobě: jen jemný „nádech“ v hlasitosti (nová slabika)
-  line(g, notes, t, { inst = 'voice', gain = 0.5, pan = 0, detune = 0 } = {}) {
+  line(g, notes, t, { inst = 'organ', gain = 0.5, pan = 0, detune = 0 } = {}) {
     const { ctx } = g;
     const det = Math.pow(2, detune / 1200);
     const GLIDE = 0.085;
-    // sbor („á“) má formanty – přeladění o půltón posune barvu o ~0,62 dB výškového filtru;
-    // hlas („ú“) je skoro čistý tón a jeho barva výšku přirozeně sleduje, tak se nevyrovnává
-    const tilt = inst === 'choir'
-      ? (e, f) => Math.max(-8, Math.min(8, (e.eq || 0) - 0.62 * 12 * Math.log2((f * det) / e.freq)))
-      : () => 0;
+    // varhanní píšťala nemá formanty hlasu – přeladění se nevyrovnává
+    const tilt = () => 0;
     let cur = null;
     const start = (f, at, fade, first, fromF) => {
       const e = this.pick(inst, f);
@@ -487,26 +477,6 @@ export class SampleKit {
   }
 }
 
-function steadyRms(buf) {
-  const d = buf.getChannelData(0);
-  const a = Math.floor(0.7 * buf.sampleRate);
-  const b = Math.min(d.length, Math.floor(1.9 * buf.sampleRate));
-  let sum = 0;
-  for (let i = a; i < b; i++) sum += d[i] * d[i];
-  return b > a ? Math.sqrt(sum / (b - a)) : 0;
-}
-
-// jasnost ustálené části nahrávky (efektivní kmitočet z energie derivace, Hz)
-function brightness(buf) {
-  const d = buf.getChannelData(0);
-  const sr = buf.sampleRate;
-  const a = Math.floor(0.7 * sr);
-  const b = Math.min(d.length, Math.floor(1.9 * sr));
-  let en = 0, df = 0;
-  for (let i = a + 1; i < b; i++) { en += d[i] * d[i]; const x = d[i] - d[i - 1]; df += x * x; }
-  return en > 0 ? (Math.sqrt(df / en) * sr) / (2 * Math.PI) : 0;
-}
-
 // křivka prolnutí se stálou hlasitostí (sinus/kosinus)
 const FADE_N = 24;
 function fadeCurve(gain, up) {
@@ -525,87 +495,6 @@ function connectPan(g, node, pan) {
     node.connect(pn);
     pn.connect(g.bus);
   } else node.connect(g.bus);
-}
-
-// ---------- přeladění zpěvu se zachováním formantů (TD-PSOLA) ----------
-// Prosté zrychlení nahrávky posouvá s výškou i formanty (barvu samohlásky) – hlas pak zní jako
-// zrychlená páska. TD-PSOLA (Time-Domain Pitch-Synchronous Overlap-Add) rozdělí nahrávku na
-// zrna dlouhá dvě periody, vystředěná na značkách period (vrcholech kmitů), a poskládá je znovu
-// s roztečí nové periody. Tvar jednotlivých zrn – a tím spektrální obálka a formanty – zůstane,
-// mění se jen to, jak často se opakují, tedy výška tónu. Délka nahrávky se zachová.
-
-function pitchMarks(d, sr, f0) {
-  const T = sr / f0;
-  let m = 0, best = -1;
-  for (let i = 0; i < Math.min(d.length, Math.ceil(T * 1.5)); i++) if (Math.abs(d[i]) > best) { best = Math.abs(d[i]); m = i; }
-  const sign = d[m] >= 0 ? 1 : -1;
-  const marks = [m];
-  let per = T;
-  while (m + per * 1.3 < d.length) {
-    const lo = Math.round(m + per * 0.85), hi = Math.min(d.length - 1, Math.round(m + per * 1.15));
-    let bi = lo, bv = -Infinity;
-    for (let i = lo; i <= hi; i++) { const v = d[i] * sign; if (v > bv) { bv = v; bi = i; } }
-    per = per * 0.8 + (bi - m) * 0.2; // perioda se pomalu přizpůsobí (vibrato)
-    m = bi;
-    marks.push(m);
-  }
-  return marks;
-}
-
-function psola(ctx, src, f0, f1) {
-  const sr = src.sampleRate;
-  const ch = src.numberOfChannels;
-  const marks = pitchMarks(src.getChannelData(0), sr, f0);
-  const len = src.length;
-  const out = ctx.createBuffer(ch, len, sr);
-  const T1 = sr / f1;
-  const wsum = new Float32Array(len);
-  const outs = Array.from({ length: ch }, (_, c) => out.getChannelData(c));
-  const ins = Array.from({ length: ch }, (_, c) => src.getChannelData(c));
-  let k = 0;
-  for (let t = marks[0]; t < marks[marks.length - 1]; t += T1) {
-    while (k + 1 < marks.length && Math.abs(marks[k + 1] - t) <= Math.abs(marks[k] - t)) k++;
-    const m = marks[k];
-    const left = k > 0 ? m - marks[k - 1] : (marks[1] - m);
-    const right = k + 1 < marks.length ? marks[k + 1] - m : left;
-    const pos = Math.round(t);
-    for (let j = -left; j < right; j++) {
-      const si = m + j, oi = pos + j;
-      if (si < 0 || si >= len || oi < 0 || oi >= len) continue;
-      const w = j < 0 ? 0.5 + 0.5 * Math.cos(Math.PI * j / left) : 0.5 + 0.5 * Math.cos(Math.PI * j / right);
-      wsum[oi] += w;
-      for (let c = 0; c < ch; c++) outs[c][oi] += ins[c][si] * w;
-    }
-  }
-  // nástup nahrávky před první značkou se převezme beze změny, zbytek se vyrovná na součet oken
-  for (let i = 0; i < len; i++) {
-    if (i < marks[0]) { for (let c = 0; c < ch; c++) outs[c][i] = ins[c][i]; continue; }
-    const w = wsum[i];
-    if (w > 0.05) for (let c = 0; c < ch; c++) outs[c][i] /= Math.max(w, 0.5);
-  }
-  return out;
-}
-
-// Pro každý tón modu, který může hlas zpívat (nejvýš o 2,5 půltónu nad nejvyšší nahrávkou), předpočítá nahrávku přeladěnou TD-PSOLA
-// z nejbližší skutečné nahrávky → při zpěvu už se nahrávka téměř nepřelaďuje.
-function psolaBank(ctx, list) {
-  if (!list || !list.length) return list;
-  const lo = Math.min(...list.map((e) => e.freq)) / Math.pow(2, 8 / 12);
-  const hi = Math.max(...list.map((e) => e.freq)) * Math.pow(2, 2.5 / 12);
-  const out = [];
-  for (const name of ALLOWED) {
-    const f = freq(name);
-    if (f < lo || f > hi) continue;
-    let src = list[0];
-    for (const e of list) if (Math.abs(Math.log2(f / e.freq)) < Math.abs(Math.log2(f / src.freq))) src = e;
-    // i nepřeladěný tón projde PSOLA: některé nahrávky sboru jsou samy rozladěné až o ~40 centů
-    // (zvuková banka to opravovala korekcí ladění, která se při exportu ztratila) – PSOLA skládá
-    // zrna přesně v periodě cílového tónu, takže každý tón zní čistě v pythagorejském ladění
-    const buf = psola(ctx, src.buf, src.freq, f);
-    out.push({ name: name + '<' + src.name, freq: f, buf, src: src.name });
-  }
-  used.clear();
-  return out;
 }
 
 export async function loadKit(ctx, base) {
@@ -634,7 +523,6 @@ export async function loadKit(ctx, base) {
     }
   });
   await Promise.all(workers);
-  for (const inst of ['voice', 'choir']) banks[inst] = psolaBank(ctx, banks[inst]);
   return new SampleKit(banks);
 }
 
@@ -642,9 +530,9 @@ export async function loadKit(ctx, base) {
 export class SynthKit {
   constructor() { this.kind = 'synth'; this.droneUntil = 0; }
 
-  line(g, notes, t, { inst = 'voice', gain = 0.5, pan = 0, detune = 0 } = {}) {
+  line(g, notes, t, { inst = 'organ', gain = 0.5, pan = 0, detune = 0 } = {}) {
     const total = notes.reduce((a, n) => a + n.d, 0);
-    const v = voice(g, { t0: t, t1: t + total + 1, pan, detune, vowel: inst === 'voice' ? VOWEL_A : VOWEL_O, gain: gain * 0.6 });
+    const v = voice(g, { t0: t, t1: t + total + 1, pan, detune, vowel: FLUTE, gain: 0.05 });
     return sing(v, notes, t);
   }
 
@@ -692,7 +580,7 @@ export class Composer {
     const rng = this.rng;
     for (const p of ANTIPHON.map((ph) => realize(ph, this.u, rng))) {
       this.kit.harp(g, p[0].name, t, 0.077);
-      t = this.kit.line(g, p, t, { inst: 'voice', gain: 1.7 });
+      t = this.kit.line(g, p, t, { inst: 'organ', gain: GAIN_ORGAN_SOLO });
       if (rng() < 0.35) this.kit.bell(g, rng() < 0.5 ? 'A3' : 'D4', t + 0.2, 0.06);
       t += this.breath();
     }
@@ -702,11 +590,13 @@ export class Composer {
   verse(g, t) {
     const rng = this.rng;
     for (const p of verse(rng).map((ph) => realize(ph, this.u, rng))) {
-      let end = t;
-      [[-6, -0.3, 0], [6, 0.3, 0.018]].forEach(([det, pan, off]) => {
-        end = Math.max(end, this.kit.line(g, p, t + off, { inst: 'choir', gain: 1.0, pan, detune: det }));
+      // recitace drnkaná na harfě, první a poslední tón zdvojí žaltář o oktávu výš
+      p.forEach((n, i) => {
+        this.kit.harp(g, n.name, t, i === 0 || i === p.length - 1 ? 0.16 : 0.12);
+        if (i === 0 || i === p.length - 1) this.kit.pluck(g, octaveUp(n.name), t + 0.01, 0.12);
+        t += n.d;
       });
-      t = end + this.breath();
+      t += this.breath();
     }
     return t;
   }
@@ -723,10 +613,8 @@ export class Composer {
         return { ...n, name: prevLow };
       });
       let end = t;
-      end = Math.max(end, this.kit.line(g, p, t, { inst: 'choir', gain: 0.9, pan: -0.25, detune: -5 }));
-      end = Math.max(end, this.kit.line(g, p, t + 0.015, { inst: 'choir', gain: 0.9, pan: 0.25, detune: 5 }));
-      end = Math.max(end, this.kit.line(g, low, t + 0.008, { inst: 'choir', gain: 0.85, pan: 0.1, detune: 3 }));
-      end = Math.max(end, this.kit.line(g, low, t + 0.02, { inst: 'voice', gain: 0.6, pan: -0.1 }));
+      end = Math.max(end, this.kit.line(g, p, t, { inst: 'organ', gain: GAIN_ORGAN_DUO, pan: -0.2 }));
+      end = Math.max(end, this.kit.line(g, low, t + 0.01, { inst: 'organ', gain: GAIN_ORGAN_DUO * 0.85, pan: 0.2 }));
       if (rng() < 0.4) this.kit.bell(g, 'D3', end + 0.1, 0.07);
       t = end + this.breath();
     }

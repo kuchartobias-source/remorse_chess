@@ -30,11 +30,9 @@ Schizma hotová, hraje průběžně natrénovaná verze.
   (kódování pozice včetně úrovně Žáru, hodnocení, prohledávání 1–2 půltahů); počítá se ve Web Workeru.
 
 Grafika figurek i animace jsou vlastní tvorba (SVG + CSS). Zvukové efekty se syntetizují přímo
-v prohlížeči (WebAudio). Hudba na pozadí je vlastní skladba – kantikum v dórském modu na D (antifona,
-verše na recitačním tónu, organum v kvintách, mezihra se žaltářem a zvony) – kterou hrají skutečné
-nahrávky: nástroje z VCSL (CC0) a sbor a hlas z FluidR3 GM od Franka Wena (CC BY 3.0).
-Zpěv se přelaďuje metodou TD-PSOLA (zachovává formanty, takže hlas nemění barvu s výškou)
-a celé hudbě dodává prostor dozvuk kamenné lodi chrámu.
+v prohlížeči (WebAudio). Hudba na pozadí je vlastní instrumentální skladba – kantikum v dórském modu na D (antifona na varhany,
+verše drnkané na harfě a žaltáři, organum v kvintách, mezihra se zvony) – kterou hrají skutečné
+nahrávky nástrojů z VCSL (CC0) v dozvuku kamenné lodi chrámu.
 Podrobnosti a licence: [music/CREDITS.md](music/CREDITS.md). Zapíná a vypíná se ikonou noty.
 
 Předchozí varianta (Kajícné šachy) je dostupná v historii repozitáře.
