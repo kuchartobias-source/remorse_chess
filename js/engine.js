@@ -8,9 +8,11 @@
 //  - Hranice se přemisťuje skokem na libovolné volné pole ve svém poloměru, nikdy nebere a nelze ji odstranit.
 //  - Kající se figurka nesmí odstranit žádnou soupeřovu figurku (ani upálením, ani mimochodem).
 //  - Papež bere jen upálením (cíl v dosahu jeho Hranice) a padne jen upálením (je v dosahu soupeřovy
-//    Hranice); Hříšník ho odstranit nesmí nikdy. Papež nikdy nepropadá pokání.
+//    Hranice) – výjimkou je Křižák, který smí Papeže zabít kdekoliv. Hříšník ho odstranit nesmí nikdy.
+//    Papež nikdy nepropadá pokání.
 //  - Křižák v dosahu Hranice upaluje, mimo něj bere s odpustkem – v obou případech bez pokání.
-//  - Křížová výprava se vyhlásí, jakmile strana nemá žádného Kardinála (i když se poslední stal Papežem);
+//  - Křížová výprava se vyhlásí, jakmile strana nemá žádného Kardinála (i když se poslední stal Papežem)
+//    nebo žádného Inkvizitora;
 //    je to trvalý příznak strany – proměna v jezdce pak dává vždy Křižáka.
 //  - Kající se Kardinál zpovídat smí, ale nesmí být zvolen Papežem.
 
@@ -109,7 +111,7 @@ export function captureKind(state, p, victim, to) {
   const reach = inRookReach(state, p.c, to);
   if (p.t === 'P') return victim.t === 'K' ? null : 'penance';
   if (p.t === 'K') return reach ? 'execute' : null;
-  if (victim.t === 'K') return reach ? 'burn' : null;
+  if (victim.t === 'K') return reach ? 'burn' : (p.t === 'C' ? 'crusade' : null);
   if (reach) return 'burn';
   return p.t === 'C' ? 'crusade' : 'penance';
 }
@@ -245,19 +247,20 @@ function crownPope(state, sq, events) {
   events.push({ type: 'conclave', sq, color: b.c, id: b.id });
 }
 
-// Strana bez Kardinálů vyhlásí Křížovou výpravu: Misionáři se natrvalo stávají Křižáky (bez pokání)
+// Strana bez Kardinálů nebo bez Inkvizitora vyhlásí Křížovou výpravu: Misionáři se natrvalo stávají Křižáky (bez pokání)
 function takeTheCross(state, events) {
   for (const c of ['w', 'b']) {
     if (state.crusade[c]) continue;
-    let cardinals = 0;
+    let cardinals = 0, inquisitors = 0;
     const missionaries = [];
     for (let i = 0; i < 64; i++) {
       const p = state.board[i];
       if (!p || p.c !== c) continue;
       if (p.t === 'B') cardinals++;
+      else if (p.t === 'Q') inquisitors++;
       else if (p.t === 'N') missionaries.push(i);
     }
-    if (cardinals > 0) continue;
+    if (cardinals > 0 && inquisitors > 0) continue;
     state.crusade[c] = true;
     const ids = [];
     for (const i of missionaries) {
@@ -266,7 +269,7 @@ function takeTheCross(state, events) {
       p.pen = false;
       ids.push(p.id);
     }
-    events.push({ type: 'crusade', color: c, sqs: missionaries, ids });
+    events.push({ type: 'crusade', color: c, sqs: missionaries, ids, cause: cardinals === 0 ? 'cardinal' : 'inquisitor' });
   }
 }
 

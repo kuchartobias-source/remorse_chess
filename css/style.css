@@ -468,3 +468,11 @@ footer.foot { text-align: center; color: var(--dim); font-size: 14px; padding: 8
 @keyframes heatpulse { 50% { box-shadow: 0 0 16px rgba(255,130,30,.8); } }
 .crubadge { display: inline-block; width: 16px; height: 16px; margin-left: 5px; vertical-align: -2px; }
 .crubadge .ico { width: 100%; height: 100%; }
+
+/* Náhled tahů soupeřovy figurky a předtahy */
+.hint.ghost .dotm { background: rgba(40, 20, 10, .2); box-shadow: 0 0 0 2px rgba(255,240,210,.25); }
+.hint.ghost .ring, .hint.ghost .badge, .hint.ghost .badge2 { opacity: .5; }
+.hint.pre .dotm { background: rgba(70, 120, 200, .55); box-shadow: 0 0 0 2px rgba(200,225,255,.35); }
+.hint.pre .ring { opacity: .75; }
+.sq.pre::after { content: ''; position: absolute; inset: 0; background: rgba(70, 120, 210, .38); box-shadow: inset 0 0 0 3px rgba(130, 170, 240, .8); }
+.story .tip.pre { color: #a9c4f2; font-style: normal; }

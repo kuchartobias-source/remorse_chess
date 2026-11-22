@@ -145,10 +145,21 @@ t('Papeže lze odstranit jen upálením a nikdy Hříšníkem', () => {
   eq(kindOf(s2, 'c5e4'), 'burn');
 });
 
-t('Křižák Papeže jen v dosahu Hranice, jinak bere s odpustkem', () => {
+t('Křižák smí zabít Papeže i mimo dosah Hranice, bez pokání', () => {
   const s = pos({ ...FAR, e1: 'wK', e5: 'bK', d3: 'wC', b4: 'bQ', c8: 'bB' });
-  ok(!has(s, 'd3e5'));
+  eq(kindOf(s, 'd3e5'), 'crusade');
   eq(kindOf(s, 'd3b4'), 'crusade');
+  const s2 = pos({ ...FAR, e1: 'wK', e5: 'bK', d3: 'wN', c8: 'bB' });
+  ok(!has(s2, 'd3e5'), 'Misionář Papeže mimo dosah ne');
+});
+
+t('Smrt Inkvizitora vyhlásí Křížovou výpravu', () => {
+  const s = pos({ ...FAR, e1: 'wK', e8: 'bK', c1: 'wB', b1: 'wN*', d4: 'wQ', e5: 'bB', c8: 'bB', d8: 'bQ' }, 'b');
+  const r = apply(s, 'e5d4');
+  ok(r.state.crusade.w);
+  eq(P(r.state, 'b1').t, 'C'); ok(!P(r.state, 'b1').pen);
+  ok(r.events.some((e) => e.type === 'crusade' && e.cause === 'inquisitor'));
+  ok(!r.state.crusade.b);
 });
 
 t('Žádná rošáda', () => {
@@ -199,7 +210,7 @@ t('Ztráta posledního Kardinála: Misionáři → Křižáci, natrvalo', () => 
 t('Po vyhlášení dává proměna v jezdce Křižáka i s novým Kardinálem', () => {
   const s = pos({ ...FAR, e1: 'wK', e8: 'bK', c3: 'wB', b7: 'wP', c8: 'bB' }, 'w', { crusade: { w: true, b: false } });
   eq(P(apply(s, 'b7b8n').state, 'b8').t, 'C');
-  const s2 = pos({ ...FAR, e1: 'wK', e8: 'bK', c3: 'wB', b7: 'wP', c8: 'bB' });
+  const s2 = pos({ ...FAR, e1: 'wK', e8: 'bK', c3: 'wB', g2: 'wQ', b7: 'wP', c8: 'bB' });
   eq(P(apply(s2, 'b7b8n').state, 'b8').t, 'N');
 });
 

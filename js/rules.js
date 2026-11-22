@@ -1,5 +1,5 @@
 // Text pravidel zobrazený v aplikaci
-import { pieceSVG, ICON } from './pieces.js?v=7';
+import { pieceSVG, ICON } from './pieces.js?v=8';
 
 const m = (t) => `<span class="mini w">${pieceSVG(t)}</span><span class="mini b">${pieceSVG(t)}</span>`;
 
@@ -29,9 +29,9 @@ a speciálních pravidel níže. Pod figurkami leží žetony: <b style="color:#
   <li><b>Důsledek:</b> kající se figurka se smí normálně pohybovat, ale nesmí odstranit <b>žádnou</b> soupeřovu figurku,
   dokud nezíská rozhřešení.</li>
   <li><b>Misionáři a Křížová výprava:</b> jezdci začínají jako Misionáři – bez imunity, po zabití propadají Pokání.
-  Jakmile hráč přijde o <b>posledního Kardinála</b>, vyhlásí se Křížová výprava: všichni jeho Misionáři se natrvalo
+  Jakmile hráč přijde o <b>posledního Kardinála</b> nebo o <b>Inkvizitora</b>, vyhlásí se Křížová výprava: všichni jeho Misionáři se natrvalo
   stávají <b>Křižáky</b> s papežským odpustkem, zbaví se Pokání a už ho nikdy nepropadnou – i kdyby hráč později
-  proměnou získal nového Kardinála.</li>
+  proměnou získal nového Kardinála či Inkvizitora.</li>
 </ul>
 
 <h3>3. Zpověď a rozhřešení</h3>
@@ -66,7 +66,8 @@ a speciálních pravidel níže. Pod figurkami leží žetony: <b style="color:#
   <li><b>Žádný šach ani rošáda:</b> Papež smí dobrovolně vstoupit na ohrožené pole, napadení se nehlásí ani neřeší.
   Dostane-li se soupeřův Papež do dosahu tvé Hranice, aplikace zvolá <b>Monitum!</b> (napomenutí) ${ICON.monitum}.</li>
   <li><b>Poprava na hranici:</b> Papež si sám nešpiní ruce krví – soupeřovu figurku smí odstranit jen Upálením (cíl v dosahu
-  tvé Hranice). Stejně tak Papež padne jen Upálením: musí stát v dosahu soupeřovy Hranice a nesmí ho odstranit Hříšník.</li>
+  tvé Hranice). Stejně tak Papež padne jen Upálením: musí stát v dosahu soupeřovy Hranice a nesmí ho odstranit Hříšník.
+  <b>Výjimka: Křižák</b> smí soupeřova Papeže zabít kdekoliv, i mimo dosah Hranice.</li>
 </ul>
 
 <h3>5. Konkláve a konec hry</h3>
@@ -94,8 +95,8 @@ a speciálních pravidel níže. Pod figurkami leží žetony: <b style="color:#
   Upálení bez Pokání (neplatí pro Hříšníky).</li>
   <li><b>Žár</b> roste s úspěchy Inkvizitora (1 inkvizice = 2. úroveň, 3 inkvizice = 3. úroveň). Smrtí posledního
   Inkvizitora klesá zpět na 1.</li>
-  <li><b>Papež</b> smí zabíjet i být odstraněn výhradně Upálením na hranici (Hříšník ho odstranit nemůže).</li>
-  <li><b>Misionáři → Křižáci:</b> jakmile přijdeš o posledního Kardinála, stávají se natrvalo Křižáky s imunitou vůči Pokání.</li>
+  <li><b>Papež</b> smí zabíjet výhradně Upálením na hranici a padne jen Upálením nebo rukou Křižáka (Hříšník ho odstranit nemůže).</li>
+  <li><b>Misionáři → Křižáci:</b> jakmile přijdeš o posledního Kardinála nebo o Inkvizitora, stávají se natrvalo Křižáky s imunitou vůči Pokání.</li>
   <li><b>Hříšníci</b> smí kdykoliv o 1–2 pole vpřed; Tajný hřích nezpůsobuje Pokání.</li>
   <li><b>Zpověď</b> na konci vlastního tahu: Kardinál zpovídá vodorovně a svisle, Papež i diagonálně. Kardinál se zpovídá jen u Papeže.</li>
   <li><b>Hříšný Kardinál nemůže být zvolen Papežem</b> – pád posledního Papeže znamená Anathemu, soupeř bez tahu Interdikt.</li>
@@ -116,7 +117,8 @@ a speciálních pravidel níže. Pod figurkami leží žetony: <b style="color:#
 <ul class="note">
   <li>Když figurka sebere a skončí vedle svého zpovědníka, je rozhřešena hned na konci téhož tahu. Zpovídají se jen figurky hráče, který táhl.</li>
   <li>Kající se Kardinál smí zpovídat, ale nesmí být zvolen Papežem.</li>
-  <li>Křižák v dosahu Hranice upaluje, mimo něj bere s odpustkem – v obou případech bez Pokání.</li>
+  <li>Křižák v dosahu Hranice upaluje, mimo něj bere s odpustkem – v obou případech bez Pokání (i Papeže).</li>
+  <li>Křížová výprava po smrti Inkvizitora: vyhlásí se, když strana nemá žádného Inkvizitora (při více Inkvizitorech díky Spáse až po smrti posledního).</li>
   <li>Stane-li se poslední Kardinál Papežem, strana už Kardinála nemá – vyhlásí se Křížová výprava.</li>
   <li>Nového Papeže volí poražená strana jako svou první akci. Remíza je možná jen dohodou hráčů.</li>
 </ul>

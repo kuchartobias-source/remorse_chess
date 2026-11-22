@@ -19,10 +19,12 @@ Pravidla v PDF nechávají několik míst otevřených. Aplikace je vykládá ta
    který bere a stává se Inkvizitorem, se jako inkvizice nepočítá (bral Hříšník).
 6. **Kající se figurka nesmí odstranit nic** – ani Upálením, ani mimochodem.
 7. **Papež** bere jen Upálením (cíl v dosahu vlastní Hranice) a nikdy nepropadá Pokání. Padne jen
-   Upálením: musí stát v dosahu soupeřovy Hranice; Hříšník ho neodstraní nikdy. To platí i pro Křižáka.
+   Upálením (musí stát v dosahu soupeřovy Hranice), nebo rukou Křižáka, který ho smí zabít kdekoliv.
+   Hříšník ho neodstraní nikdy.
 8. **Křižák** v dosahu Hranice upaluje, mimo něj bere s odpustkem – v obou případech bez Pokání.
-9. **Křížová výprava** je trvalý příznak strany. Vyhlásí se, jakmile strana nemá žádného Kardinála –
-   i když se poslední Kardinál stal v Konkláve Papežem. Proměna v jezdce pak dává vždy Křižáka.
+9. **Křížová výprava** je trvalý příznak strany. Vyhlásí se, jakmile strana nemá žádného Kardinála
+   (i když se poslední Kardinál stal v Konkláve Papežem) nebo žádného Inkvizitora (smrt Inkvizitora;
+   má-li strana díky Spáse více Inkvizitorů, až po smrti posledního). Proměna v jezdce pak dává vždy Křižáka.
 10. **Konkláve:** když padne Papež, nového volí poražená strana na začátku svého tahu
     (je to její první akce). Má-li jen jednoho čistého Kardinála, zvolí se automaticky.
 11. **Hříšník** smí o 2 pole odkudkoliv, jsou-li obě pole volná; dvojkrok na poslední řadu je Spása
