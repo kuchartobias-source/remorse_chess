@@ -30,8 +30,8 @@ Schizma hotová, hraje průběžně natrénovaná verze.
   (kódování pozice včetně úrovně Žáru, hodnocení, prohledávání 1–2 půltahů); počítá se ve Web Workeru.
 
 Grafika figurek i animace jsou vlastní tvorba (SVG + CSS). Zvukové efekty se syntetizují přímo
-v prohlížeči (WebAudio). Hudba na pozadí je vlastní instrumentální skladba – kantikum v dórském modu na D (antifona na žaltář s harfou,
-verše drnkané na harfě a žaltáři, organum v kvintách, mezihra se zvony) – kterou hrají skutečné
+v prohlížeči (WebAudio). Hudba na pozadí je vlastní instrumentální skladba – kantikum v dórském modu na D (antifona na zobcovou flétnu s harfou,
+verše drnkané na harfě a žaltáři, organum v kvintách na smyčcový žaltář a flétnu, mezihra se zvony) – kterou hrají skutečné
 nahrávky nástrojů z VCSL (CC0) v dozvuku kamenné lodi chrámu.
 Podrobnosti a licence: [music/CREDITS.md](music/CREDITS.md). Zapíná a vypíná se ikonou noty.
 

@@ -1,6 +1,6 @@
 // Web Worker: přemýšlení stroje mimo hlavní vlákno (aby se neseklo uživatelské rozhraní)
-import * as E from './engine.js?v=14';
-import { loadModel, materialModel, chooseAction, acceptsDraw } from './ai.js?v=14';
+import * as E from './engine.js?v=15';
+import { loadModel, materialModel, chooseAction, acceptsDraw } from './ai.js?v=15';
 
 let cache = { actions: [], state: E.initialState() };
 const models = {};

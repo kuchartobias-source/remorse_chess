@@ -1,6 +1,6 @@
 // Umělá inteligence Schizmatu: hodnotová síť (MLP natrénovaná samohrou v ai/train.py)
 // + prohledávání o 1–2 půltahy. Kódování pozice odpovídá přesně ai/nn.py.
-import * as E from './engine.js?v=14';
+import * as E from './engine.js?v=15';
 
 const CLASSES = ['P', 'P*', 'N', 'N*', 'C', 'B', 'B*', 'R1', 'R2', 'R3', 'Q', 'Q*', 'K'];
 const NCLS = CLASSES.length;

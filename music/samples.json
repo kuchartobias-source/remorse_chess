@@ -124,5 +124,105 @@
    "file": "drum_HDrumS_Hand.wav",
    "midi": null
   }
+ ],
+ "bowed": [
+  {
+   "file": "bowed_As3.wav",
+   "midi": 70
+  },
+  {
+   "file": "bowed_C4.wav",
+   "midi": 72
+  },
+  {
+   "file": "bowed_D4.wav",
+   "midi": 74
+  },
+  {
+   "file": "bowed_E4.wav",
+   "midi": 76
+  },
+  {
+   "file": "bowed_Fs4.wav",
+   "midi": 78
+  },
+  {
+   "file": "bowed_Gs4.wav",
+   "midi": 80
+  },
+  {
+   "file": "bowed_As4.wav",
+   "midi": 82
+  },
+  {
+   "file": "bowed_C5.wav",
+   "midi": 84
+  },
+  {
+   "file": "bowed_D5.wav",
+   "midi": 86
+  },
+  {
+   "file": "bowed_E5.wav",
+   "midi": 88
+  },
+  {
+   "file": "bowed_Fs5.wav",
+   "midi": 90
+  }
+ ],
+ "recorder": [
+  {
+   "file": "recorder_C3.wav",
+   "midi": 60
+  },
+  {
+   "file": "recorder_D3.wav",
+   "midi": 62
+  },
+  {
+   "file": "recorder_E3.wav",
+   "midi": 64
+  },
+  {
+   "file": "recorder_Fs3.wav",
+   "midi": 66
+  },
+  {
+   "file": "recorder_Gs3.wav",
+   "midi": 68
+  },
+  {
+   "file": "recorder_As3.wav",
+   "midi": 70
+  },
+  {
+   "file": "recorder_C4.wav",
+   "midi": 72
+  },
+  {
+   "file": "recorder_D4.wav",
+   "midi": 74
+  },
+  {
+   "file": "recorder_E4.wav",
+   "midi": 76
+  },
+  {
+   "file": "recorder_Fs4.wav",
+   "midi": 78
+  },
+  {
+   "file": "recorder_Gs4.wav",
+   "midi": 80
+  },
+  {
+   "file": "recorder_A4.wav",
+   "midi": 81
+  },
+  {
+   "file": "recorder_C5.wav",
+   "midi": 84
+  }
  ]
 }
