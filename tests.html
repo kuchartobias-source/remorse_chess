@@ -42,7 +42,7 @@ t('Výchozí jezdci jsou Misionáři, střelci Kardinálové', () => {
 });
 
 // ---------- Pokání ----------
-t('Hříšník bere a propadá pokání', () => {
+t('Poutník bere a propadá pokání', () => {
   const s = pos({ ...FAR, e1: 'wK', e8: 'bK', d4: 'wP', e5: 'bN' });
   const r = apply(s, 'd4e5');
   ok(P(r.state, 'e5').pen);
@@ -93,7 +93,7 @@ t('Upálení: figurka v dosahu Hranice padne bez pokání', () => {
   ok(r.events.find((e) => e.type === 'capture').rooks.includes(E.sqIndex('d1')));
 });
 
-t('Hříšník neupaluje – v dosahu Hranice bere s pokáním', () => {
+t('Poutník neupaluje – v dosahu Hranice bere s pokáním', () => {
   const s2 = pos({ e1: 'wK', e8: 'bK', d4: 'wR', h1: 'wR', a8: 'bR', h8: 'bR', d2: 'wP', e3: 'bN' });
   eq(kindOf(s2, 'd2e3'), 'penance');
 });
@@ -135,13 +135,13 @@ t('Papež bere jen upálením (cíl v dosahu jeho Hranice)', () => {
   ok(!has(s, 'e1d2'));
 });
 
-t('Papeže lze odstranit jen upálením a nikdy Hříšníkem', () => {
+t('Papeže lze odstranit jen upálením a nikdy Poutníkem', () => {
   const s = pos({ a1: 'wR', h1: 'wR', d5: 'bR', h8: 'bR', e4: 'bK', d3: 'wP', c3: 'wN', a6: 'wK', c8: 'bB' });
   // e4 je v dosahu černé d5, ne bílé → bílí ho nemohou odstranit
   ok(!has(s, 'd3e4'));
   ok(!has(s, 'c3e4'));
   const s2 = pos({ a1: 'wR', h1: 'wR', e3: 'wR', h8: 'bR', a8: 'bR', e4: 'bK', d3: 'wP', c5: 'wN', a6: 'wK', c8: 'bB' });
-  ok(!has(s2, 'd3e4'), 'Hříšník Papeže nikdy');
+  ok(!has(s2, 'd3e4'), 'Poutník Papeže nikdy');
   eq(kindOf(s2, 'c5e4'), 'burn');
 });
 
@@ -247,7 +247,7 @@ t('Po vyhlášení dává proměna v jezdce Křižáka i s novým Kardinálem', 
 });
 
 // ---------- Hříšníci ----------
-t('Hříšník smí o 2 pole kdykoliv', () => {
+t('Poutník smí o 2 pole kdykoliv', () => {
   const s = pos({ ...FAR, e1: 'wK', e8: 'bK', d4: 'wP' });
   ok(has(s, 'd4d6'));
   const s2 = pos({ ...FAR, e1: 'wK', e8: 'bK', d4: 'wP', d5: 'bP' });

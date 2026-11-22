@@ -487,3 +487,9 @@ footer.foot { text-align: center; color: var(--dim); font-size: 14px; padding: 8
   filter: drop-shadow(0 1px 1px rgba(0,0,0,.7));
 }
 .sq.captor::after { content: ''; position: absolute; inset: 3%; pointer-events: none; border-radius: 8%; box-shadow: inset 0 0 0 calc(var(--bs) * .005) rgba(200, 30, 45, .85), inset 0 0 10px rgba(200, 30, 45, .5); }
+
+/* Zlatý žeton Křižáka (Misionář povýšený na Křižáka) */
+.piece .cchip { position: absolute; inset: 4%; width: 92%; height: 92%; overflow: visible; display: none; filter: drop-shadow(0 0 4px rgba(230, 180, 60, .55)); }
+.piece.cru .cchip { display: block; }
+.piece.cru .pc { transform: translateY(-5%); }
+.piece.cru.slam .cchip { animation: chipdrop .55s cubic-bezier(.3, 1.4, .5, 1); }

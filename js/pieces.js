@@ -99,12 +99,18 @@ const SVG = {
     <circle class="pd" cx="37" cy="62" r="1.6"/><circle class="pd" cx="42" cy="62" r="1.6"/>
     ${BASE}`,
 
-  // Hříšník – shrbená postava v kápi, provaz kolem pasu
+  // Poutník – postava v kápi s provazem kolem pasu a malou poutnickou holí s tykví
   P: `
     <path class="pb" d="M40.5 60 C35 66 32 75 31.5 86 H68.5 C68 75 65 66 59.5 60 Z"/>
     <path class="ps" d="M36 71.5 Q50 76.5 64 71.5 M52 75 L50 84"/>
     <path class="pb" d="M52 31 C62.5 31.5 66 40 65 50 C64.5 56 61.5 60.5 58.5 62.5 H41.5 C38.5 60.5 35.5 56 35.2 50 C34.8 40.5 40 33.5 47 32 C48.6 31.6 50.2 31 52 31 Z"/>
     <path class="pd" d="M43.5 51 C43.5 44.5 56.5 44.5 56.5 51 V56 C53.5 59.5 46.5 59.5 43.5 56 Z"/>
+    <rect class="pt" x="70.2" y="36" width="4" height="50" rx="2"/>
+    <circle class="pt" cx="72.2" cy="35" r="3.3"/>
+    <path class="pl" d="M74.2 44 L76.6 44.8" style="stroke-width:1.2"/>
+    <circle class="pt" cx="77.4" cy="47.6" r="2.4"/>
+    <circle class="pt" cx="77.4" cy="53.2" r="3.6"/>
+    <circle class="pb" cx="70" cy="64" r="4.2"/>
     ${BASE}`,
 };
 
@@ -129,6 +135,14 @@ const heatChip = (dy) => `<g transform="translate(0 ${dy})">
 </g>`;
 export const HEAT_SVG = `<svg class="heat" viewBox="0 0 100 100" aria-hidden="true">
   <g class="h1">${heatChip(0)}</g><g class="h2">${heatChip(-6.5)}</g>
+</svg>`;
+
+// Zlatý žeton Křižáka (třetí barva) – Misionář povýšený na Křižáka
+export const CRUSADE_CHIP_SVG = `<svg class="cchip" viewBox="0 0 100 100" aria-hidden="true">
+  <ellipse cx="50" cy="92.5" rx="45" ry="9.5" fill="#6b4c10"/>
+  <ellipse cx="50" cy="89" rx="45" ry="9.5" fill="#d6a531" stroke="#4a3408" stroke-width="1.2"/>
+  <ellipse cx="50" cy="89" rx="45" ry="9.5" fill="none" stroke="#fff3c8" stroke-width="3.4" stroke-dasharray="7 7"/>
+  <path d="M47.6 83.5 H52.4 V86.6 H58 V91 H52.4 V94.6 H47.6 V91 H42 V86.6 H47.6 Z" fill="#b3182c"/>
 </svg>`;
 
 // Malé ikony pro výpis tahů

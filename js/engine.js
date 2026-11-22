@@ -8,7 +8,7 @@
 //  - Hranice se přemisťuje skokem na libovolné volné pole ve svém poloměru, nikdy nebere a nelze ji odstranit.
 //  - Kající se figurka nesmí odstranit žádnou soupeřovu figurku (ani upálením, ani mimochodem).
 //  - Papež bere jen upálením (cíl v dosahu jeho Hranice) a padne jen upálením (je v dosahu soupeřovy
-//    Hranice); Hříšník ani Křižák ho odstranit nesmí. Papež nikdy nepropadá pokání.
+//    Hranice); Poutník ani Křižák ho odstranit nesmí. Papež nikdy nepropadá pokání.
 //  - Zajetí Papeže: stojí-li soupeřův Křižák na poli, odkud Papeže ohrožuje skokem jezdce, je Papež
 //    v zajetí – nesmí táhnout a nemůže zpovídat (posuzuje se v pozici na konci tahu).
 //  - Křižák v dosahu Hranice upaluje, mimo něj bere s odpustkem – v obou případech bez pokání.
@@ -19,7 +19,7 @@
 
 export const FILES = 'abcdefgh';
 export const NAMES = {
-  K: 'Papež', Q: 'Inkvizitor', R: 'Hranice', B: 'Kardinál', N: 'Misionář', C: 'Křižák', P: 'Hříšník',
+  K: 'Papež', Q: 'Inkvizitor', R: 'Hranice', B: 'Kardinál', N: 'Misionář', C: 'Křižák', P: 'Poutník',
 };
 export const other = (c) => (c === 'w' ? 'b' : 'w');
 export const fileOf = (i) => i & 7;
@@ -179,7 +179,7 @@ export function legalMoves(state) {
       const one = at(f, r + dir);
       if (one >= 0 && !board[one]) {
         add(one, null);
-        // Hříšník smí kdykoliv postoupit o 2 pole, jsou-li obě pole volná
+        // Poutník smí kdykoliv postoupit o 2 pole, jsou-li obě pole volná
         const two = at(f, r + 2 * dir);
         if (two >= 0 && !board[two]) add(two, null, { double: true });
       }
