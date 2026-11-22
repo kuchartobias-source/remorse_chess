@@ -284,6 +284,22 @@ function drone(g, t0, t1) {
 export class SampleKit {
   constructor(banks) {
     this.banks = banks; // { nástroj: [{ name, freq, buf }] }
+    // zpívané nahrávky srovná na stejnou hlasitost ustálené části (různé nahrávky zní jinak silně)
+    for (const inst of ['voice', 'choir']) {
+      const list = banks[inst] || [];
+      for (const e of list) e.rms = steadyRms(e.buf);
+      const sorted = list.map((e) => e.rms).filter((x) => x > 0).sort((x, y) => x - y);
+      const med = sorted[Math.floor(sorted.length / 2)] || 1;
+      for (const e of list) e.norm = e.rms > 0 ? Math.max(0.6, Math.min(1.7, med / e.rms)) : 1;
+    }
+    // nahrávky sboru mají různě jasnou barvu – vyrovná se na společnou (střední) jasnost
+    const choir = this.banks.choir || [];
+    for (const e of choir) e.cent = brightness(e.buf);
+    const cs = choir.map((e) => e.cent).filter((x) => x > 0).sort((x, y) => x - y);
+    const cmed = cs[Math.floor(cs.length / 2)] || 1;
+    for (const e of choir) e.eq = e.cent > 0 ? Math.max(-5, Math.min(5, 12 * Math.log2(cmed / e.cent))) : 0;
+    // výškový filtr mění i hlasitost – vyrovná se přibližně (zhruba třetina zesílení filtru)
+    for (const e of choir) e.norm = (e.norm || 1) * Math.pow(10, (-0.35 * e.eq) / 20);
     this.droneNext = null;
     this.kind = 'samples';
   }
@@ -318,71 +334,91 @@ export class SampleKit {
     g.track(src, t + Math.min(maxLen, hold + release * 2.5) + 0.02);
   }
 
-  // zpívaná fráze legato (jako zpěvák – hlas se mezi tóny nepřerušuje):
-  //  - krok o tón či půltón: stávající nahrávka plynule přejde na novou výšku (žádné prolínání dvou
-  //    téměř stejných vln, které by se navzájem rušily)
+  // zpívaná fráze legato (jako zpěvák – hlas se mezi tóny nepřerušuje a plynule klouže):
+  //  - každý tón zpívá nahrávka nejbližší jeho výšce, takže se nahrávka přelaďuje jen málo
+  //    (přeladění zrychlením posouvá i barvu samohlásky – formanty)
+  //  - zbylý posun barvy vyrovnává výškový filtr (čím výš je nahrávka přeladěná, tím víc ztlumí výšky)
+  //  - nahrávky jsou srovnané na stejnou hlasitost (normalizace v konstruktoru)
+  //  - zůstane-li tón u stejné nahrávky, jen plynule sklouzne na novou výšku (portamento)
+  //  - přechod na jinou nahrávku: obě zní během prolnutí na stejné, klouzající výšce, takže je slyšet
+  //    jediný hlas, který mění tón, ne dva různé hlasy
   //  - stejný tón po sobě: jen jemný „nádech“ v hlasitosti (nová slabika)
-  //  - větší skok, příliš velké přeladění nebo dohrávající nahrávka (3,1 s): nový zdroj, který začne
-  //    za svým nástupem a prolne se s předchozím se stálou hlasitostí (≤ 40 % tónu)
   line(g, notes, t, { inst = 'voice', gain = 0.5, pan = 0, detune = 0 } = {}) {
     const { ctx } = g;
     const det = Math.pow(2, detune / 1200);
+    const GLIDE = 0.085;
+    // sbor („á“) má formanty – přeladění o půltón posune barvu o ~0,62 dB výškového filtru;
+    // hlas („ú“) je skoro čistý tón a jeho barva výšku přirozeně sleduje, tak se nevyrovnává
+    const tilt = inst === 'choir'
+      ? (e, f) => Math.max(-8, Math.min(8, (e.eq || 0) - 0.62 * 12 * Math.log2((f * det) / e.freq)))
+      : () => 0;
     let cur = null;
-    const start = (f, at, fade, first) => {
+    const start = (f, at, fade, first, fromF) => {
       const e = this.pick(inst, f);
       const src = ctx.createBufferSource();
       src.buffer = e.buf;
       const rate = (f / e.freq) * det;
-      src.playbackRate.setValueAtTime(rate, at);
-      // ustálená část nahrávky se opakuje ve smyčce dlouhé přesně na celý počet kmitů (bez cvaknutí),
-      // takže jeden hlas vydrží celou frázi a nemusí se střídat se sebou samým
+      if (fromF) {
+        src.playbackRate.setValueAtTime((fromF / e.freq) * det, at);
+        src.playbackRate.linearRampToValueAtTime(rate, at + GLIDE);
+      } else src.playbackRate.setValueAtTime(rate, at);
+      // ustálená část nahrávky se opakuje ve smyčce dlouhé přesně na celý počet kmitů (bez cvaknutí)
       src.loop = true;
       src.loopStart = 0.7;
       src.loopEnd = Math.min(e.buf.duration - 0.05, 0.7 + Math.round(1.9 * e.freq) / e.freq);
+      const sh = ctx.createBiquadFilter();
+      sh.type = 'highshelf';
+      sh.frequency.value = 1000;
+      sh.gain.setValueAtTime(fromF ? tilt(e, fromF) : tilt(e, f), at);
+      if (fromF) sh.gain.linearRampToValueAtTime(tilt(e, f), at + GLIDE);
+      const lvl = gain * (e.norm || 1);
       const env = ctx.createGain();
       env.gain.value = 0;
-      env.gain.setValueCurveAtTime(fadeCurve(gain, true), at, fade);
-      src.connect(env);
+      env.gain.setValueCurveAtTime(fadeCurve(lvl, true), at, fade);
+      src.connect(sh);
+      sh.connect(env);
       connectPan(g, env, pan);
-      const offset = first ? 0.02 : 0.22; // navazující tón bez vlastního nástupu
+      const offset = first ? 0.02 : 0.3; // navazující tón bez vlastního nástupu
       src.start(at, offset);
-      return { src, env, e, f, rate, used: offset };
+      return { src, env, sh, e, f, rate, lvl };
     };
     const end = (c, at, fade) => {
-      c.env.gain.setValueCurveAtTime(fadeCurve(gain, false), at, fade);
+      c.env.gain.setValueCurveAtTime(fadeCurve(c.lvl, false), at, fade);
       this.trackLine(g, c.src, at + fade + 0.02);
+    };
+    const glide = (c, f, at) => {
+      const rate = (f / c.e.freq) * det;
+      c.src.playbackRate.setValueAtTime(c.rate, at);
+      c.src.playbackRate.linearRampToValueAtTime(rate, at + GLIDE);
+      c.sh.gain.setValueAtTime(tilt(c.e, c.f), at);
+      c.sh.gain.linearRampToValueAtTime(tilt(c.e, f), at + GLIDE);
+      c.rate = rate;
+      c.f = f;
     };
     for (const n of notes) {
       const f = freq(n.name);
       const semis = cur ? 12 * Math.log2(f / cur.f) : 0;
-      const fromBase = cur ? Math.abs(12 * Math.log2(f / cur.e.freq)) : 0;
-      const room = !!cur; // smyčka nahrávky → zdroj vydrží libovolně dlouho
-      if (cur && room && Math.abs(semis) < 1e-6) {
+      if (cur && Math.abs(semis) < 1e-6) {
         const dip = Math.min(0.1, n.d * 0.3);
-        cur.env.gain.setValueAtTime(gain, t - dip);
-        cur.env.gain.linearRampToValueAtTime(gain * 0.75, t);
-        cur.env.gain.linearRampToValueAtTime(gain, t + dip);
-      } else if (cur && room && Math.abs(semis) <= 2.2 && fromBase <= 3.5) { // pythagorejský celý tón = 2,04 půltónu
-        const rate = (f / cur.e.freq) * det;
-        cur.src.playbackRate.setValueAtTime(cur.rate, t);
-        cur.src.playbackRate.linearRampToValueAtTime(rate, t + 0.07);
-        cur.env.gain.setValueAtTime(gain, t - 0.03);
-        cur.env.gain.linearRampToValueAtTime(gain * 0.9, t + 0.02);
-        cur.env.gain.linearRampToValueAtTime(gain, t + 0.1);
-        cur.rate = rate;
-        cur.f = f;
+        cur.env.gain.setValueAtTime(cur.lvl, t - dip);
+        cur.env.gain.linearRampToValueAtTime(cur.lvl * 0.78, t);
+        cur.env.gain.linearRampToValueAtTime(cur.lvl, t + dip);
+      } else if (cur && this.pick(inst, f) === cur.e) {
+        glide(cur, f, t);
       } else {
-        const fade = cur ? Math.min(0.14, n.d * 0.4) : 0.08;
-        const next = start(f, t, fade, !cur);
-        if (cur) end(cur, t, fade);
-        cur = next;
+        const fade = cur ? Math.max(0.1, Math.min(0.18, n.d * 0.4)) : 0.08;
+        const from = cur ? cur.f : 0;
+        if (cur) {
+          glide(cur, f, t); // dozpívá na novou výšku a teprve tak se vytratí
+          end(cur, t, fade);
+        }
+        cur = start(f, t, fade, !from, from);
       }
-      cur.used += n.d * cur.rate;
       t += n.d;
     }
     if (cur) {
       const rel = 0.32;
-      cur.env.gain.setValueCurveAtTime(fadeCurve(gain, false), t, rel);
+      cur.env.gain.setValueCurveAtTime(fadeCurve(cur.lvl, false), t, rel);
       this.trackLine(g, cur.src, t + rel + 0.02);
     }
     return t;
@@ -432,6 +468,26 @@ export class SampleKit {
       this.droneNext += L - X;
     }
   }
+}
+
+function steadyRms(buf) {
+  const d = buf.getChannelData(0);
+  const a = Math.floor(0.7 * buf.sampleRate);
+  const b = Math.min(d.length, Math.floor(1.9 * buf.sampleRate));
+  let sum = 0;
+  for (let i = a; i < b; i++) sum += d[i] * d[i];
+  return b > a ? Math.sqrt(sum / (b - a)) : 0;
+}
+
+// jasnost ustálené části nahrávky (efektivní kmitočet z energie derivace, Hz)
+function brightness(buf) {
+  const d = buf.getChannelData(0);
+  const sr = buf.sampleRate;
+  const a = Math.floor(0.7 * sr);
+  const b = Math.min(d.length, Math.floor(1.9 * sr));
+  let en = 0, df = 0;
+  for (let i = a + 1; i < b; i++) { en += d[i] * d[i]; const x = d[i] - d[i - 1]; df += x * x; }
+  return en > 0 ? (Math.sqrt(df / en) * sr) / (2 * Math.PI) : 0;
 }
 
 // křivka prolnutí se stálou hlasitostí (sinus/kosinus)

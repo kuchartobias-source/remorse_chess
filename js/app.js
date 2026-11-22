@@ -1,14 +1,14 @@
 // Schizma – aplikace (lobby, deska, online hra)
-import * as E from './engine.js?v=8';
-import { pieceSVG, CHIP_SVG, HEAT_SVG, ICON } from './pieces.js?v=8';
-import { FX } from './fx.js?v=8';
-import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=8';
-import { RULES_HTML } from './rules.js?v=8';
-import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=8';
-import { MusicPlayer } from './music.js?v=8';
+import * as E from './engine.js?v=9';
+import { pieceSVG, CHIP_SVG, HEAT_SVG, ICON } from './pieces.js?v=9';
+import { FX } from './fx.js?v=9';
+import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=9';
+import { RULES_HTML } from './rules.js?v=9';
+import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=9';
+import { MusicPlayer } from './music.js?v=9';
 
 const music = new MusicPlayer(getCtx);
-import { LEVELS } from './ai.js?v=8';
+import { LEVELS } from './ai.js?v=9';
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -1165,7 +1165,7 @@ class Game {
     this.aiWait = new Map();
     this.aiBases = [new URL('../model/', import.meta.url).href];
     try {
-      this.worker = new Worker(new URL('./ai-worker.js?v=8', import.meta.url), { type: 'module' });
+      this.worker = new Worker(new URL('./ai-worker.js?v=9', import.meta.url), { type: 'module' });
       this.worker.onmessage = (e) => {
         const cb = this.aiWait.get(e.data.id);
         if (cb) { this.aiWait.delete(e.data.id); cb(e.data); }
@@ -1192,7 +1192,7 @@ class Game {
         return this.aiCall(msg);
       });
     }
-    return import('./ai.js?v=8').then(async (A) => {
+    return import('./ai.js?v=9').then(async (A) => {
       if (!this.aiModel) {
         this.aiKind = 'material';
         this.aiModel = A.materialModel;
