@@ -1,8 +1,8 @@
 // Hudba na pozadí Schizmatu – vlastní skladba: kantikum v dórském modu na D, čistě instrumentální.
 // Hrají skutečné nahrávky nástrojů (music/, licence v music/CREDITS.md); když se nenačtou,
 // zazní záložní syntéza přes WebAudio. Forma (smyčka ~2 min):
-//   úvod (bordun + zvon) → antifona (sólové varhany) → 2 verše (harfa a žaltář na recitačním tónu)
-//   → antifona jako organum v paralelních kvintách (varhany) → mezihra (drnkané úryvky, zvon) → antifona …
+//   úvod (bordun + zvon) → antifona (žaltář s harfou) → 2 verše (harfa a žaltář na recitačním tónu)
+//   → antifona jako organum v paralelních kvintách (žaltář a harfa) → mezihra (drnkané úryvky, zvon) → antifona …
 // Ladění je pythagorejské od D, aby kvinty proti bordunu zněly čistě.
 
 const LITE = (() => {
@@ -44,8 +44,6 @@ const FRAGMENTS = [ // úryvky antifony o oktávu výš pro mezihru
   [['F4', 1], ['E4', 1], ['D4', 3]],
 ];
 
-const GAIN_ORGAN_SOLO = 0.072;
-const GAIN_ORGAN_DUO = 0.072;
 
 function octaveUp(name) {
   const m = /^([A-G]b?)(\d)$/.exec(name);
@@ -579,10 +577,28 @@ export class Composer {
   antiphon(g, t) {
     const rng = this.rng;
     for (const p of ANTIPHON.map((ph) => realize(ph, this.u, rng))) {
-      this.kit.harp(g, p[0].name, t, 0.077);
-      t = this.kit.line(g, p, t, { inst: 'organ', gain: GAIN_ORGAN_SOLO });
+      this.kit.harp(g, p[0].name, t, 0.09);
+      t = this.plucked(g, p, t);
       if (rng() < 0.35) this.kit.bell(g, rng() < 0.5 ? 'A3' : 'D4', t + 0.2, 0.06);
       t += this.breath();
+    }
+    return t;
+  }
+
+  // melodie drnkaná na žaltáři o oktávu výš (jako středověký psaltérion), dlouhé tóny se
+  // drží opakovaným jemným drnkáním (tremolo); harfa zdvojí dlouhé tóny ve skutečné výšce
+  plucked(g, notes, t, { gain = 0.24 } = {}) {
+    const rng = this.rng;
+    for (const n of notes) {
+      this.kit.pluck(g, octaveUp(n.name), t, gain * (1 + (rng() * 2 - 1) * 0.06));
+      if (n.units >= 2) {
+        this.kit.harp(g, n.name, t + 0.015, 0.07);
+        const step = this.u * 0.5;
+        for (let k = 1, at = t + step; at < t + n.d - this.u * 0.3; k++, at += step) {
+          this.kit.pluck(g, octaveUp(n.name), at, gain * 0.42 * Math.pow(0.85, k - 1));
+        }
+      }
+      t += n.d;
     }
     return t;
   }
@@ -613,8 +629,10 @@ export class Composer {
         return { ...n, name: prevLow };
       });
       let end = t;
-      end = Math.max(end, this.kit.line(g, p, t, { inst: 'organ', gain: GAIN_ORGAN_DUO, pan: -0.2 }));
-      end = Math.max(end, this.kit.line(g, low, t + 0.01, { inst: 'organ', gain: GAIN_ORGAN_DUO * 0.85, pan: 0.2 }));
+      end = Math.max(end, this.plucked(g, p, t, { gain: 0.15 }));
+      let tl = t + 0.012;
+      for (const n of low) { this.kit.harp(g, n.name, tl, 0.08); tl += n.d; }
+      end = Math.max(end, tl);
       if (rng() < 0.4) this.kit.bell(g, 'D3', end + 0.1, 0.07);
       t = end + this.breath();
     }
