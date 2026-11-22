@@ -26,7 +26,7 @@ Schizma hotová, hraje průběžně natrénovaná verze.
   pod náhodným 12znakovým názvem místnosti, žádná jména ani osobní údaje. Server zprávy drží asi 12 hodin;
   rozehraná partie je navíc uložená v prohlížeči obou hráčů. Bezplatný limit ntfy.sh je 250 zpráv denně na IP adresu (počítají se tahy i zprávy v chatu).
 - Výklad nejasných míst pravidel je v [RULES-NOTES.md](RULES-NOTES.md).
-- Síť pro hru proti stroji: `model/net.bin` (MLP 1698 → 192 → 64 → 1, váhy float32) a `js/ai.js`
+- Síť pro hru proti stroji: `model/net.bin` (MLP 1826 → 192 → 64 → 1, váhy float32; vstup zahrnuje i pole v dosahu Hranic) a `js/ai.js`
   (kódování pozice včetně úrovně Žáru, hodnocení, prohledávání 1–2 půltahů); počítá se ve Web Workeru.
 
 Grafika figurek i animace jsou vlastní tvorba (SVG + CSS). Zvukové efekty se syntetizují přímo
