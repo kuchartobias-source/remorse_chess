@@ -15,7 +15,7 @@ Rozehranou hru lze kdykoliv znovu otevřít stejným odkazem (aplikace si pamatu
 V online hře je i **chat** (s rychlými frázemi). K dispozici je také režim **Na jednom zařízení**
 a **Proti stroji** – soupeřem je neuronová síť, která se hru učí sama hraním proti sobě
 (tři úrovně: Misionář, Kardinál, Inkvizitor; výpočet běží přímo v prohlížeči). Dokud není síť pro
-Schizma natrénovaná, hraje stroj podle materiálu.
+Schizma hotová, hraje průběžně natrénovaná verze.
 
 ## Technika
 
