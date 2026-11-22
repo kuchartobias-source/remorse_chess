@@ -1,14 +1,14 @@
 // Schizma – aplikace (lobby, deska, online hra)
-import * as E from './engine.js?v=17';
-import { pieceSVG, CHIP_SVG, HEAT_SVG, CRUSADE_CHIP_SVG, ICON } from './pieces.js?v=17';
-import { FX } from './fx.js?v=17';
-import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=17';
-import { RULES_HTML } from './rules.js?v=17';
-import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=17';
-import { MusicPlayer } from './music.js?v=17';
+import * as E from './engine.js?v=18';
+import { pieceSVG, CHIP_SVG, HEAT_SVG, CRUSADE_CHIP_SVG, ICON } from './pieces.js?v=18';
+import { FX } from './fx.js?v=18';
+import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=18';
+import { RULES_HTML } from './rules.js?v=18';
+import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=18';
+import { MusicPlayer } from './music.js?v=18';
 
 const music = new MusicPlayer(getCtx);
-import { LEVELS } from './ai.js?v=17';
+import { LEVELS } from './ai.js?v=18';
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -530,6 +530,39 @@ class Game {
     return E.legalMoves(st).filter((m) => m.from === sq);
   }
 
+  // Cíle předtahu: tahy, které figurka může udělat teď, a navíc všechna pole, kam by mohla dojít
+  // nebo brát, až soupeř táhne (přes figurky, které se mohou pohnout, i na pole vlastních figurek,
+  // které může soupeř sebrat – typicky braní zpět). Povolenost se ověří až při zahrání.
+  premoveTargets(sq) {
+    const p = this.state.board[sq];
+    const out = this.ghostMoves(sq);
+    const have = new Set(out.map((m) => m.to));
+    const f0 = E.fileOf(sq), r0 = E.rankOf(sq);
+    const add = (f, r) => {
+      if (f < 0 || f > 7 || r < 0 || r > 7) return;
+      const to = r * 8 + f;
+      if (to === sq || have.has(to)) return;
+      have.add(to);
+      const last = p.t === 'P' && r === (p.c === 'w' ? 7 : 0);
+      out.push({ from: sq, to, kind: null, promo: last ? 'Q' : undefined, pre: true });
+    };
+    const ray = (dirs) => { for (const [df, dr] of dirs) for (let k = 1; k < 8; k++) add(f0 + df * k, r0 + dr * k); };
+    const O = [[1, 0], [-1, 0], [0, 1], [0, -1]], D = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
+    if (p.t === 'P') {
+      const d = p.c === 'w' ? 1 : -1;
+      add(f0, r0 + d); add(f0, r0 + 2 * d); add(f0 - 1, r0 + d); add(f0 + 1, r0 + d);
+    } else if (p.t === 'N' || p.t === 'C') {
+      for (const [df, dr] of [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]]) add(f0 + df, r0 + dr);
+    } else if (p.t === 'B') ray(D);
+    else if (p.t === 'Q') ray([...O, ...D]);
+    else if (p.t === 'K') for (const [df, dr] of [...O, ...D]) add(f0 + df, r0 + dr);
+    else if (p.t === 'R') {
+      const rad = E.heatOf(this.state, p.c);
+      for (let df = -rad; df <= rad; df++) for (let dr = -rad; dr <= rad; dr++) add(f0 + df, r0 + dr);
+    }
+    return out;
+  }
+
   recomputeSel() {
     const p = this.state.board[this.sel];
     if (!p) { this.clearSel(); return; }
@@ -539,7 +572,7 @@ class Game {
     } else {
       const pc = this.premoveColor();
       this.selMode = pc && p.c === pc && !this.canAct() ? 'pre' : 'view';
-      this.selMoves = this.ghostMoves(this.sel);
+      this.selMoves = this.selMode === 'pre' ? this.premoveTargets(this.sel) : this.ghostMoves(this.sel);
     }
   }
 
@@ -547,7 +580,7 @@ class Game {
     const ms = this.selMoves.filter((m) => m.from === from && m.to === to);
     if (!ms.length) return;
     const m = ms.find((x) => x.promo === 'Q') || ms[0];
-    this.premove = { from, to, a: E.moveToString(m) };
+    this.premove = { from, to, a: E.sqName(from) + E.sqName(to) + (m.promo ? m.promo.toLowerCase() : '') };
     sfx.select();
     toast(`Předtah ${E.sqName(from)}–${E.sqName(to)}${m.promo ? ' (Spása v Inkvizitora)' : ''} – zahraje se, až budeš na tahu, pokud bude povolený.`, 3500);
     this.clearSel();
@@ -1191,7 +1224,7 @@ class Game {
     this.aiWait = new Map();
     this.aiBases = [new URL('../model/', import.meta.url).href];
     try {
-      this.worker = new Worker(new URL('./ai-worker.js?v=17', import.meta.url), { type: 'module' });
+      this.worker = new Worker(new URL('./ai-worker.js?v=18', import.meta.url), { type: 'module' });
       this.worker.onmessage = (e) => {
         const cb = this.aiWait.get(e.data.id);
         if (cb) { this.aiWait.delete(e.data.id); cb(e.data); }
@@ -1218,7 +1251,7 @@ class Game {
         return this.aiCall(msg);
       });
     }
-    return import('./ai.js?v=17').then(async (A) => {
+    return import('./ai.js?v=18').then(async (A) => {
       if (!this.aiModel) {
         this.aiKind = 'material';
         this.aiModel = A.materialModel;
@@ -1551,7 +1584,7 @@ function main() {
     $('game').hidden = false;
     const human = params.get('stroj') === 'b' ? 'b' : 'w';
     const lv = parseInt(params.get('uroven'), 10);
-    const g = new Game({ mode: 'local', ai: { color: other(human), level: [1, 2, 3].includes(lv) ? lv : 2 } });
+    const g = new Game({ mode: 'local', ai: { color: other(human), level: [1, 2, 3, 4].includes(lv) ? lv : 2 } });
     window.__game = g;
     g.startAI();
   } else if (params.has('mistni')) {

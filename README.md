@@ -14,7 +14,7 @@ Online hra šachové varianty **Schizma** – dva papežové, jen jedna pravá v
 Rozehranou hru lze kdykoliv znovu otevřít stejným odkazem (aplikace si pamatuje, za kterou barvu hraješ).
 V online hře je i **chat** (s rychlými frázemi). K dispozici je také režim **Na jednom zařízení**
 a **Proti stroji** – soupeřem je neuronová síť, která se hru učí sama hraním proti sobě
-(tři úrovně: Misionář, Kardinál, Inkvizitor; výpočet běží přímo v prohlížeči). Dokud není síť pro
+(čtyři úrovně: Misionář, Kardinál, Inkvizitor, Papež – hledají 1 až 4 půltahy dopředu; výpočet běží přímo v prohlížeči). Dokud není síť pro
 Schizma hotová, hraje průběžně natrénovaná verze.
 
 ## Technika

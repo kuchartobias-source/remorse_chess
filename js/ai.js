@@ -1,6 +1,6 @@
 // Umělá inteligence Schizmatu: hodnotová síť (MLP natrénovaná samohrou v ai/train.py)
 // + prohledávání o 1–2 půltahy. Kódování pozice odpovídá přesně ai/nn.py.
-import * as E from './engine.js?v=17';
+import * as E from './engine.js?v=18';
 
 const CLASSES = ['P', 'P*', 'N', 'N*', 'C', 'B', 'B*', 'R1', 'R2', 'R3', 'Q', 'Q*', 'K'];
 const NCLS = CLASSES.length;
@@ -140,30 +140,45 @@ function actionValues(model, st) {
   return out;
 }
 
-// Úrovně: 1 Misionář (náhodnější), 2 Kardinál (1 půltah), 3 Inkvizitor (2 půltahy u nejlepších tahů)
+// Hodnota pozice `st` z pohledu hráče na tahu prohledáním `depth` půltahů s paprskem: v každém uzlu
+// síť ohodnotí všechny tahy, ale dál se rozvíjí jen `beams[0]` nejlepších (stejně jako ai/selfplay.py).
+function searchValue(model, st, depth, beams) {
+  const cand = actionValues(model, st);
+  if (!cand.length) return null;
+  if (depth <= 1 || !beams.length) return Math.max(...cand.map((c) => c.v));
+  cand.sort((x, y) => y.v - x.v);
+  let best = -Infinity;
+  for (const c of cand.slice(0, beams[0])) {
+    let v = c.v;
+    if (!c.child.result) {
+      const sub = searchValue(model, c.child, depth - 1, beams.slice(1));
+      if (sub != null) v = (c.child.turn === st.turn ? 1 : -1) * sub;
+    }
+    if (v > best) best = v;
+  }
+  return best;
+}
+
+// Úrovně: 1 Misionář (náhodnější, 1 půltah), 2 Kardinál (2 půltahy), 3 Inkvizitor (3 půltahy),
+// 4 Papež (4 půltahy). `beams` = kolik nejlepších tahů se rozvíjí v každé hloubce.
 export const LEVELS = {
-  1: { name: 'Misionář', tau: 0.22, eps: 0.08, depth: 1 },
-  2: { name: 'Kardinál', tau: 0.03, eps: 0, depth: 1 },
-  3: { name: 'Inkvizitor', tau: 0, eps: 0, depth: 2, top: 40 },
+  1: { name: 'Misionář', tau: 0.22, eps: 0.08, depth: 1, beams: [] },
+  2: { name: 'Kardinál', tau: 0.02, eps: 0, depth: 2, beams: [12] },
+  3: { name: 'Inkvizitor', tau: 0, eps: 0, depth: 3, beams: [12, 8] },
+  4: { name: 'Papež', tau: 0, eps: 0, depth: 4, beams: [12, 8, 5] },
 };
 
 export function chooseAction(model, st, level = 2, rnd = Math.random) {
   const L = LEVELS[level] || LEVELS[2];
   let cand = actionValues(model, st);
   if (!cand.length) return null;
-  const mover = st.turn;
   if (L.depth >= 2 && !st.conclave) {
     cand.sort((x, y) => y.v - x.v);
-    const top = cand.slice(0, L.top);
+    const top = cand.slice(0, L.beams[0]);
     for (const c of top) {
-      const ch = c.child;
-      if (ch.result || ch.conclave) continue;
-      // soupeř odpoví svým nejlepším tahem (hodnoty z jeho pohledu → minimum z našeho)
-      const replies = actionValues(model, ch);
-      if (!replies.length) continue;
-      let worst = Infinity;
-      for (const r of replies) worst = Math.min(worst, (ch.turn === mover ? 1 : -1) * r.v);
-      c.v = worst;
+      if (c.child.result) continue;
+      const sub = searchValue(model, c.child, L.depth - 1, L.beams.slice(1));
+      if (sub != null) c.v = (c.child.turn === st.turn ? 1 : -1) * sub;
     }
     cand = top;
   }
