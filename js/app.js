@@ -1,14 +1,14 @@
 // Schizma – aplikace (lobby, deska, online hra)
-import * as E from './engine.js?v=9';
-import { pieceSVG, CHIP_SVG, HEAT_SVG, ICON } from './pieces.js?v=9';
-import { FX } from './fx.js?v=9';
-import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=9';
-import { RULES_HTML } from './rules.js?v=9';
-import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=9';
-import { MusicPlayer } from './music.js?v=9';
+import * as E from './engine.js?v=10';
+import { pieceSVG, CHIP_SVG, HEAT_SVG, ICON } from './pieces.js?v=10';
+import { FX } from './fx.js?v=10';
+import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=10';
+import { RULES_HTML } from './rules.js?v=10';
+import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=10';
+import { MusicPlayer } from './music.js?v=10';
 
 const music = new MusicPlayer(getCtx);
-import { LEVELS } from './ai.js?v=9';
+import { LEVELS } from './ai.js?v=10';
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -32,12 +32,12 @@ const mini = (t, c) => `<span class="mini ${c}">${pieceSVG(t)}</span>`;
 const params = new URLSearchParams(location.hash.slice(1));
 
 const INFO = {
-  K: 'Papež – táhne o 1 pole. Soupeřovu figurku smí odstranit jen Upálením (cíl v dosahu jeho Hranice) a sám padne jen Upálením v dosahu soupeřovy Hranice, nebo rukou Křižáka – Hříšník ho odstranit nesmí. Pokání nepropadá. Zpovídá všechny (i diagonálně).',
+  K: 'Papež – táhne o 1 pole. Soupeřovu figurku smí odstranit jen Upálením (cíl v dosahu jeho Hranice) a sám padne jen Upálením v dosahu soupeřovy Hranice – Hříšník ani Křižák ho odstranit nesmí. Pokání nepropadá. Zpovídá všechny (i diagonálně). Ohrožuje-li ho soupeřův Křižák skokem jezdce, je v zajetí: nesmí se pohnout ani zpovídat.',
   Q: 'Inkvizitor – po zabití mimo dosah Hranice propadá pokání. Každé jeho odstranění soupeře je inkvizice a rozpaluje Žár Hranic. Zpověď u Kardinála nebo Papeže.',
   R: 'Hranice – nebere a nelze ji odstranit. Skáče na volné pole v poloměru Žáru (1–3). Soupeřovy figurky v jejím dosahu lze upálit bez pokání (neplatí pro Hříšníky).',
   B: 'Kardinál – zpovídá Hříšníky, Misionáře a Inkvizitora (jen vodorovně a svisle), sám se zpovídá u Papeže. Čistý Kardinál může být zvolen Papežem.',
   N: 'Misionář – táhne jako jezdec, po zabití mimo dosah Hranice propadá pokání. Zpověď u Kardinála nebo Papeže. Když strana přijde o posledního Kardinála nebo o Inkvizitora, stane se Křižákem.',
-  C: 'Křižák – táhne jako jezdec a díky papežskému odpustku nikdy nepropadá pokání. Jako jediný smí zabít Papeže i mimo dosah Hranice.',
+  C: 'Křižák – táhne jako jezdec a díky papežskému odpustku nikdy nepropadá pokání. Papeže nebere, ale drží ho v zajetí, když ho ohrožuje skokem jezdce – zajatý Papež se nepohne ani nezpovídá.',
   P: 'Hříšník – smí kdykoliv o 1 nebo 2 pole vpřed. Nikdy neupaluje: každé zabití znamená pokání (kromě tajného hříchu). Papeže odstranit nesmí. Zpověď u Kardinála nebo Papeže.',
 };
 const PEN_INFO = {
@@ -361,6 +361,19 @@ class BoardView {
           });
           break;
         }
+        case 'captive': {
+          e.by.forEach((from, i) => later(320 + i * 120, () => this.fx.chainLine(from, e.sq)));
+          later(800, () => {
+            this.fx.shackle(e.sq);
+            this.fx.ribbon(`<i class="cross">${ICON.chain}</i>ZAJETÍ!<i class="cross">${ICON.chain}</i>`, 'captive', 1900);
+            const x = this.pieceAt(e.sq);
+            if (x) { x.classList.add('jolt'); later(500, () => x.classList.remove('jolt')); }
+          });
+          break;
+        }
+        case 'freed':
+          later(380, () => this.fx.breakChains(e.sq));
+          break;
         case 'monitum': {
           const t0 = popeFell ? 3000 : 700;
           later(t0, () => { this.fx.ribbon(`<i class="cross">${ICON.monitum}</i>MONITUM!<i class="cross">${ICON.monitum}</i>`, 'monitum', 2000); this.fx.warn(e.sq); });
@@ -404,7 +417,7 @@ class BoardView {
   mark(map) {
     for (let sq = 0; sq < 64; sq++) {
       const el = this.sqEls[sq];
-      for (const cls of ['last', 'sel', 'reach', 'reach2', 'choice', 'danger', 'pre']) el.classList.toggle(cls, !!(map[cls] && map[cls].has(sq)));
+      for (const cls of ['last', 'sel', 'reach', 'reach2', 'choice', 'danger', 'pre', 'captor']) el.classList.toggle(cls, !!(map[cls] && map[cls].has(sq)));
     }
   }
 }
@@ -613,8 +626,14 @@ class Game {
       map.reach = new Set(E.rookReachSquares(this.state, c));
       map.reach2 = new Set(E.rookReachSquares(this.state, other(c)));
     }
-    // Papež v dosahu soupeřových Hranic (hrozí mu poprava)
+    // Papež v zajetí Křižáka (řetěz) a Papež v dosahu soupeřových Hranic (hrozí mu poprava)
     if (!this.result()) {
+      map.captive = new Set();
+      map.captor = new Set();
+      for (const c of ['w', 'b']) {
+        const by = E.captors(this.state, c);
+        if (by.length) { map.captive.add(E.popeSquare(this.state, c)); by.forEach((j) => map.captor.add(j)); }
+      }
       map.danger = new Set();
       for (const c of ['w', 'b']) {
         const ps = E.popeSquare(this.state, c);
@@ -623,6 +642,7 @@ class Game {
     }
     if (this.state.conclave && this.canAct()) map.choice = new Set(this.state.conclave.options);
     this.view.mark(map);
+    for (const el of this.view.els.values()) el.classList.toggle('chained', !!(map.captive && map.captive.has(el._sq) && el._t === 'K'));
   }
 
   renderHints() {
@@ -706,6 +726,7 @@ class Game {
     if (h.events.some((e) => e.type === 'crusade')) s += ICON.cross;
     if (h.events.some((e) => e.type === 'heat')) s += ICON.heat;
     if (h.events.some((e) => e.type === 'monitum')) s += ICON.monitum;
+    if (h.events.some((e) => e.type === 'captive')) s += ICON.chain;
     return s;
   }
 
@@ -766,6 +787,8 @@ class Game {
       if (e.type === 'inquisition' && !evs.some((x) => x.type === 'heat')) out.push(`Inkvizice! ${PLAYER[e.color]} Inkvizitor má na kontě ${e.inq >= 3 ? '3 a více' : e.inq} ${inqWord(e.inq)}.`);
       if (e.type === 'heat') out.push(`${SIDE_HR[e.color]} Hranice planou: Žár ${e.level}. úrovně – dosah i skok ${e.level} pole.`);
       if (e.type === 'heatLost') out.push(`${PLAYER[e.color]} přišel o posledního Inkvizitora – Žár jeho Hranic uhasl na 1. úroveň.`);
+      if (e.type === 'captive') out.push(`<b>Zajetí!</b> ${PLAYER[e.color]} Papež na ${E.sqName(e.sq)} je v zajetí ${e.by.length > 1 ? 'Křižáků' : 'Křižáka'} – nesmí se pohnout ani zpovídat.`);
+      if (e.type === 'freed') out.push(`${PLAYER[e.color]} Papež na ${E.sqName(e.sq)} je opět volný.`);
       if (e.type === 'monitum') out.push(`<b>Monitum!</b> ${PLAYER[e.color]} Papež na ${E.sqName(e.sq)} stojí v dosahu soupeřovy Hranice.`);
     }
     return out;
@@ -812,6 +835,7 @@ class Game {
 
   pieceTip(p) {
     let s = INFO[p.t] + (p.pen ? ' <b>' + PEN_INFO[p.t] + '</b>' : '');
+    if (p.t === 'K' && E.isCaptive(this.state, p.c)) s += ' <b>Je v zajetí Křižáka – nesmí se pohnout ani zpovídat, dokud Křižák neodskočí nebo nepadne.</b>';
     if (p.t === 'R') {
       const lv = E.heatOf(this.state, p.c);
       const n = this.state.inq[p.c];
@@ -1165,7 +1189,7 @@ class Game {
     this.aiWait = new Map();
     this.aiBases = [new URL('../model/', import.meta.url).href];
     try {
-      this.worker = new Worker(new URL('./ai-worker.js?v=9', import.meta.url), { type: 'module' });
+      this.worker = new Worker(new URL('./ai-worker.js?v=10', import.meta.url), { type: 'module' });
       this.worker.onmessage = (e) => {
         const cb = this.aiWait.get(e.data.id);
         if (cb) { this.aiWait.delete(e.data.id); cb(e.data); }
@@ -1192,7 +1216,7 @@ class Game {
         return this.aiCall(msg);
       });
     }
-    return import('./ai.js?v=9').then(async (A) => {
+    return import('./ai.js?v=10').then(async (A) => {
       if (!this.aiModel) {
         this.aiKind = 'material';
         this.aiModel = A.materialModel;
@@ -1211,7 +1235,7 @@ class Game {
     if (!this.ai || this.result() || this.state.turn !== this.ai.color || this.thinking) return;
     this.thinking = true;
     this.refreshPanels();
-    const slow = events && events.some((e) => ['popeFall', 'conclave', 'crusade', 'heat', 'monitum'].includes(e.type));
+    const slow = events && events.some((e) => ['popeFall', 'conclave', 'crusade', 'heat', 'monitum', 'captive'].includes(e.type));
     const delay = events ? (slow ? 2600 : 800) : 500;
     const len = this.actions.length;
     const t0 = Date.now();

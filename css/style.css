@@ -476,3 +476,14 @@ footer.foot { text-align: center; color: var(--dim); font-size: 14px; padding: 8
 .hint.pre .ring { opacity: .75; }
 .sq.pre::after { content: ''; position: absolute; inset: 0; background: rgba(70, 120, 210, .38); box-shadow: inset 0 0 0 3px rgba(130, 170, 240, .8); }
 .story .tip.pre { color: #a9c4f2; font-style: normal; }
+
+/* Papež v zajetí Křižáka: okovy přes figurku, Křižák s rudým rámečkem */
+.piece.chained::after {
+  content: ''; position: absolute; left: 16%; right: 16%; top: 62%; height: 20%; pointer-events: none; z-index: 2;
+  background:
+    radial-gradient(ellipse 22% 38% at 20% 55%, transparent 52%, #c9ccd2 56%, #c9ccd2 72%, transparent 76%),
+    radial-gradient(ellipse 22% 38% at 50% 55%, transparent 52%, #a9aeb6 56%, #a9aeb6 72%, transparent 76%),
+    radial-gradient(ellipse 22% 38% at 80% 55%, transparent 52%, #c9ccd2 56%, #c9ccd2 72%, transparent 76%);
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,.7));
+}
+.sq.captor::after { content: ''; position: absolute; inset: 3%; pointer-events: none; border-radius: 8%; box-shadow: inset 0 0 0 calc(var(--bs) * .005) rgba(200, 30, 45, .85), inset 0 0 10px rgba(200, 30, 45, .5); }

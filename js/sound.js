@@ -136,6 +136,23 @@ export const sfx = {
     noise({ delay, dur: 1.1, gain: 0.3, type: 'highpass', f: 3500, f2: 1200, q: 0.5, attack: 0.02 });
     tone({ f: 160, f2: 70, delay, dur: 0.7, gain: 0.2 });
   },
+  // Zajetí: řinčení řetězu a cvaknutí okovů
+  clank(delay = 0.5) {
+    if (!ok()) return;
+    for (let i = 0; i < 9; i++) {
+      const d = delay + i * 0.045 + rnd(0, 0.02);
+      tone({ type: 'triangle', f: rnd(1800, 3200), delay: d, dur: 0.09, gain: 0.05, attack: 0.001 });
+      noise({ delay: d, dur: 0.03, gain: 0.08, type: 'highpass', f: 3000, q: 0.7, attack: 0.001 });
+    }
+    knock(delay + 0.5, 1.4, 0.6);
+    tone({ type: 'square', f: 420, f2: 380, delay: delay + 0.5, dur: 0.12, gain: 0.06, lp: 2000 });
+  },
+  // Zajetí pomine: řetěz praskne
+  unchain(delay = 0.4) {
+    if (!ok()) return;
+    noise({ delay, dur: 0.12, gain: 0.3, type: 'highpass', f: 2500, q: 0.6, attack: 0.001 });
+    for (let i = 0; i < 6; i++) tone({ type: 'triangle', f: rnd(2000, 3600), delay: delay + 0.05 + i * 0.07, dur: 0.12, gain: 0.04, attack: 0.001 });
+  },
   // Monitum: dvojí varovný úder zvonu
   monitum(delay = 0.7) {
     if (!ok()) return;
@@ -232,5 +249,7 @@ export function playEvents(evs) {
     if (e.type === 'heat') sfx.heat(0.65, e.level);
     if (e.type === 'heatLost') sfx.extinguish();
     if (e.type === 'monitum') sfx.monitum(popeFell ? 3 : 0.7);
+    if (e.type === 'captive') sfx.clank(0.45);
+    if (e.type === 'freed') sfx.unchain(0.4);
   }
 }

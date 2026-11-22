@@ -265,6 +265,44 @@ export class FX {
     this.add(c, 'quench');
   }
 
+  // Zajetí: řetěz se natáhne od Křižáka k Papeži a okovy sevřou Papeže
+  chainLine(from, to, ms = 420) {
+    if (this.off) return;
+    const a = this.center(from), b = this.center(to);
+    const dist = Math.hypot(b.x - a.x, b.y - a.y) / 12.5;
+    const steps = Math.max(4, Math.round(dist * 4));
+    const ang = Math.atan2(b.y - a.y, b.x - a.x);
+    for (let i = 1; i < steps; i++) {
+      const t = i / steps;
+      const el = document.createElement('div');
+      el.className = 'chainlink' + (i % 2 ? ' odd' : '');
+      el.style.left = a.x + (b.x - a.x) * t + '%';
+      el.style.top = a.y + (b.y - a.y) * t + '%';
+      el.style.setProperty('--ang', ang + 'rad');
+      el.style.animationDelay = Math.round(t * ms) + 'ms';
+      this.layer.appendChild(el);
+      setTimeout(() => el.remove(), ms + 1500);
+    }
+  }
+
+  shackle(sq) {
+    if (this.off) return;
+    const c = this.cell(sq, 1600);
+    this.add(c, 'shackle');
+    this.add(c, 'shackle second');
+    this.add(c, 'clankflash');
+  }
+
+  // Zajetí pomine: okovy prasknou na úlomky
+  breakChains(sq) {
+    if (this.off) return;
+    const c = this.cell(sq, 1500);
+    for (let i = 0; i < n(10); i++) {
+      this.add(c, 'chainbit', { left: rnd(20, 70) + '%', top: rnd(35, 70) + '%', '--dx': rnd(-140, 140) + '%', '--dy': rnd(-160, 40) + '%', '--rot': rnd(-360, 360) + 'deg', 'animation-delay': rnd(0, 100) + 'ms' });
+    }
+    this.add(c, 'rays');
+  }
+
   // Monitum: pulzující varovný kruh pod Papežem
   warn(sq) {
     if (this.off) return;

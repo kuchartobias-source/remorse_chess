@@ -79,18 +79,23 @@ class Graph {
     this.duckG.connect(dest);
     this.bus = ctx.createGain();
     const dry = ctx.createGain();
-    dry.gain.value = 0.72;
+    dry.gain.value = 0.64;
     this.bus.connect(dry);
     dry.connect(this.out);
     if (reverbSeconds > 0) {
       const conv = ctx.createConvolver();
       conv.buffer = makeIR(ctx, reverbSeconds);
       const send = ctx.createGain();
-      send.gain.value = 0.55;
+      send.gain.value = 0.62;
+      // do dozvuku nejdou nejhlubší basy (jinak se slévají v dunění)
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 140;
       const wet = ctx.createGain();
-      wet.gain.value = 0.9;
+      wet.gain.value = 1.0;
       this.bus.connect(send);
-      send.connect(conv);
+      send.connect(hp);
+      hp.connect(conv);
       conv.connect(wet);
       wet.connect(this.out);
     }
@@ -108,18 +113,30 @@ class Graph {
   }
 }
 
+// Impulzní odezva kamenné lodi chrámu: předzpoždění, řídké rané odrazy od zdí a pilířů,
+// pak hustý dozvuk, který v čase tmavne (výšky se v kameni a vzduchu tlumí rychleji než basy).
+// Každý kanál má vlastní náhodné odrazy → široký prostorový obraz.
 function makeIR(ctx, seconds) {
   const rate = ctx.sampleRate;
-  const len = Math.floor(rate * seconds);
+  const pre = Math.floor(0.028 * rate);
+  const len = Math.floor(rate * seconds) + pre;
   const buf = ctx.createBuffer(2, len, rate);
   for (let ch = 0; ch < 2; ch++) {
     const d = buf.getChannelData(ch);
-    let lp = 0;
-    for (let i = 0; i < len; i++) {
-      const t = i / len;
-      const alpha = 0.85 - 0.8 * t; // dozvuk postupně tmavne
+    // rané odrazy (do ~110 ms)
+    for (let k = 0; k < 14; k++) {
+      const t = pre + Math.floor((0.004 + Math.pow(Math.random(), 1.4) * 0.085) * rate);
+      d[t] += (Math.random() < 0.5 ? -1 : 1) * (0.55 - k * 0.03);
+    }
+    let lp = 0, lp2 = 0;
+    const tail = len - pre;
+    for (let i = 0; i < tail; i++) {
+      const t = i / tail;
+      const alpha = 0.9 - 0.82 * Math.pow(t, 0.7); // dozvuk postupně tmavne
       lp += ((Math.random() * 2 - 1) - lp) * alpha;
-      d[i] = lp * Math.pow(1 - t, 2.4) * (1 - Math.exp(-i / (rate * 0.015)));
+      lp2 += (lp - lp2) * Math.min(1, alpha * 1.6);
+      const env = Math.pow(1 - t, 2.1) * (1 - Math.exp(-i / (rate * 0.045)));
+      d[pre + i] += lp2 * env * 0.85;
     }
   }
   return buf;
@@ -510,6 +527,87 @@ function connectPan(g, node, pan) {
   } else node.connect(g.bus);
 }
 
+// ---------- přeladění zpěvu se zachováním formantů (TD-PSOLA) ----------
+// Prosté zrychlení nahrávky posouvá s výškou i formanty (barvu samohlásky) – hlas pak zní jako
+// zrychlená páska. TD-PSOLA (Time-Domain Pitch-Synchronous Overlap-Add) rozdělí nahrávku na
+// zrna dlouhá dvě periody, vystředěná na značkách period (vrcholech kmitů), a poskládá je znovu
+// s roztečí nové periody. Tvar jednotlivých zrn – a tím spektrální obálka a formanty – zůstane,
+// mění se jen to, jak často se opakují, tedy výška tónu. Délka nahrávky se zachová.
+
+function pitchMarks(d, sr, f0) {
+  const T = sr / f0;
+  let m = 0, best = -1;
+  for (let i = 0; i < Math.min(d.length, Math.ceil(T * 1.5)); i++) if (Math.abs(d[i]) > best) { best = Math.abs(d[i]); m = i; }
+  const sign = d[m] >= 0 ? 1 : -1;
+  const marks = [m];
+  let per = T;
+  while (m + per * 1.3 < d.length) {
+    const lo = Math.round(m + per * 0.85), hi = Math.min(d.length - 1, Math.round(m + per * 1.15));
+    let bi = lo, bv = -Infinity;
+    for (let i = lo; i <= hi; i++) { const v = d[i] * sign; if (v > bv) { bv = v; bi = i; } }
+    per = per * 0.8 + (bi - m) * 0.2; // perioda se pomalu přizpůsobí (vibrato)
+    m = bi;
+    marks.push(m);
+  }
+  return marks;
+}
+
+function psola(ctx, src, f0, f1) {
+  const sr = src.sampleRate;
+  const ch = src.numberOfChannels;
+  const marks = pitchMarks(src.getChannelData(0), sr, f0);
+  const len = src.length;
+  const out = ctx.createBuffer(ch, len, sr);
+  const T1 = sr / f1;
+  const wsum = new Float32Array(len);
+  const outs = Array.from({ length: ch }, (_, c) => out.getChannelData(c));
+  const ins = Array.from({ length: ch }, (_, c) => src.getChannelData(c));
+  let k = 0;
+  for (let t = marks[0]; t < marks[marks.length - 1]; t += T1) {
+    while (k + 1 < marks.length && Math.abs(marks[k + 1] - t) <= Math.abs(marks[k] - t)) k++;
+    const m = marks[k];
+    const left = k > 0 ? m - marks[k - 1] : (marks[1] - m);
+    const right = k + 1 < marks.length ? marks[k + 1] - m : left;
+    const pos = Math.round(t);
+    for (let j = -left; j < right; j++) {
+      const si = m + j, oi = pos + j;
+      if (si < 0 || si >= len || oi < 0 || oi >= len) continue;
+      const w = j < 0 ? 0.5 + 0.5 * Math.cos(Math.PI * j / left) : 0.5 + 0.5 * Math.cos(Math.PI * j / right);
+      wsum[oi] += w;
+      for (let c = 0; c < ch; c++) outs[c][oi] += ins[c][si] * w;
+    }
+  }
+  // nástup nahrávky před první značkou se převezme beze změny, zbytek se vyrovná na součet oken
+  for (let i = 0; i < len; i++) {
+    if (i < marks[0]) { for (let c = 0; c < ch; c++) outs[c][i] = ins[c][i]; continue; }
+    const w = wsum[i];
+    if (w > 0.05) for (let c = 0; c < ch; c++) outs[c][i] /= Math.max(w, 0.5);
+  }
+  return out;
+}
+
+// Pro každý tón modu, který může hlas zpívat (nejvýš o 2,5 půltónu nad nejvyšší nahrávkou), předpočítá nahrávku přeladěnou TD-PSOLA
+// z nejbližší skutečné nahrávky → při zpěvu už se nahrávka téměř nepřelaďuje.
+function psolaBank(ctx, list) {
+  if (!list || !list.length) return list;
+  const lo = Math.min(...list.map((e) => e.freq)) / Math.pow(2, 8 / 12);
+  const hi = Math.max(...list.map((e) => e.freq)) * Math.pow(2, 2.5 / 12);
+  const out = [];
+  for (const name of ALLOWED) {
+    const f = freq(name);
+    if (f < lo || f > hi) continue;
+    let src = list[0];
+    for (const e of list) if (Math.abs(Math.log2(f / e.freq)) < Math.abs(Math.log2(f / src.freq))) src = e;
+    // i nepřeladěný tón projde PSOLA: některé nahrávky sboru jsou samy rozladěné až o ~40 centů
+    // (zvuková banka to opravovala korekcí ladění, která se při exportu ztratila) – PSOLA skládá
+    // zrna přesně v periodě cílového tónu, takže každý tón zní čistě v pythagorejském ladění
+    const buf = psola(ctx, src.buf, src.freq, f);
+    out.push({ name: name + '<' + src.name, freq: f, buf, src: src.name });
+  }
+  used.clear();
+  return out;
+}
+
 export async function loadKit(ctx, base) {
   const meta = await fetch(base + 'samples.json').then((r) => { if (!r.ok) throw new Error('samples ' + r.status); return r.json(); });
   // stahuje nejvýš 6 souborů najednou, každý s jedním opakovaným pokusem
@@ -536,6 +634,7 @@ export async function loadKit(ctx, base) {
     }
   });
   await Promise.all(workers);
+  for (const inst of ['voice', 'choir']) banks[inst] = psolaBank(ctx, banks[inst]);
   return new SampleKit(banks);
 }
 
@@ -683,7 +782,7 @@ export class MusicPlayer {
   start() {
     const ctx = this.getCtx();
     if (!ctx || this.g) return;
-    const g = new Graph(ctx, ctx.destination, LITE ? 2 : 3.5);
+    const g = new Graph(ctx, ctx.destination, LITE ? 2.5 : 4.6);
     this.g = g;
     if (!this.kitPromise) {
       this.kitPromise = loadKit(ctx, this.base).catch((e) => {

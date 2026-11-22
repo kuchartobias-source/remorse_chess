@@ -145,12 +145,44 @@ t('Papeže lze odstranit jen upálením a nikdy Hříšníkem', () => {
   eq(kindOf(s2, 'c5e4'), 'burn');
 });
 
-t('Křižák smí zabít Papeže i mimo dosah Hranice, bez pokání', () => {
+t('Křižák Papeže nebere ani v dosahu Hranice, jiné figurky bez pokání', () => {
   const s = pos({ ...FAR, e1: 'wK', e5: 'bK', d3: 'wC', b4: 'bQ', c8: 'bB' });
-  eq(kindOf(s, 'd3e5'), 'crusade');
+  ok(!has(s, 'd3e5'));
   eq(kindOf(s, 'd3b4'), 'crusade');
-  const s2 = pos({ ...FAR, e1: 'wK', e5: 'bK', d3: 'wN', c8: 'bB' });
-  ok(!has(s2, 'd3e5'), 'Misionář Papeže mimo dosah ne');
+  const s2 = pos({ a1: 'wR', h1: 'wR', e4: 'wR', a8: 'bR', h8: 'bR', e1: 'wK', e5: 'bK', d3: 'wC', c8: 'bB' });
+  ok(!has(s2, 'd3e5'), 'ani v dosahu Hranice');
+});
+
+t('Zajetí: Papež ohrožený Křižákem skokem jezdce se nepohne', () => {
+  const s = pos({ ...FAR, e1: 'wK', e5: 'bK', d3: 'wC', c8: 'bB', d8: 'bQ' }, 'b');
+  ok(E.isCaptive(s, 'b'));
+  ok(!acts(s).some((a) => a.startsWith('e5')));
+  const s2 = pos({ ...FAR, e1: 'wK', e5: 'bK', d4: 'wC', c8: 'bB', d8: 'bQ' }, 'b');
+  ok(!E.isCaptive(s2, 'b'));
+  ok(acts(s2).some((a) => a.startsWith('e5')));
+});
+
+t('Zajetí vzniká a pomíjí tahem Křižáka (události)', () => {
+  const s = pos({ ...FAR, e1: 'wK', e5: 'bK', b2: 'wC', c8: 'bB', d8: 'bQ' });
+  const r = apply(s, 'b2d3');
+  ok(r.events.some((e) => e.type === 'captive' && e.color === 'b'));
+  const r2 = apply(apply(r.state, 'c8b7').state, 'd3b2');
+  ok(r2.events.some((e) => e.type === 'freed' && e.color === 'b'));
+});
+
+t('Zajatý Papež nezpovídá', () => {
+  const s = pos({ ...FAR, e1: 'wK', e5: 'bK', d3: 'wC', c8: 'bB', d8: 'bQ', g6: 'bQ*' }, 'b');
+  const r = apply(s, 'g6f6');
+  ok(P(r.state, 'f6').pen, 'vedle zajatého Papeže zůstává v pokání');
+  const s2 = pos({ ...FAR, e1: 'wK', e5: 'bK', d4: 'wC', c8: 'bB', d8: 'bQ', g6: 'bQ*' }, 'b');
+  ok(!P(apply(s2, 'g6f6').state, 'f6').pen);
+});
+
+t('Odstranění Křižáka zajetí ukončí', () => {
+  const s = pos({ ...FAR, e1: 'wK', e5: 'bK', d3: 'wC', c8: 'bB', d8: 'bQ' }, 'b');
+  const r = apply(s, 'd8d3');
+  ok(r.events.some((e) => e.type === 'freed' && e.color === 'b'));
+  ok(!E.isCaptive(r.state, 'b'));
 });
 
 t('Smrt Inkvizitora vyhlásí Křížovou výpravu', () => {

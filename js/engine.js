@@ -8,8 +8,9 @@
 //  - Hranice se přemisťuje skokem na libovolné volné pole ve svém poloměru, nikdy nebere a nelze ji odstranit.
 //  - Kající se figurka nesmí odstranit žádnou soupeřovu figurku (ani upálením, ani mimochodem).
 //  - Papež bere jen upálením (cíl v dosahu jeho Hranice) a padne jen upálením (je v dosahu soupeřovy
-//    Hranice) – výjimkou je Křižák, který smí Papeže zabít kdekoliv. Hříšník ho odstranit nesmí nikdy.
-//    Papež nikdy nepropadá pokání.
+//    Hranice); Hříšník ani Křižák ho odstranit nesmí. Papež nikdy nepropadá pokání.
+//  - Zajetí Papeže: stojí-li soupeřův Křižák na poli, odkud Papeže ohrožuje skokem jezdce, je Papež
+//    v zajetí – nesmí táhnout a nemůže zpovídat (posuzuje se v pozici na konci tahu).
 //  - Křižák v dosahu Hranice upaluje, mimo něj bere s odpustkem – v obou případech bez pokání.
 //  - Křížová výprava se vyhlásí, jakmile strana nemá žádného Kardinála (i když se poslední stal Papežem)
 //    nebo žádného Inkvizitora;
@@ -111,7 +112,7 @@ export function captureKind(state, p, victim, to) {
   const reach = inRookReach(state, p.c, to);
   if (p.t === 'P') return victim.t === 'K' ? null : 'penance';
   if (p.t === 'K') return reach ? 'execute' : null;
-  if (victim.t === 'K') return reach ? 'burn' : (p.t === 'C' ? 'crusade' : null);
+  if (victim.t === 'K') return reach && p.t !== 'C' ? 'burn' : null;
   if (reach) return 'burn';
   return p.t === 'C' ? 'crusade' : 'penance';
 }
@@ -165,6 +166,7 @@ export function legalMoves(state) {
   for (let from = 0; from < 64; from++) {
     const p = board[from];
     if (!p || p.c !== turn) continue;
+    if (p.t === 'K' && isCaptive(state, turn)) continue; // Papež v zajetí se nepohne
     if (p.t === 'P') {
       const dir = p.c === 'w' ? 1 : -1;
       const f = fileOf(from), r = rankOf(from);
@@ -216,15 +218,30 @@ export function cleanCardinals(state, color) {
   return out;
 }
 
+// Pole soupeřových Křižáků, kteří drží Papeže barvy `color` v zajetí (prázdné = volný)
+export function captors(state, color) {
+  const ps = popeSquare(state, color);
+  if (ps < 0) return [];
+  const out = [];
+  for (const [df, dr] of KNIGHT) {
+    const j = at(fileOf(ps) + df, rankOf(ps) + dr);
+    const q = j >= 0 ? state.board[j] : null;
+    if (q && q.t === 'C' && q.c !== color) out.push(j);
+  }
+  return out;
+}
+export const isCaptive = (state, color) => captors(state, color).length > 0;
+
 // Smí zpovídat figurka q figurku na poli i (q stojí na poli j)?
-function confessorFits(p, q, i, j) {
+function confessorFits(p, q, i, j, captive) {
   if (!(CONFESSORS[p.t] || []).includes(q.t)) return false;
-  if (q.t === 'K') return cheb(i, j) === 1;
+  if (q.t === 'K') return !captive && cheb(i, j) === 1;
   return Math.abs(fileOf(i) - fileOf(j)) + Math.abs(rankOf(i) - rankOf(j)) === 1;
 }
 
 function confess(state, color, events) {
   const { board } = state;
+  const captive = isCaptive(state, color);
   for (let i = 0; i < 64; i++) {
     const p = board[i];
     if (!p || p.c !== color || !p.pen) continue;
@@ -232,7 +249,7 @@ function confess(state, color, events) {
       const j = at(fileOf(i) + df, rankOf(i) + dr);
       if (j < 0) continue;
       const q = board[j];
-      if (q && q.c === color && confessorFits(p, q, i, j)) {
+      if (q && q.c === color && confessorFits(p, q, i, j, captive)) {
         p.pen = false;
         events.push({ type: 'absolve', sq: i, by: j, id: p.id, t: p.t, byT: q.t });
         break;
@@ -299,6 +316,7 @@ function applyMove(state, m) {
     const ps = popeSquare(state, foe);
     return ps >= 0 && inRookReach(state, mover, ps);
   })();
+  const capBefore = captivity(state);
 
   events.push({ type: 'move', from: m.from, to: m.to, id: p.id, piece: { ...p } });
   if (victim) {
@@ -352,6 +370,7 @@ function applyMove(state, m) {
     }
   }
   finishTurn(state, events);
+  captivityEvents(state, capBefore, events);
   // Monitum: soupeřův Papež se nově ocitl v dosahu mých Hranic
   if (!state.result && !state.conclave) {
     const ps = popeSquare(state, foe);
@@ -360,6 +379,26 @@ function applyMove(state, m) {
     }
   }
   return events;
+}
+
+// Stav zajetí obou Papežů: { barva: { id Papeže, pole Křižáků } }
+function captivity(state) {
+  const out = {};
+  for (const c of ['w', 'b']) {
+    const ps = popeSquare(state, c);
+    out[c] = { id: ps >= 0 ? state.board[ps].id : null, sq: ps, by: ps >= 0 ? captors(state, c) : [] };
+  }
+  return out;
+}
+
+function captivityEvents(state, before, events) {
+  if (state.result) return;
+  const now = captivity(state);
+  for (const c of ['w', 'b']) {
+    const a = before[c], b = now[c];
+    if (b.by.length && (!a.by.length || a.id !== b.id)) events.push({ type: 'captive', color: c, sq: b.sq, by: b.by });
+    else if (!b.by.length && a.by.length && a.id === b.id && b.sq >= 0) events.push({ type: 'freed', color: c, sq: b.sq });
+  }
 }
 
 function rookSquares(state, color) {
@@ -384,9 +423,11 @@ export function applyAction(state, action) {
     const sq = sqIndex(action.slice(1));
     if (!s.conclave.options.includes(sq)) throw new Error('Neplatná volba papeže');
     events = [];
+    const capBefore = captivity(s);
     s.conclave = null;
     crownPope(s, sq, events);
     finishTurn(s, events);
+    captivityEvents(s, capBefore, events);
   } else {
     const m = legalMoves(s).find((x) => moveToString(x) === action);
     if (!m) throw new Error('Nelegální tah ' + action);

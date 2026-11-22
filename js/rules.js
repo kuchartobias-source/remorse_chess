@@ -1,5 +1,5 @@
 // Text pravidel zobrazený v aplikaci
-import { pieceSVG, ICON } from './pieces.js?v=9';
+import { pieceSVG, ICON } from './pieces.js?v=10';
 
 const m = (t) => `<span class="mini w">${pieceSVG(t)}</span><span class="mini b">${pieceSVG(t)}</span>`;
 
@@ -66,8 +66,12 @@ a speciálních pravidel níže. Pod figurkami leží žetony: <b style="color:#
   <li><b>Žádný šach ani rošáda:</b> Papež smí dobrovolně vstoupit na ohrožené pole, napadení se nehlásí ani neřeší.
   Dostane-li se soupeřův Papež do dosahu tvé Hranice, aplikace zvolá <b>Monitum!</b> (napomenutí) ${ICON.monitum}.</li>
   <li><b>Poprava na hranici:</b> Papež si sám nešpiní ruce krví – soupeřovu figurku smí odstranit jen Upálením (cíl v dosahu
-  tvé Hranice). Stejně tak Papež padne jen Upálením: musí stát v dosahu soupeřovy Hranice a nesmí ho odstranit Hříšník.
-  <b>Výjimka: Křižák</b> smí soupeřova Papeže zabít kdekoliv, i mimo dosah Hranice.</li>
+  tvé Hranice). Stejně tak Papež padne jen Upálením: musí stát v dosahu soupeřovy Hranice a nesmí ho odstranit
+  Hříšník ani Křižák.</li>
+  <li><b>Zajetí Papeže (Křižáci):</b> kdykoliv Křižák stojí na poli, odkud svým skokem do „L“ přímo ohrožuje soupeřova
+  Papeže, drží jej automaticky v zajetí ${ICON.chain}. Zajatý Papež se nesmí pohnout ze svého pole a nemůže zpovídat
+  vlastní figurky, dokud zajetí nepomine – soupeř musí útočícího Křižáka odstranit, nebo Křižák sám odskočí jinam.
+  Tím lze Papeže zdržet na místě, než se k němu přesune Hranice.</li>
 </ul>
 
 <h3>5. Konkláve a konec hry</h3>
@@ -95,7 +99,8 @@ a speciálních pravidel níže. Pod figurkami leží žetony: <b style="color:#
   Upálení bez Pokání (neplatí pro Hříšníky).</li>
   <li><b>Žár</b> roste s úspěchy Inkvizitora (1 inkvizice = 2. úroveň, 3 inkvizice = 3. úroveň). Smrtí posledního
   Inkvizitora klesá zpět na 1.</li>
-  <li><b>Papež</b> smí zabíjet výhradně Upálením na hranici a padne jen Upálením nebo rukou Křižáka (Hříšník ho odstranit nemůže).</li>
+  <li><b>Papež</b> smí zabíjet i být odstraněn výhradně Upálením na hranici (Hříšník ani Křižák ho odstranit nemůže).
+  Křižák ho ale skokem jezdce drží v <b>zajetí</b> – zajatý Papež se nepohne ani nezpovídá.</li>
   <li><b>Misionáři → Křižáci:</b> jakmile přijdeš o posledního Kardinála nebo o Inkvizitora, stávají se natrvalo Křižáky s imunitou vůči Pokání.</li>
   <li><b>Hříšníci</b> smí kdykoliv o 1–2 pole vpřed; Tajný hřích nezpůsobuje Pokání.</li>
   <li><b>Zpověď</b> na konci vlastního tahu: Kardinál zpovídá vodorovně a svisle, Papež i diagonálně. Kardinál se zpovídá jen u Papeže.</li>
@@ -108,7 +113,8 @@ a speciálních pravidel níže. Pod figurkami leží žetony: <b style="color:#
   <li>Tečka = tah na volné pole. <span style="color:#e33">Červený kruh</span> = braní s Pokáním.
   <span style="color:#f80">Plamenný kruh</span> = čisté braní (upálení, poprava, křižák, tajný hřích).</li>
   <li>Zlatá svatozář v rohu pole = po tomto tahu proběhne zpověď. Koruna = proměna.</li>
-  <li>Pulzující oranžový kruh pod Papežem = stojí v dosahu soupeřovy Hranice a hrozí mu poprava.</li>
+  <li>Pulzující oranžový kruh pod Papežem = stojí v dosahu soupeřovy Hranice a hrozí mu poprava.
+  Řetěz na Papežově poli = Papež je v zajetí; Křižák, který ho drží, má rudý rámeček.</li>
   <li>Tlačítko <b>Dosah hranic</b> zvýrazní pole v dosahu tvých Hranic (oranžově) a soupeřových (fialově šrafovaně).
   U jména hráče je vidět úroveň Žáru a počet inkvizic.</li>
 </ul>
@@ -117,7 +123,8 @@ a speciálních pravidel níže. Pod figurkami leží žetony: <b style="color:#
 <ul class="note">
   <li>Když figurka sebere a skončí vedle svého zpovědníka, je rozhřešena hned na konci téhož tahu. Zpovídají se jen figurky hráče, který táhl.</li>
   <li>Kající se Kardinál smí zpovídat, ale nesmí být zvolen Papežem.</li>
-  <li>Křižák v dosahu Hranice upaluje, mimo něj bere s odpustkem – v obou případech bez Pokání (i Papeže).</li>
+  <li>Křižák v dosahu Hranice upaluje, mimo něj bere s odpustkem – v obou případech bez Pokání. Papeže nebere nikdy.</li>
+  <li>Zajetí se posuzuje v pozici na konci každého tahu; zajatý Papež nemůže ani upalovat (to by byl pohyb).</li>
   <li>Křížová výprava po smrti Inkvizitora: vyhlásí se, když strana nemá žádného Inkvizitora (při více Inkvizitorech díky Spáse až po smrti posledního).</li>
   <li>Stane-li se poslední Kardinál Papežem, strana už Kardinála nemá – vyhlásí se Křížová výprava.</li>
   <li>Nového Papeže volí poražená strana jako svou první akci. Remíza je možná jen dohodou hráčů.</li>
