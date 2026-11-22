@@ -45,6 +45,15 @@ const FRAGMENTS = [ // úryvky antifony o oktávu výš pro mezihru
 ];
 
 
+// artikulace držených nástrojů: nástup (s), doznění předchozího tónu (s), mezera nasazení (s), odkud
+// v nahrávce tón začíná (s – kousek nástupu zůstane slyšet), nástup první noty fráze
+const ART = {
+  recorder: { attack: 0.022, release: 0.05, gap: 0.03, offset: 0.035, first: 0.03 },
+  bowed: { attack: 0.075, release: 0.16, gap: 0.02, offset: 0.06, first: 0.12 },
+  organ: { attack: 0.02, release: 0.04, gap: 0.015, offset: 0.3, first: 0.08 },
+  default: { attack: 0.03, release: 0.06, gap: 0.02, offset: 0.05, first: 0.05 },
+};
+
 const GAIN_RECORDER = 0.24;
 const GAIN_BOWED = 0.38;
 
@@ -350,90 +359,48 @@ export class SampleKit {
     g.track(src, t + Math.min(maxLen, hold + release * 2.5) + 0.02);
   }
 
-  // melodie legato (tón se mezi notami nepřerušuje a plynule přejde na další výšku):
-  //  - každý tón zpívá nahrávka nejbližší jeho výšce, takže se nahrávka přelaďuje jen málo
-  //    (přeladění zrychlením posouvá i barvu samohlásky – formanty)
-  //  - zbylý posun barvy vyrovnává výškový filtr (čím výš je nahrávka přeladěná, tím víc ztlumí výšky)
-  //  - nahrávky jsou srovnané na stejnou hlasitost (normalizace v konstruktoru)
-  //  - zůstane-li tón u stejné nahrávky, jen plynule sklouzne na novou výšku (portamento)
-  //  - přechod na jinou nahrávku: obě zní během prolnutí na stejné, klouzající výšce, takže je slyšet
-  //    jediný hlas, který mění tón, ne dva různé hlasy
-  //  - stejný tón po sobě: jen jemný „nádech“ v hlasitosti (nová slabika)
-  line(g, notes, t, { inst = 'organ', gain = 0.5, pan = 0, detune = 0 } = {}) {
+  // melodie na držený nástroj: každý tón je samostatný a znovu nasazený, výška se mezi tóny
+  // nikdy plynule nemění (žádné portamento) – jako u skutečné flétny nebo smyčcového žaltáře:
+  //  - zobcová flétna: tón se nasadí jazykem – předchozí krátce dozní a nový začne s lehkým „čufnutím“
+  //    (krátký kousek nástupu z nahrávky)
+  //  - smyčcový žaltář: každý tón je nová struna a nový tah smyčce – měkčí nástup, předchozí struna
+  //    chvíli doznívá
+  // ustálená část nahrávky se opakuje ve smyčce dlouhé přesně na celý počet kmitů (bez cvaknutí)
+  line(g, notes, t, { inst = 'recorder', gain = 0.5, pan = 0, detune = 0 } = {}) {
     const { ctx } = g;
     const det = Math.pow(2, detune / 1200);
-    const GLIDE = 0.085;
-    // varhanní píšťala nemá formanty hlasu – přeladění se nevyrovnává
-    const tilt = () => 0;
+    const A = ART[inst] || ART.default;
     let cur = null;
-    const start = (f, at, fade, first, fromF) => {
+    const start = (f, at, first) => {
       const e = this.pick(inst, f);
       const src = ctx.createBufferSource();
       src.buffer = e.buf;
-      const rate = (f / e.freq) * det;
-      if (fromF) {
-        src.playbackRate.setValueAtTime((fromF / e.freq) * det, at);
-        src.playbackRate.linearRampToValueAtTime(rate, at + GLIDE);
-      } else src.playbackRate.setValueAtTime(rate, at);
-      // ustálená část nahrávky se opakuje ve smyčce dlouhé přesně na celý počet kmitů (bez cvaknutí)
+      src.playbackRate.setValueAtTime((f / e.freq) * det, at);
       src.loop = true;
       src.loopStart = 0.7;
       src.loopEnd = Math.min(e.buf.duration - 0.05, 0.7 + Math.round(1.9 * e.freq) / e.freq);
-      const sh = ctx.createBiquadFilter();
-      sh.type = 'highshelf';
-      sh.frequency.value = 1000;
-      sh.gain.setValueAtTime(fromF ? tilt(e, fromF) : tilt(e, f), at);
-      if (fromF) sh.gain.linearRampToValueAtTime(tilt(e, f), at + GLIDE);
       const lvl = gain * (e.norm || 1);
       const env = ctx.createGain();
       env.gain.value = 0;
-      env.gain.setValueCurveAtTime(fadeCurve(lvl, true), at, fade);
-      src.connect(sh);
-      sh.connect(env);
+      env.gain.setValueCurveAtTime(fadeCurve(lvl, true), at, first ? A.first : A.attack);
+      src.connect(env);
       connectPan(g, env, pan);
-      const offset = first ? 0.02 : 0.3; // navazující tón bez vlastního nástupu
-      src.start(at, offset);
-      return { src, env, sh, e, f, rate, lvl };
+      src.start(at, first ? 0.005 : A.offset);
+      return { src, env, lvl };
     };
     const end = (c, at, fade) => {
+      c.env.gain.cancelScheduledValues(at);
+      c.env.gain.setValueAtTime(c.lvl, at);
       c.env.gain.setValueCurveAtTime(fadeCurve(c.lvl, false), at, fade);
       this.trackLine(g, c.src, at + fade + 0.02);
     };
-    const glide = (c, f, at) => {
-      const rate = (f / c.e.freq) * det;
-      c.src.playbackRate.setValueAtTime(c.rate, at);
-      c.src.playbackRate.linearRampToValueAtTime(rate, at + GLIDE);
-      c.sh.gain.setValueAtTime(tilt(c.e, c.f), at);
-      c.sh.gain.linearRampToValueAtTime(tilt(c.e, f), at + GLIDE);
-      c.rate = rate;
-      c.f = f;
-    };
     for (const n of notes) {
       const f = freq(n.name);
-      const semis = cur ? 12 * Math.log2(f / cur.f) : 0;
-      if (cur && Math.abs(semis) < 1e-6) {
-        const dip = Math.min(0.1, n.d * 0.3);
-        cur.env.gain.setValueAtTime(cur.lvl, t - dip);
-        cur.env.gain.linearRampToValueAtTime(cur.lvl * 0.78, t);
-        cur.env.gain.linearRampToValueAtTime(cur.lvl, t + dip);
-      } else if (cur && this.pick(inst, f) === cur.e) {
-        glide(cur, f, t);
-      } else {
-        const fade = cur ? Math.max(0.1, Math.min(0.18, n.d * 0.4)) : 0.08;
-        const from = cur ? cur.f : 0;
-        if (cur) {
-          glide(cur, f, t); // dozpívá na novou výšku a teprve tak se vytratí
-          end(cur, t, fade);
-        }
-        cur = start(f, t, fade, !from, from);
-      }
+      if (cur) end(cur, Math.max(t - A.gap, t - n.d * 0.2), A.release);
+      cur = start(f, t, !cur);
       t += n.d;
     }
-    if (cur) {
-      const rel = 0.32;
-      cur.env.gain.setValueCurveAtTime(fadeCurve(cur.lvl, false), t, rel);
-      this.trackLine(g, cur.src, t + rel + 0.02);
-    }
+    if (cur) end(cur, t, 0.3);
     return t;
   }
 
