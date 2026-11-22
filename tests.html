@@ -145,12 +145,12 @@ t('Papeže lze odstranit jen upálením a nikdy Poutníkem', () => {
   eq(kindOf(s2, 'c5e4'), 'burn');
 });
 
-t('Křižák Papeže nebere ani v dosahu Hranice, jiné figurky bez pokání', () => {
+t('Křižák Papeže jen upálí v dosahu Hranice, jinak bere bez pokání', () => {
   const s = pos({ ...FAR, e1: 'wK', e5: 'bK', d3: 'wC', b4: 'bQ', c8: 'bB' });
   ok(!has(s, 'd3e5'));
   eq(kindOf(s, 'd3b4'), 'crusade');
   const s2 = pos({ a1: 'wR', h1: 'wR', e4: 'wR', a8: 'bR', h8: 'bR', e1: 'wK', e5: 'bK', d3: 'wC', c8: 'bB' });
-  ok(!has(s2, 'd3e5'), 'ani v dosahu Hranice');
+  eq(kindOf(s2, 'd3e5'), 'burn', 'v dosahu Hranice upálí');
 });
 
 t('Zajetí: Papež ohrožený Křižákem skokem jezdce se nepohne', () => {

@@ -8,7 +8,7 @@
 //  - Hranice se přemisťuje skokem na libovolné volné pole ve svém poloměru, nikdy nebere a nelze ji odstranit.
 //  - Kající se figurka nesmí odstranit žádnou soupeřovu figurku (ani upálením, ani mimochodem).
 //  - Papež bere jen upálením (cíl v dosahu jeho Hranice) a padne jen upálením (je v dosahu soupeřovy
-//    Hranice); Poutník ani Křižák ho odstranit nesmí. Papež nikdy nepropadá pokání.
+//    Hranice) – i Křižákem; Poutník ho odstranit nesmí. Papež nikdy nepropadá pokání.
 //  - Zajetí Papeže: stojí-li soupeřův Křižák na poli, odkud Papeže ohrožuje skokem jezdce, je Papež
 //    v zajetí – nesmí táhnout a nemůže zpovídat (posuzuje se v pozici na konci tahu).
 //  - Křižák v dosahu Hranice upaluje, mimo něj bere s odpustkem – v obou případech bez pokání.
@@ -112,7 +112,7 @@ export function captureKind(state, p, victim, to) {
   const reach = inRookReach(state, p.c, to);
   if (p.t === 'P') return victim.t === 'K' ? null : 'penance';
   if (p.t === 'K') return reach ? 'execute' : null;
-  if (victim.t === 'K') return reach && p.t !== 'C' ? 'burn' : null;
+  if (victim.t === 'K') return reach ? 'burn' : null;
   if (reach) return 'burn';
   return p.t === 'C' ? 'crusade' : 'penance';
 }

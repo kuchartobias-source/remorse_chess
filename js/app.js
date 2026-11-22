@@ -1,14 +1,14 @@
 // Schizma – aplikace (lobby, deska, online hra)
-import * as E from './engine.js?v=11';
-import { pieceSVG, CHIP_SVG, HEAT_SVG, CRUSADE_CHIP_SVG, ICON } from './pieces.js?v=11';
-import { FX } from './fx.js?v=11';
-import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=11';
-import { RULES_HTML } from './rules.js?v=11';
-import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=11';
-import { MusicPlayer } from './music.js?v=11';
+import * as E from './engine.js?v=12';
+import { pieceSVG, CHIP_SVG, HEAT_SVG, CRUSADE_CHIP_SVG, ICON } from './pieces.js?v=12';
+import { FX } from './fx.js?v=12';
+import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=12';
+import { RULES_HTML } from './rules.js?v=12';
+import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=12';
+import { MusicPlayer } from './music.js?v=12';
 
 const music = new MusicPlayer(getCtx);
-import { LEVELS } from './ai.js?v=11';
+import { LEVELS } from './ai.js?v=12';
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -32,12 +32,12 @@ const mini = (t, c) => `<span class="mini ${c}">${pieceSVG(t)}</span>`;
 const params = new URLSearchParams(location.hash.slice(1));
 
 const INFO = {
-  K: 'Papež – táhne o 1 pole. Soupeřovu figurku smí odstranit jen Upálením (cíl v dosahu jeho Hranice) a sám padne jen Upálením v dosahu soupeřovy Hranice – Poutník ani Křižák ho odstranit nesmí. Pokání nepropadá. Zpovídá všechny (i diagonálně). Ohrožuje-li ho soupeřův Křižák skokem jezdce, je v zajetí: nesmí se pohnout ani zpovídat.',
+  K: 'Papež – táhne o 1 pole. Soupeřovu figurku smí odstranit jen Upálením (cíl v dosahu jeho Hranice) a sám padne jen Upálením v dosahu soupeřovy Hranice (upálit ho smí i Křižák) – Poutník ho odstranit nesmí. Pokání nepropadá. Zpovídá všechny (i diagonálně). Ohrožuje-li ho soupeřův Křižák skokem jezdce, je v zajetí: nesmí se pohnout ani zpovídat.',
   Q: 'Inkvizitor – po zabití mimo dosah Hranice propadá pokání. Každé jeho odstranění soupeře je inkvizice a rozpaluje Žár Hranic. Zpověď u Kardinála nebo Papeže.',
   R: 'Hranice – nebere a nelze ji odstranit. Skáče na volné pole v poloměru Žáru (1–3). Soupeřovy figurky v jejím dosahu lze upálit bez pokání (neplatí pro Poutníky).',
   B: 'Kardinál – zpovídá Poutníky, Misionáře a Inkvizitora (jen vodorovně a svisle), sám se zpovídá u Papeže. Čistý Kardinál může být zvolen Papežem.',
   N: 'Misionář – táhne jako jezdec, po zabití mimo dosah Hranice propadá pokání. Zpověď u Kardinála nebo Papeže. Když strana přijde o posledního Kardinála nebo o Inkvizitora, stane se Křižákem.',
-  C: 'Křižák – táhne jako jezdec a díky papežskému odpustku nikdy nepropadá pokání. Papeže nebere, ale drží ho v zajetí, když ho ohrožuje skokem jezdce – zajatý Papež se nepohne ani nezpovídá.',
+  C: 'Křižák – táhne jako jezdec a díky papežskému odpustku nikdy nepropadá pokání. Papeže smí jen upálit (v dosahu Hranice); ohrožuje-li ho skokem jezdce, drží ho v zajetí – zajatý Papež se nepohne ani nezpovídá.',
   P: 'Poutník – smí kdykoliv o 1 nebo 2 pole vpřed. Nikdy neupaluje: každé zabití znamená pokání (kromě tajného hříchu). Papeže odstranit nesmí. Zpověď u Kardinála nebo Papeže.',
 };
 const PEN_INFO = {
@@ -1191,7 +1191,7 @@ class Game {
     this.aiWait = new Map();
     this.aiBases = [new URL('../model/', import.meta.url).href];
     try {
-      this.worker = new Worker(new URL('./ai-worker.js?v=11', import.meta.url), { type: 'module' });
+      this.worker = new Worker(new URL('./ai-worker.js?v=12', import.meta.url), { type: 'module' });
       this.worker.onmessage = (e) => {
         const cb = this.aiWait.get(e.data.id);
         if (cb) { this.aiWait.delete(e.data.id); cb(e.data); }
@@ -1218,7 +1218,7 @@ class Game {
         return this.aiCall(msg);
       });
     }
-    return import('./ai.js?v=11').then(async (A) => {
+    return import('./ai.js?v=12').then(async (A) => {
       if (!this.aiModel) {
         this.aiKind = 'material';
         this.aiModel = A.materialModel;

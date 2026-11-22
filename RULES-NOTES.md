@@ -19,7 +19,7 @@ Pravidla v PDF nechávají několik míst otevřených. Aplikace je vykládá ta
    který bere a stává se Inkvizitorem, se jako inkvizice nepočítá (bral Poutník).
 6. **Kající se figurka nesmí odstranit nic** – ani Upálením, ani mimochodem.
 7. **Papež** bere jen Upálením (cíl v dosahu vlastní Hranice) a nikdy nepropadá Pokání. Padne jen
-   Upálením (musí stát v dosahu soupeřovy Hranice); Poutník ani Křižák ho neodstraní nikdy.
+   Upálením (musí stát v dosahu soupeřovy Hranice) – i Křižákem; Poutník ho neodstraní nikdy.
    **Zajetí:** stojí-li soupeřův Křižák skokem jezdce od Papeže, Papež nesmí táhnout (tedy ani upalovat)
    a nezpovídá. Posuzuje se v pozici na konci tahu – Křižák, který právě skočil k Papeži, ho zajme
    hned, a zpověď u Papeže, kterého hráč právě osvobodil, proběhne ještě na konci téhož tahu.
