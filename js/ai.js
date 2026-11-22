@@ -1,13 +1,16 @@
 // Umělá inteligence Schizmatu: hodnotová síť (MLP natrénovaná samohrou v ai/train.py)
 // + prohledávání o 1–2 půltahy. Kódování pozice odpovídá přesně ai/nn.py.
-import * as E from './engine.js?v=16';
+import * as E from './engine.js?v=17';
 
 const CLASSES = ['P', 'P*', 'N', 'N*', 'C', 'B', 'B*', 'R1', 'R2', 'R3', 'Q', 'Q*', 'K'];
 const NCLS = CLASSES.length;
 const CLS = { P: [0, 1], N: [2, 3], C: [4, 4], B: [5, 6], Q: [10, 11], K: [12, 12] };
 export const N_PLANES = 2 * NCLS * 64;
 export const N_EXTRA = 2 * NCLS + 2 + 2 + 1 + 1 + 2;
-export const N_IN = N_PLANES + N_EXTRA;
+export const N_BASE = N_PLANES + N_EXTRA; // vstup starších sítí (bez rovin dosahu)
+export const N_IN = N_BASE + 2 * 64;      // + pole v dosahu mých / soupeřových Hranic
+// Penalizace tahu Hranicí při výběru tahu (stejně jako ai/selfplay.py ROOK_PEN)
+export const ROOK_PEN = 0.01;
 
 // Vrátí { idx: aktivní indexy rovin, ex: Float32Array(N_EXTRA) } z pohledu hráče na tahu
 export function encode(st) {
@@ -37,6 +40,10 @@ export function encode(st) {
   const pm = E.popeSquare(st, me), po = E.popeSquare(st, op);
   ex[o + 6] = pm >= 0 && E.inRookReach(st, op, pm) ? 1 : 0;
   ex[o + 7] = po >= 0 && E.inRookReach(st, me, po) ? 1 : 0;
+  for (let sq = 0; sq < 64; sq++) {
+    if (E.inRookReach(st, me, sq)) idx.push(N_BASE + (sq ^ flip));
+    if (E.inRookReach(st, op, sq)) idx.push(N_BASE + 64 + (sq ^ flip));
+  }
   return { idx, ex };
 }
 
@@ -47,13 +54,14 @@ export class Model {
     const take = (n) => { const a = f.subarray(off, off + n); off += n; return a; };
     this.h1 = meta.h1;
     this.h2 = meta.h2;
-    this.W1 = take(N_IN * this.h1);
+    this.W1 = take(meta.n_in * this.h1);
     this.b1 = take(this.h1);
     this.W2 = take(this.h1 * this.h2);
     this.b2 = take(this.h2);
     this.W3 = take(this.h2);
     this.b3 = take(1);
-    if (off !== f.length || meta.n_in !== N_IN) throw new Error('Neplatný soubor sítě');
+    if (off !== f.length || (meta.n_in !== N_IN && meta.n_in !== N_BASE)) throw new Error('Neplatný soubor sítě');
+    this.nIn = meta.n_in;
     this.a1 = new Float32Array(this.h1);
     this.a2 = new Float32Array(this.h2);
   }
@@ -64,6 +72,7 @@ export class Model {
     const { h1, h2, W1, W2, W3, a1, a2 } = this;
     a1.set(this.b1);
     for (const i of idx) {
+      if (i >= this.nIn) continue; // starší síť nemá roviny dosahu
       const row = i * h1;
       for (let k = 0; k < h1; k++) a1[k] += W1[row + k];
     }
@@ -159,6 +168,13 @@ export function chooseAction(model, st, level = 2, rnd = Math.random) {
     cand = top;
   }
   if (L.eps && rnd() < L.eps) return cand[Math.floor(rnd() * cand.length)].a;
+  // tah Hranicí musí být znatelně lepší než jiné tahy (jinak síť přesouvá Hranice bez důvodu)
+  if (!st.conclave) {
+    for (const c of cand) {
+      const p = st.board[E.sqIndex(c.a.slice(0, 2))];
+      if (p && p.t === 'R') c.v -= ROOK_PEN;
+    }
+  }
   const best = Math.max(...cand.map((c) => c.v));
   if (!L.tau) {
     const bests = cand.filter((c) => c.v >= best - 1e-9);
