@@ -1,14 +1,14 @@
 // Schizma – aplikace (lobby, deska, online hra)
-import * as E from './engine.js?v=18';
-import { pieceSVG, CHIP_SVG, HEAT_SVG, CRUSADE_CHIP_SVG, ICON } from './pieces.js?v=18';
-import { FX } from './fx.js?v=18';
-import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=18';
-import { RULES_HTML } from './rules.js?v=18';
-import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=18';
-import { MusicPlayer } from './music.js?v=18';
+import * as E from './engine.js?v=19';
+import { pieceSVG, CHIP_SVG, HEAT_SVG, CRUSADE_CHIP_SVG, ICON } from './pieces.js?v=19';
+import { FX } from './fx.js?v=19';
+import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=19';
+import { RULES_HTML } from './rules.js?v=19';
+import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=19';
+import { MusicPlayer } from './music.js?v=19';
 
 const music = new MusicPlayer(getCtx);
-import { LEVELS } from './ai.js?v=18';
+import { LEVELS } from './ai.js?v=19';
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -102,6 +102,48 @@ function showLobby() {
     store.del(KEY + 'ai');
     location.hash = `stroj=${c}&uroven=${aiLevel}`;
   };
+  setupHistory();
+}
+
+// ---------------- Historie partií ----------------
+const escapeHTML = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmtDate = (t) => {
+  try { return new Date(t).toLocaleString('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; }
+};
+
+function historyResult(x) {
+  const r = x.res;
+  if (!r) return 'rozehraná';
+  if (r.reason === 'draw') return 'remíza';
+  const why = { anathema: 'Vymýcení', interdict: 'Podrobení', resign: 'vzdání' }[r.reason] || '';
+  const who = x.me ? (r.winner === x.me ? 'výhra' : 'prohra') : `vítězí ${PLAYER[r.winner].toLowerCase()}`;
+  return why ? `${who} · ${why}` : who;
+}
+
+function setupHistory() {
+  const dlg = $('history');
+  const render = () => {
+    const list = store.get(KEY + 'archive') || [];
+    $('history-count').textContent = list.length ? `Uložených partií: ${list.length}` : 'Zatím žádné odehrané partie.';
+    $('history-body').innerHTML = list.length ? list.map((x) => {
+      const side = x.me ? ` · ${x.me === 'w' ? 'bílé' : 'černé'}` : '';
+      const res = historyResult(x);
+      const cls = x.res && x.me ? (x.res.winner === x.me ? 'win' : x.res.winner ? 'loss' : '') : '';
+      return `<div class="hrow"><div class="hinfo"><b>${escapeHTML(x.desc)}</b>${side}<br><small>${fmtDate(x.t)} · ${x.a.length} půltahů · <span class="hres ${cls}">${res}</span></small></div>`
+        + `<div class="row"><button class="btn small primary" data-play="${escapeHTML(x.id)}">Přehrát</button><button class="btn small ghost" data-del="${escapeHTML(x.id)}" title="Smazat záznam">✕</button></div></div>`;
+    }).join('') : '<p class="note">Odehrané partie se ukládají jen v tomto prohlížeči.</p>';
+    $('history-body').querySelectorAll('[data-play]').forEach((b) => { b.onclick = () => { location.hash = 'zaznam=' + b.dataset.play; }; });
+    $('history-body').querySelectorAll('[data-del]').forEach((b) => {
+      b.onclick = () => {
+        store.set(KEY + 'archive', (store.get(KEY + 'archive') || []).filter((x) => x.id !== b.dataset.del));
+        render();
+      };
+    });
+  };
+  render();
+  $('btn-history').onclick = () => { render(); if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', ''); };
+  $('history-close').onclick = () => dlg.close();
+  dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
 }
 
 // ---------------- Deska ----------------
@@ -426,8 +468,11 @@ class BoardView {
 
 // ---------------- Hra ----------------
 class Game {
-  constructor({ mode, room = null, autoFlip = false, ai = null }) {
+  constructor({ mode, room = null, autoFlip = false, ai = null, replay = null }) {
     this.mode = mode;
+    this.replay = replay; // záznam partie z historie (jen prohlížení)
+    this.viewPly = null;  // null = živá pozice, jinak počet půltahů zobrazené pozice
+    this.gameId = null;
     this.ai = ai; // { color: barva stroje, level: 1..3 } v režimu proti stroji
     this.thinking = false;
     this.room = room;
@@ -451,12 +496,14 @@ class Game {
     this.view = new BoardView();
     this.bindBoard();
     this.bindControls();
+    this.bindKeys();
     document.addEventListener('visibilitychange', () => { if (!document.hidden) document.title = 'Schizma'; });
   }
 
   result() { return this.state.result || this.ext; }
 
   canAct() {
+    if (this.replay || this.viewPly != null) return false;
     if (this.result() || !this.synced) return false;
     if (this.mode === 'local') return !this.ai || (this.state.turn !== this.ai.color && !this.thinking);
     return !!this.me && this.state.turn === this.me;
@@ -499,16 +546,119 @@ class Game {
   }
 
   persist() {
-    if (this.ai) store.set(KEY + 'ai', { a: this.actions, ext: this.ext, color: this.ai.color, level: this.ai.level });
-    else if (this.mode === 'local') store.set(KEY + 'local', { a: this.actions, ext: this.ext, flip: this.autoFlip });
+    if (this.replay) return;
+    if (!this.gameId) this.gameId = this.room || newRoomId();
+    if (this.ai) store.set(KEY + 'ai', { a: this.actions, ext: this.ext, color: this.ai.color, level: this.ai.level, id: this.gameId });
+    else if (this.mode === 'local') store.set(KEY + 'local', { a: this.actions, ext: this.ext, flip: this.autoFlip, id: this.gameId });
     else store.set(KEY + 'game-' + this.room, { a: this.actions, ext: this.ext });
+    this.archive();
+  }
+
+  // Uloží partii do historie v tomto prohlížeči (nejvýš 60 posledních partií)
+  archive() {
+    if (this.actions.length < 2) return;
+    const list = store.get(KEY + 'archive') || [];
+    const i = list.findIndex((x) => x.id === this.gameId);
+    const old = i >= 0 ? list[i] : null;
+    const kind = this.ai ? 'ai' : this.mode;
+    const desc = this.ai ? `Proti stroji (${LEVELS[this.ai.level].name})` : this.mode === 'online' ? 'Online' : 'Na jednom zařízení';
+    const entry = {
+      id: this.gameId, kind, desc, me: this.me || null, t: old ? old.t : Date.now(), u: Date.now(),
+      a: this.actions.slice(), ext: this.ext || null, res: this.result() ? { ...this.result() } : null,
+    };
+    if (i >= 0) list.splice(i, 1);
+    list.unshift(entry);
+    store.set(KEY + 'archive', list.slice(0, 60));
+  }
+
+  // ---------- procházení předchozích pozic (šipky) ----------
+  shownState() {
+    if (this.viewPly == null) return this.state;
+    return this.viewPly === 0 ? E.initialState() : this.hist[this.viewPly - 1].after;
+  }
+
+  showPly(k, animate = false) {
+    const n = this.hist.length;
+    k = Math.max(0, Math.min(n, k));
+    const prev = this.viewPly == null ? n : this.viewPly;
+    if (k === n && !this.replay) {
+      if (this.viewPly == null) return;
+      this.viewPly = null;
+    } else {
+      this.viewPly = k;
+    }
+    this.clearSel();
+    if (this.overlayEl && !this.overlayEl.classList.contains('final')) this.closeOverlay();
+    const step = animate && k === prev + 1 && k > 0 ? this.hist[k - 1].events : null;
+    this.view.sync(this.shownState(), step);
+    this.legal = this.canAct() ? E.legalMoves(this.state) : [];
+    this.refreshPanels();
+    if (this.viewPly == null) this.prompts(false);
+  }
+
+  navigate(cmd) {
+    const n = this.hist.length;
+    const cur = this.viewPly == null ? n : this.viewPly;
+    if (cmd === 'prev') this.showPly(cur - 1);
+    else if (cmd === 'next') this.showPly(cur + 1, true);
+    else if (cmd === 'first') this.showPly(0);
+    else if (cmd === 'last') this.showPly(n);
+  }
+
+  bindKeys() {
+    document.addEventListener('keydown', (e) => {
+      const tag = (e.target && e.target.tagName) || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || e.altKey || e.ctrlKey || e.metaKey) return;
+      const cmd = { ArrowLeft: 'prev', ArrowRight: 'next', Home: 'first', End: 'last', Escape: 'last' }[e.key];
+      if (!cmd || document.querySelector('dialog[open]')) return;
+      e.preventDefault();
+      if (this.autoTimer && cmd !== 'next') this.stopAuto();
+      this.navigate(cmd);
+    });
+    $('nav-bar').querySelectorAll('[data-nav]').forEach((b) => {
+      b.onclick = () => { if (this.autoTimer) this.stopAuto(); this.navigate(b.dataset.nav); };
+    });
+    $('btn-auto').onclick = () => (this.autoTimer ? this.stopAuto() : this.startAuto());
+    $('moves-list').addEventListener('click', (e) => {
+      const el = e.target.closest('[data-ply]');
+      if (el) { if (this.autoTimer) this.stopAuto(); this.showPly(+el.dataset.ply); }
+    });
+  }
+
+  startAuto() {
+    if (this.viewPly == null || this.viewPly >= this.hist.length) this.showPly(0);
+    this.autoTimer = setInterval(() => {
+      const cur = this.viewPly == null ? this.hist.length : this.viewPly;
+      if (cur >= this.hist.length) { this.stopAuto(); return; }
+      this.showPly(cur + 1, true);
+    }, 1500);
+    this.renderNav();
+  }
+
+  stopAuto() {
+    clearInterval(this.autoTimer);
+    this.autoTimer = null;
+    this.renderNav();
+  }
+
+  renderNav() {
+    const n = this.hist.length;
+    const k = this.viewPly == null ? n : this.viewPly;
+    $('nav-pos').textContent = `${k} / ${n}`;
+    $('btn-auto').hidden = !this.replay;
+    $('btn-auto').textContent = this.autoTimer ? '❚❚ Pauza' : '▶ Přehrát';
+    $('nav-bar').querySelector('[data-nav="prev"]').disabled = k === 0;
+    $('nav-bar').querySelector('[data-nav="first"]').disabled = k === 0;
+    $('nav-bar').querySelector('[data-nav="next"]').disabled = k === n;
+    $('nav-bar').querySelector('[data-nav="last"]').disabled = k === n;
   }
 
   // ---------- vykreslení ----------
   refresh(events = null) {
+    if (events && this.viewPly != null && !this.replay) this.viewPly = null; // nový tah → zpět na živou pozici
     this.legal = this.canAct() ? E.legalMoves(this.state) : [];
     if (this.sel >= 0) this.recomputeSel();
-    this.view.sync(this.state, events);
+    this.view.sync(this.shownState(), this.viewPly == null ? events : null);
     this.refreshPanels();
     this.prompts(!!events);
     this.tryPremove();
@@ -615,6 +765,7 @@ class Game {
   }
 
   refreshPanels() {
+    this.renderNav();
     this.renderBoardMood();
     this.renderMarks();
     this.renderHints();
@@ -629,9 +780,12 @@ class Game {
   // Potemnělá deska během konkláve, rudá viněta a zešedlé figurky poraženého
   renderBoardMood() {
     const b = this.view.el;
-    const res = this.result();
-    const sede = !res && !!this.state.conclave;
+    const st = this.shownState();
+    const live = this.viewPly == null || this.viewPly === this.hist.length;
+    const res = live ? this.result() : null;
+    const sede = !res && !!st.conclave;
     b.classList.toggle('sede', sede);
+    b.classList.toggle('viewing', this.viewPly != null && !this.replay);
     let smoke = b.querySelector('.sede-smoke');
     if (sede && !smoke) {
       smoke = document.createElement('div');
@@ -646,8 +800,10 @@ class Game {
   }
 
   renderMarks() {
+    const st = this.shownState();
     const last = new Set();
-    for (let i = this.hist.length - 1; i >= 0; i--) {
+    const upto = this.viewPly == null ? this.hist.length : this.viewPly;
+    for (let i = upto - 1; i >= 0; i--) {
       const a = this.hist[i].a;
       if (a[0] === '@') continue;
       last.add(E.sqIndex(a.slice(0, 2)));
@@ -657,22 +813,22 @@ class Game {
     const map = { last, sel: new Set(this.sel >= 0 ? [this.sel] : []) };
     if (this.premove) map.pre = new Set([this.premove.from, this.premove.to]);
     if (this.reach) {
-      const c = this.mode === 'online' && this.me ? this.me : this.state.turn;
-      map.reach = new Set(E.rookReachSquares(this.state, c));
-      map.reach2 = new Set(E.rookReachSquares(this.state, other(c)));
+      const c = this.mode === 'online' && this.me ? this.me : st.turn;
+      map.reach = new Set(E.rookReachSquares(st, c));
+      map.reach2 = new Set(E.rookReachSquares(st, other(c)));
     }
     // Papež v zajetí Křižáka (řetěz) a Papež v dosahu soupeřových Hranic (hrozí mu poprava)
-    if (!this.result()) {
+    if (!st.result) {
       map.captive = new Set();
       map.captor = new Set();
       for (const c of ['w', 'b']) {
-        const by = E.captors(this.state, c);
-        if (by.length) { map.captive.add(E.popeSquare(this.state, c)); by.forEach((j) => map.captor.add(j)); }
+        const by = E.captors(st, c);
+        if (by.length) { map.captive.add(E.popeSquare(st, c)); by.forEach((j) => map.captor.add(j)); }
       }
       map.danger = new Set();
       for (const c of ['w', 'b']) {
-        const ps = E.popeSquare(this.state, c);
-        if (ps >= 0 && E.inRookReach(this.state, other(c), ps)) map.danger.add(ps);
+        const ps = E.popeSquare(st, c);
+        if (ps >= 0 && E.inRookReach(st, other(c), ps)) map.danger.add(ps);
       }
     }
     if (this.state.conclave && this.canAct()) map.choice = new Set(this.state.conclave.options);
@@ -706,7 +862,7 @@ class Game {
 
   captured(byColor) {
     const out = [];
-    for (const h of this.hist) {
+    for (const h of this.hist.slice(0, this.viewPly == null ? this.hist.length : this.viewPly)) {
       for (const e of h.events) if (e.type === 'capture' && e.by.c === byColor) out.push(e.piece);
     }
     return out;
@@ -726,18 +882,19 @@ class Game {
   }
 
   renderPlayers() {
-    const res = this.result();
+    const st = this.shownState();
+    const res = st.result || (this.viewPly == null ? this.result() : null);
     const put = (el, c) => {
-      const turn = !res && this.state.turn === c;
+      const turn = !res && st.turn === c;
       el.className = 'player' + (turn ? ' turn' : '');
-      const conclave = this.state.conclave && this.state.conclave.color === c;
+      const conclave = st.conclave && st.conclave.color === c;
       const mark = turn ? `<span class="turnmark">${conclave ? 'KONKLÁVE' : 'NA TAHU'}</span>` : '';
       const pres = this.presence(c);
       const caps = this.captured(c).map((p) => mini(p.t, p.c)).join('');
-      const lv = E.heatOf(this.state, c);
-      const inq = this.state.inq[c];
+      const lv = E.heatOf(st, c);
+      const inq = st.inq[c];
       const heat = `<span class="heatbadge lv${lv}" title="Žár Hranic: úroveň ${lv} (dosah ${lv} pole), ${inq} ${inqWord(inq)}">${ICON.heat}Žár ${lv}<small>${inq >= 3 ? 'max' : inq + '/' + (inq >= 1 ? 3 : 1)}</small></span>`;
-      const cru = this.state.crusade[c] ? `<span class="crubadge" title="Křížová výprava vyhlášena">${ICON.cross}</span>` : '';
+      const cru = st.crusade[c] ? `<span class="crubadge" title="Křížová výprava vyhlášena">${ICON.cross}</span>` : '';
       el.innerHTML = `<span class="disc ${c}"></span><div><div class="who">${PLAYER[c]}${pres === 'ty' ? ' (ty)' : ''} ${heat}${cru}</div>`
         + `<div class="meta">${pres && pres !== 'ty' ? pres + ' ' : ''}${mark}</div></div><div class="caps">${caps}</div>`;
     };
@@ -767,11 +924,11 @@ class Game {
 
   renderMoves() {
     const entries = [];
-    for (const h of this.hist) {
+    this.hist.forEach((h, i) => {
       const last = entries[entries.length - 1];
-      if (last && last.color === h.color) last.html.push(this.moveHTML(h));
-      else entries.push({ color: h.color, html: [this.moveHTML(h)] });
-    }
+      if (last && last.color === h.color) { last.html.push(this.moveHTML(h)); last.ply = i + 1; } else entries.push({ color: h.color, html: [this.moveHTML(h)], ply: i + 1 });
+    });
+    const shownPly = this.viewPly == null ? this.hist.length : this.viewPly;
     const rows = [];
     for (const e of entries) {
       const cur = rows[rows.length - 1];
@@ -779,7 +936,7 @@ class Game {
       else rows.push(e.color === 'w' ? { w: e } : { w: null, b: e });
     }
     const lastEntry = entries[entries.length - 1];
-    const cell = (e) => (e ? `<span class="mv${e === lastEntry ? ' last' : ''}">${e.html.join(', ')}</span>` : '<span class="mv">…</span>');
+    const cell = (e) => (e ? `<span class="mv${e.ply === shownPly ? ' last' : ''}" data-ply="${e.ply}">${e.html.join(', ')}</span>` : '<span class="mv">…</span>');
     $('moves-list').innerHTML = rows.map((r) => `<li>${cell(r.w)}${r.b ? cell(r.b) : '<span></span>'}</li>`).join('');
     const box = $('moves');
     box.scrollTop = box.scrollHeight;
@@ -840,11 +997,15 @@ class Game {
   }
 
   renderStory() {
-    const last = this.hist[this.hist.length - 1];
+    const upto = this.viewPly == null ? this.hist.length : this.viewPly;
+    const last = this.hist[upto - 1];
     const lines = last ? this.narrate(last.events) : ['Hra začíná. Ať je vaše svědomí čisté.'];
-    const res = this.result();
+    const res = upto === this.hist.length ? this.result() : null;
     let status;
-    if (res) status = `<b>${this.resultText(res)}</b>`;
+    if (this.viewPly != null && upto < this.hist.length) {
+      status = `<b>${this.replay ? 'Záznam partie' : 'Prohlížíš starší pozici'}</b> – půltah ${upto} z ${this.hist.length}. ← → listuje, `
+        + (this.replay ? 'Home/End skočí na začátek či konec.' : 'Esc vrátí živou partii.');
+    } else if (res) status = `<b>${this.resultText(res)}</b>`;
     else if (this.state.conclave) {
       const c = this.state.conclave.color;
       status = `<b>Konkláve!</b> ${PLAYER[c]}${c === this.me ? ' (ty)' : ''} volí nového Papeže z čistých Kardinálů.`;
@@ -861,8 +1022,8 @@ class Game {
     let extra = '';
     if (this.premove) extra = `<div class="tip pre">Předtah: <b>${E.sqName(this.premove.from)}–${E.sqName(this.premove.to)}</b> – zruší se kliknutím na prázdné pole.</div>`;
     else if (this.sel >= 0 && this.selMode === 'pre') extra = '<div class="tip pre">Není tvůj tah – klikni na cílové pole a zadáš <b>předtah</b>.</div>';
-    const fresh = this.storyLen !== this.hist.length;
-    this.storyLen = this.hist.length;
+    const fresh = this.storyLen !== upto;
+    this.storyLen = upto;
     const cls = fresh ? 'ev new' : 'ev';
     $('story').innerHTML = lines.map((l) => `<div class="${cls}">${l}</div>`).join('')
       + `<div class="ev">${status}</div>` + (hint ? `<div class="tip">${hint}</div>` : '') + extra;
@@ -882,7 +1043,7 @@ class Game {
   renderControls() {
     const res = this.result();
     const online = this.mode === 'online';
-    const seated = !online || !!this.me;
+    const seated = (!online || !!this.me) && !this.replay;
     $('btn-draw').hidden = !seated;
     $('btn-resign').hidden = !seated;
     $('btn-draw').disabled = !!res || (online && (!this.synced || (this.offer && this.offer.c === this.me)));
@@ -1139,6 +1300,10 @@ class Game {
     if (this.overlayEl) return;
     const sq = this.view.sqFromPoint(e.clientX, e.clientY);
     if (sq < 0) return;
+    if (this.viewPly != null) {
+      if (!this.replay) toast('Prohlížíš starší pozici – Esc nebo → tě vrátí do hry.');
+      return;
+    }
     if (this.state.conclave && this.canAct()) {
       if (this.state.conclave.options.includes(sq)) this.act('@' + E.sqName(sq));
       else toast('Vyber jednoho ze zvýrazněných čistých Kardinálů.');
@@ -1208,6 +1373,7 @@ class Game {
   startAI() {
     const saved = store.get(KEY + 'ai');
     if (saved && Array.isArray(saved.a) && saved.color === this.ai.color && saved.level === this.ai.level) {
+      this.gameId = saved.id || null;
       this.actions = saved.a.filter((x) => typeof x === 'string' && ACTION_RE.test(x));
       this.ext = saved.ext || null;
       this.rebuild();
@@ -1224,7 +1390,7 @@ class Game {
     this.aiWait = new Map();
     this.aiBases = [new URL('../model/', import.meta.url).href];
     try {
-      this.worker = new Worker(new URL('./ai-worker.js?v=18', import.meta.url), { type: 'module' });
+      this.worker = new Worker(new URL('./ai-worker.js?v=19', import.meta.url), { type: 'module' });
       this.worker.onmessage = (e) => {
         const cb = this.aiWait.get(e.data.id);
         if (cb) { this.aiWait.delete(e.data.id); cb(e.data); }
@@ -1251,7 +1417,7 @@ class Game {
         return this.aiCall(msg);
       });
     }
-    return import('./ai.js?v=18').then(async (A) => {
+    return import('./ai.js?v=19').then(async (A) => {
       if (!this.aiModel) {
         this.aiKind = 'material';
         this.aiModel = A.materialModel;
@@ -1288,12 +1454,28 @@ class Game {
   startLocal() {
     const saved = store.get(KEY + 'local');
     if (saved && Array.isArray(saved.a)) {
+      this.gameId = saved.id || null;
       this.actions = saved.a.filter((x) => typeof x === 'string' && ACTION_RE.test(x));
       this.ext = saved.ext || null;
       this.rebuild();
     }
     if (this.autoFlip) this.view.setOrient(this.state.turn);
     this.refresh();
+  }
+
+  // ---------- záznam partie z historie ----------
+  startReplay() {
+    const r = this.replay;
+    this.actions = r.a.filter((x) => typeof x === 'string' && ACTION_RE.test(x));
+    this.ext = r.ext || null;
+    this.rebuild();
+    this.me = r.me || null;
+    this.view.setOrient(r.me === 'b' ? 'b' : 'w');
+    this.viewPly = 0;
+    $('mode-replay').hidden = false;
+    $('mode-replay').innerHTML = `<b>Záznam partie</b> · ${escapeHTML(r.desc)} · ${fmtDate(r.t)}`;
+    this.view.sync(this.shownState());
+    this.refreshPanels();
   }
 
   // ---------- online hra ----------
@@ -1587,6 +1769,13 @@ function main() {
     const g = new Game({ mode: 'local', ai: { color: other(human), level: [1, 2, 3, 4].includes(lv) ? lv : 2 } });
     window.__game = g;
     g.startAI();
+  } else if (params.has('zaznam')) {
+    const rec = (store.get(KEY + 'archive') || []).find((x) => x.id === params.get('zaznam'));
+    if (!rec) { location.hash = ''; return; }
+    $('game').hidden = false;
+    const g = new Game({ mode: 'local', replay: rec });
+    window.__game = g;
+    g.startReplay();
   } else if (params.has('mistni')) {
     $('game').hidden = false;
     const saved = store.get(KEY + 'local');

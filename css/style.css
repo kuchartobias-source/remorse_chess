@@ -493,3 +493,15 @@ footer.foot { text-align: center; color: var(--dim); font-size: 14px; padding: 8
 .piece.cru .cchip { display: block; }
 .piece.cru .pc { transform: translateY(-5%); }
 .piece.cru.slam .cchip { animation: chipdrop .55s cubic-bezier(.3, 1.4, .5, 1); }
+
+/* Procházení pozic a historie partií */
+.nav-bar { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; flex-wrap: wrap; }
+.nav-bar .btn[disabled] { opacity: .35; cursor: default; }
+.nav-pos { min-width: 64px; text-align: center; font-family: var(--font-title); font-size: 13px; color: var(--muted); }
+.moves .mv[data-ply] { cursor: pointer; border-radius: 4px; }
+.moves .mv[data-ply]:hover { background: rgba(214,171,76,.12); }
+.board.viewing .squares { filter: sepia(.35) brightness(.9); }
+.mode-replay { font-size: 14px; color: var(--gold2); text-align: center; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: rgba(214,171,76,.06); }
+.history .hrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.history .hrow .row { flex: none; display: flex; gap: 6px; }
+.history .hres.win { color: #9fd38a; } .history .hres.loss { color: #e48a8a; }

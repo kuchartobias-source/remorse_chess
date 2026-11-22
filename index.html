@@ -10,8 +10,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=18">
-  <link rel="stylesheet" href="css/fx.css?v=18">
+  <link rel="stylesheet" href="css/style.css?v=19">
+  <link rel="stylesheet" href="css/fx.css?v=19">
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -79,6 +79,12 @@
         <button class="btn" id="btn-local" type="button">Hrát na jednom zařízení</button>
       </div>
       <div class="card">
+        <h2>Historie partií</h2>
+        <p>Odehrané partie se ukládají v tomto prohlížeči. Kteroukoliv si můžeš přehrát tah po tahu.</p>
+        <p class="note" id="history-count"></p>
+        <button class="btn" id="btn-history" type="button">Otevřít historii</button>
+      </div>
+      <div class="card">
         <h2>Pravidla</h2>
         <p>Poutníci, Misionáři, Kardinálové, Inkvizitor, Hranice a Papež. Žádný šach ani rošáda – zato pokání, zpověď, Žár Hranic, Monitum, konkláve a křížové výpravy.</p>
         <button class="btn" id="btn-rules2" type="button">Přečíst pravidla</button>
@@ -102,6 +108,7 @@
       <div class="player" id="pl-bottom"></div>
     </section>
     <aside class="side">
+      <div class="mode-replay" id="mode-replay" hidden></div>
       <div class="panel invite" id="invite" hidden>
         <h3>Pozvi soupeře</h3>
         <p>Pošli tento odkaz soupeři. Kdo ho otevře, usedne na volné místo.</p>
@@ -135,6 +142,14 @@
       </div>
       <div class="panel">
         <h3>Zápis tahů</h3>
+        <div class="nav-bar" id="nav-bar">
+          <button class="btn small" data-nav="first" type="button" title="Na začátek (Home)">⏮</button>
+          <button class="btn small" data-nav="prev" type="button" title="Předchozí pozice (←)">◀</button>
+          <span class="nav-pos" id="nav-pos">0 / 0</span>
+          <button class="btn small" data-nav="next" type="button" title="Další pozice (→)">▶</button>
+          <button class="btn small" data-nav="last" type="button" title="Aktuální pozice (End, Esc)">⏭</button>
+          <button class="btn small primary" id="btn-auto" type="button" hidden>▶ Přehrát</button>
+        </div>
         <div class="moves" id="moves"><ol id="moves-list"></ol></div>
       </div>
       <div class="panel">
@@ -145,11 +160,16 @@
 
   <footer class="foot">Schizma · varianta šachu · grafika, aplikace a hudba vlastní tvorby · nahrávky nástrojů: <a href="music/CREDITS.md">VCSL (CC0)</a></footer>
 
+  <dialog class="rules history" id="history">
+    <div class="rhead"><h2>Historie partií</h2><button class="btn small" id="history-close" type="button">Zavřít</button></div>
+    <div class="rbody" id="history-body"></div>
+  </dialog>
+
   <dialog class="rules" id="rules">
     <div class="rhead"><h2>Pravidla Schizmatu</h2><button class="btn small" id="rules-close" type="button">Zavřít</button></div>
     <div class="rbody" id="rules-body"></div>
   </dialog>
 
-  <script type="module" src="js/app.js?v=18"></script>
+  <script type="module" src="js/app.js?v=19"></script>
 </body>
 </html>
