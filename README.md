@@ -32,9 +32,11 @@ Schizma hotová, hraje průběžně natrénovaná verze.
   (kódování pozice včetně úrovně Žáru, hodnocení, prohledávání 1–2 půltahů); počítá se ve Web Workeru.
 
 Grafika figurek i animace jsou vlastní tvorba (SVG + CSS). Zvukové efekty se syntetizují přímo
-v prohlížeči (WebAudio). Hudba na pozadí je vlastní instrumentální skladba – kantikum v dórském modu na D (antifona na zobcovou flétnu s harfou,
-verše drnkané na harfě a žaltáři, organum v kvintách na smyčcový žaltář a flétnu, mezihra se zvony) – kterou hrají skutečné
-nahrávky nástrojů z VCSL (CC0) v dozvuku kamenné lodi chrámu.
+v prohlížeči (WebAudio). Hudba na pozadí je vlastní instrumentální skladba v dórském modu na D, kterou hrají skutečné
+nahrávky nástrojů z VCSL (CC0) v dozvuku kamenné lodi chrámu: antifona, hymnus, estampie (tanec),
+verše, organum, žalozpěv a mezihra se střídají v náhodném pořadí. Po vyhlášení Křížové výpravy hudba
+přejde do válečné nálady (bubny, fanfáry, válečný hymnus) a pád Papeže doprovodí znělka Konkláve.
+Nahrávky se stahují hned při načtení stránky; prohlížeč zvuk obvykle pustí až po prvním kliknutí.
 Podrobnosti a licence: [music/CREDITS.md](music/CREDITS.md). Zapíná a vypíná se ikonou noty.
 
 Předchozí varianta (Kajícné šachy) je dostupná v historii repozitáře.

@@ -1,4 +1,8 @@
-// Hudba na pozadí Schizmatu – vlastní skladba: kantikum v dórském modu na D, čistě instrumentální.
+// Hudba na pozadí Schizmatu – vlastní instrumentální skladba v dórském modu na D.
+// Nálady: „normal“ (střídají se oddíly antifona, hymnus, estampie, verše, organum, žalozpěv, mezihra
+// v náhodném pořadí bez opakování), „crusade“ (po vyhlášení Křížové výpravy: bubny, fanfáry, válečný
+// hymnus) a znělka „conclave“ (po pádu Papeže: umíráček, varhanní akord, Veni). Každý oddíl má vlastní
+// sběrnici, takže se při změně nálady dá do ~1 s utlumit a nahradit.
 // Hrají skutečné nahrávky nástrojů (music/, licence v music/CREDITS.md); když se nenačtou,
 // zazní záložní syntéza přes WebAudio. Forma (smyčka ~2 min):
 //   úvod (bordun + zvon) → antifona (zobcová flétna s harfou) → 2 verše (harfa a žaltář na recitačním tónu)
@@ -14,9 +18,10 @@ const LEVEL = 0.7; // hlasitost hudby (špička ~0.25, pod úrovní efektů)
 // ---------- výšky tónů ----------
 const D3 = 146.832;
 const RATIO = { D: 1, E: 9 / 8, F: 32 / 27, G: 4 / 3, A: 3 / 2, Bb: 128 / 81, B: 27 / 16, C: 16 / 9 };
-export const ALLOWED = new Set(['F2', 'G2', 'A2', 'Bb2', 'C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'Bb3', 'B3', 'C4', 'D4',
+export const ALLOWED = new Set(['D2', 'F2', 'G2', 'A2', 'Bb2', 'C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'Bb3', 'B3', 'C4', 'D4',
   'E4', 'F4', 'G4', 'A4', 'Bb4', 'B4', 'C5', 'D5', 'E5', 'F5', 'G5', 'A5', 'Bb5', 'B5', 'C6', 'D6']);
 export const used = new Set(); // pro ověření: všechny skutečně použité tóny
+export const shiftStats = {}; // pro ověření: největší přeladění nahrávky v půltónech podle nástroje
 
 export function freq(name) {
   if (!ALLOWED.has(name)) throw new Error('Tón mimo modus: ' + name);
@@ -335,6 +340,7 @@ export class SampleKit {
       const d = Math.abs(Math.log2(f / e.freq));
       if (!best || d < best.d) best = { e, d };
     }
+    if (best.e.freq) shiftStats[inst] = Math.max(shiftStats[inst] || 0, Math.round(best.d * 1200) / 100);
     return best.e;
   }
 
@@ -424,12 +430,12 @@ export class SampleKit {
   }
 
   // prodleva z varhan: překrývající se úseky tónů D2, A2 a D3 s prolínáním
-  drone(g, t0, t1) {
+  drone(g, t0, t1, voices = DRONE.normal) {
     if (this.droneNext == null || this.droneNext < t0 - 2) this.droneNext = t0;
     const L = 3.4, X = 1.1;
     while (this.droneNext < t1) {
       const t = this.droneNext;
-      for (const [name, a] of [['D3', 0.023], ['A3', 0.014], ['D4', 0.0066]]) {
+      for (const [name, a] of voices) {
         const f = freq(name) / 2;
         const e = this.pick('organ', f);
         const src = g.ctx.createBufferSource();
@@ -470,9 +476,9 @@ function connectPan(g, node, pan) {
   } else node.connect(g.bus);
 }
 
-export async function loadKit(ctx, base) {
+// Stáhne všechny nahrávky (jen data, bez AudioContextu – jde to hned při načtení stránky)
+export async function fetchSamples(base) {
   const meta = await fetch(base + 'samples.json').then((r) => { if (!r.ok) throw new Error('samples ' + r.status); return r.json(); });
-  // stahuje nejvýš 6 souborů najednou, každý s jedním opakovaným pokusem
   const jobs = [];
   for (const [inst, list] of Object.entries(meta)) for (const e of list) jobs.push({ inst, e });
   const getOne = async (e, tries = 2) => {
@@ -485,18 +491,30 @@ export async function loadKit(ctx, base) {
       throw err;
     }
   };
-  const banks = {};
   let next = 0;
+  // stahuje nejvýš 6 souborů najednou, každý s jedním opakovaným pokusem
   const workers = Array.from({ length: 6 }, async () => {
     while (next < jobs.length) {
-      const { inst, e } = jobs[next++];
-      const ab = await getOne(e);
-      const buf = await new Promise((res, rej) => ctx.decodeAudioData(ab, res, rej));
-      (banks[inst] = banks[inst] || []).push({ name: e.file, freq: e.midi == null ? null : 440 * Math.pow(2, (e.midi - 69) / 12), buf });
+      const job = jobs[next++];
+      job.ab = await getOne(job.e);
     }
   });
   await Promise.all(workers);
+  return jobs;
+}
+
+export async function decodeKit(ctx, jobs) {
+  const banks = {};
+  await Promise.all(jobs.map(async ({ inst, e, ab }) => {
+    const buf = await new Promise((res, rej) => ctx.decodeAudioData(ab.slice(0), res, rej));
+    (banks[inst] = banks[inst] || []).push({ name: e.file, freq: e.midi == null ? null : 440 * Math.pow(2, (e.midi - 69) / 12), buf });
+  }));
+  for (const list of Object.values(banks)) list.sort((x, y) => (x.freq || 0) - (y.freq || 0));
   return new SampleKit(banks);
+}
+
+export async function loadKit(ctx, base) {
+  return decodeKit(ctx, await fetchSamples(base));
 }
 
 // ---------- záložní syntetizovaná sada (když se vzorky nenačtou) ----------
@@ -515,50 +533,184 @@ export class SynthKit {
   drum() { /* bez bubnu */ }
 
   drone(g, t0, t1) {
-    if (this.droneUntil > t0) return;
+    if (this.droneUntil > t0) return; // syntéza hraje jednu dlouhou prodlevu
     this.droneUntil = t0 + 6 * 3600;
     drone(g, t0, this.droneUntil);
   }
 }
 
 // ---------- skladatel: naplánuje vždy jeden oddíl ----------
+// Prodlevy varhan (hraje se o oktávu níž, než je jméno tónu)
+const DRONE = {
+  normal: [['D3', 0.023], ['A3', 0.014], ['D4', 0.0066]],
+  crusade: [['D3', 0.034], ['A3', 0.022], ['D4', 0.009]],
+  conclave: [['D3', 0.026], ['F3', 0.012], ['A3', 0.016]],
+};
+
+// Nové melodie (vlastní): hymnus, estampie (tanec), žalozpěv, válečné fanfáry, válečný hymnus, pochod, Veni
+const HYMN = [
+  [['A3', 1], ['A3', 1], ['G3', 1], ['A3', 1], ['C4', 2], ['B3', 1], ['A3', 2]],
+  [['A3', 1], ['C4', 1], ['D4', 1], ['C4', 1], ['A3', 1], ['G3', 1], ['A3', 3]],
+  [['F3', 1], ['G3', 1], ['A3', 1], ['F3', 1], ['G3', 1], ['E3', 1], ['D3', 2]],
+  [['D3', 1], ['E3', 1], ['F3', 1], ['G3', 1], ['F3', 1], ['E3', 1], ['D3', 3]],
+];
+// estampie ve skutečné výšce flétny (D4–D5): punctum s otevřeným a zavřeným koncem
+const ESTAMPIE = [
+  [['D4', 1], ['E4', 1], ['F4', 1], ['G4', 1], ['A4', 2], ['A4', 2], ['G4', 1], ['F4', 1], ['E4', 1], ['F4', 1], ['G4', 4]],
+  [['D4', 1], ['E4', 1], ['F4', 1], ['G4', 1], ['A4', 2], ['A4', 2], ['G4', 1], ['F4', 1], ['E4', 1], ['C4', 1], ['D4', 4]],
+  [['A4', 1], ['B4', 1], ['C5', 2], ['B4', 1], ['A4', 1], ['G4', 2], ['A4', 1], ['G4', 1], ['F4', 1], ['E4', 1], ['G4', 4]],
+  [['A4', 1], ['B4', 1], ['C5', 2], ['B4', 1], ['A4', 1], ['G4', 2], ['F4', 1], ['E4', 1], ['F4', 1], ['E4', 1], ['D4', 4]],
+];
+const LAMENT = [
+  [['D3', 2], ['F3', 1], ['E3', 1], ['D3', 2], ['C3', 1], ['D3', 3]],
+  [['A3', 2], ['G3', 1], ['F3', 1], ['G3', 1], ['A3', 1], ['F3', 1], ['E3', 1], ['D3', 4]],
+  [['F3', 1], ['G3', 1], ['A3', 2], ['Bb3', 1], ['A3', 1], ['G3', 2], ['F3', 1], ['E3', 1], ['D3', 4]],
+];
+// fanfáry ve skutečné výšce flétny
+const FANFARE = [
+  [['D4', 1], ['D4', 1], ['A4', 2], ['A4', 1], ['G4', 1], ['A4', 2], ['C5', 1], ['A4', 1], ['G4', 1], ['F4', 1], ['G4', 2], ['A4', 2]],
+  [['D5', 2], ['C5', 1], ['A4', 1], ['Bb4', 2], ['A4', 1], ['G4', 1], ['F4', 1], ['E4', 1], ['D4', 2], ['D4', 2]],
+  [['A4', 1], ['A4', 1], ['D5', 2], ['C5', 1], ['Bb4', 1], ['A4', 2], ['G4', 1], ['A4', 1], ['F4', 1], ['G4', 1], ['A4', 4]],
+];
+const WARHYMN = [
+  [['D3', 2], ['D3', 1], ['F3', 1], ['E3', 2], ['D3', 2]],
+  [['A3', 2], ['Bb3', 1], ['A3', 1], ['G3', 2], ['A3', 2]],
+  [['F3', 1], ['G3', 1], ['A3', 2], ['G3', 1], ['F3', 1], ['E3', 2]],
+  [['F3', 1], ['E3', 1], ['D3', 1], ['C3', 1], ['D3', 4]],
+];
+const MARCH = [
+  [['D4', 1], ['D4', 1], ['D4', 1], ['F4', 1], ['A4', 2], ['G4', 1], ['F4', 1], ['E4', 1], ['F4', 1], ['D4', 2]],
+  [['A4', 1], ['A4', 1], ['Bb4', 1], ['A4', 1], ['G4', 2], ['F4', 1], ['G4', 1], ['A4', 1], ['G4', 1], ['F4', 1], ['E4', 1], ['D4', 2]],
+];
+const VENI = [['D3', 2], ['F3', 1], ['G3', 1], ['A3', 3], ['G3', 1], ['F3', 1], ['G3', 1], ['A3', 2], ['D3', 3]];
+
+const FORM = {
+  normal: ['antiphon', 'antiphonPluck', 'hymn', 'estampie', 'verse', 'organum', 'lament', 'interlude'],
+  crusade: ['charge', 'warhymn', 'march'],
+};
+
 export class Composer {
   constructor(kit, seed = Date.now()) {
     this.kit = kit;
     this.rng = mulberry(seed);
-    this.step = 0;
-    this.form = ['intro', 'antiphon', 'verse', 'verse', 'organum', 'interlude'];
     this.u = 0.5;
+    this.recent = [];
+    this.started = false;
   }
 
-  // naplánuje další oddíl od času t, vrátí jeho konec
-  section(g, t) {
-    const kind = this.step === 0 ? 'intro' : this.form[1 + ((this.step - 1) % (this.form.length - 1))];
-    this.step++;
+  // naplánuje další oddíl od času t (podle nálady, nebo vynucený `forced`), vrátí jeho konec
+  section(g, t, mood = 'normal', forced = null) {
+    let kind = forced;
+    if (!kind) kind = this.started ? this.pick(mood) : 'intro';
+    this.started = true;
     this.last = kind;
     const end = this[kind](g, t);
-    this.kit.drone(g, t, end + 1.5);
+    const voices = kind === 'conclave' ? DRONE.conclave : (FORM.crusade.includes(kind) ? DRONE.crusade : DRONE.normal);
+    this.kit.drone(g, t, end + 1.5, voices);
     return end;
+  }
+
+  // náhodné pořadí bez opakování nedávných oddílů
+  pick(mood) {
+    const pool = FORM[mood] || FORM.normal;
+    const keep = Math.min(pool.length - 1, mood === 'crusade' ? 1 : 3);
+    const cand = pool.filter((k) => !this.recent.includes(k));
+    const kind = cand[Math.floor(this.rng() * cand.length)];
+    this.recent.push(kind);
+    while (this.recent.length > keep) this.recent.shift();
+    return kind;
   }
 
   breath() { return this.u * 1.5 * (1 + (this.rng() * 2 - 1) * 0.08); }
 
+  // ----- nálada „normal“ -----
+  // krátký úvod: první tóny hned na začátku
   intro(g, t) {
-    this.kit.harp(g, 'D3', t + 2.2, 0.1);
-    this.kit.bell(g, 'D3', t + 4, 0.1);
-    return t + 10;
+    this.kit.harp(g, 'D3', t + 0.05, 0.12);
+    this.kit.harp(g, 'A3', t + 0.45, 0.1);
+    this.kit.harp(g, 'D4', t + 0.85, 0.1);
+    this.kit.pluck(g, 'A4', t + 1.25, 0.14);
+    this.kit.bell(g, 'D3', t + 1.7, 0.08);
+    return t + 3.4;
   }
 
   antiphon(g, t) {
     const rng = this.rng;
     for (const p of ANTIPHON.map((ph) => realize(ph, this.u, rng))) {
-      // antifona: zobcová flétna o oktávu výš, legato; harfa nasadí frázi ve skutečné výšce
+      // antifona: zobcová flétna o oktávu výš; harfa nasadí frázi ve skutečné výšce
       this.kit.harp(g, p[0].name, t, 0.09);
       t = this.kit.line(g, shift(p, 1), t, { inst: 'recorder', gain: GAIN_RECORDER });
       if (rng() < 0.35) this.kit.bell(g, rng() < 0.5 ? 'A3' : 'D4', t + 0.2, 0.06);
       t += this.breath();
     }
     return t;
+  }
+
+  // antifona drnkaná na žaltáři (o oktávu výš, dlouhé tóny tremolem) s harfou
+  antiphonPluck(g, t) {
+    const rng = this.rng;
+    for (const p of ANTIPHON.map((ph) => realize(ph, this.u * 0.95, rng))) {
+      this.kit.harp(g, p[0].name, t, 0.09);
+      t = this.plucked(g, p, t);
+      t += this.breath();
+    }
+    return t;
+  }
+
+  plucked(g, notes, t, gain = 0.18) {
+    const rng = this.rng;
+    for (const n of notes) {
+      this.kit.pluck(g, octaveUp(n.name), t, gain * (1 + (rng() * 2 - 1) * 0.06));
+      if (n.units >= 2) {
+        this.kit.harp(g, n.name, t + 0.015, 0.07);
+        const step = this.u * 0.5;
+        for (let k = 1, at = t + step; at < t + n.d - this.u * 0.3; k++, at += step) {
+          this.kit.pluck(g, octaveUp(n.name), at, gain * 0.42 * Math.pow(0.85, k - 1));
+        }
+      }
+      t += n.d;
+    }
+    return t;
+  }
+
+  // hymnus: sloka na flétnu, nebo na smyčcový žaltář; harfa hraje basový tón a kvintu pod ním
+  hymn(g, t) {
+    const rng = this.rng;
+    const bowed = rng() < 0.5;
+    for (const p of HYMN.map((ph) => realize(ph, this.u * 1.1, rng))) {
+      const low = LOW5[p[0].name] || p[0].name;
+      this.kit.harp(g, low, t, 0.08);
+      this.kit.harp(g, p[0].name, t + 0.06, 0.07);
+      t = bowed
+        ? this.kit.line(g, shift(p, 2), t, { inst: 'bowed', gain: GAIN_BOWED * 0.85 })
+        : this.kit.line(g, shift(p, 1), t, { inst: 'recorder', gain: GAIN_RECORDER });
+      t += this.breath();
+    }
+    this.kit.bell(g, 'D4', t, 0.06);
+    return t + 1;
+  }
+
+  // estampie: rychlý tanec – flétna, rámový buben a bordun harfy v kvintách
+  estampie(g, t) {
+    const u = 0.27;
+    const rng = this.rng;
+    const start = t;
+    for (const ph of [...ESTAMPIE, ...ESTAMPIE.slice(2)]) {
+      const p = ph.map(([name, units]) => ({ name, units, d: units * u }));
+      const total = p.reduce((x, n) => x + n.d, 0);
+      // buben: úder na každou „dobu“ (2 jednotky), silněji na začátku taktu
+      for (let k = 0; k * 2 * u < total - 0.01; k++) {
+        const at = t + k * 2 * u;
+        this.kit.drum(g, k % 4 === 0 ? 'HDrumL_Hit' : (k % 2 ? 'HDrumS_Hand' : 'HDrumL_HitMuted'), at, k % 4 === 0 ? 0.12 : 0.07);
+      }
+      for (let k = 0; k * 4 * u < total - 0.01; k++) {
+        this.kit.harp(g, 'D3', t + k * 4 * u, 0.06);
+        this.kit.harp(g, 'A3', t + k * 4 * u + 0.02, 0.05);
+      }
+      this.kit.line(g, p, t, { inst: 'recorder', gain: GAIN_RECORDER * 0.95 });
+      t += total + (rng() < 0.3 ? u * 2 : 0);
+    }
+    return Math.max(t + 0.6, start + 10);
   }
 
   verse(g, t) {
@@ -597,6 +749,18 @@ export class Composer {
     return t;
   }
 
+  // žalozpěv: pomalé sólo smyčcového žaltáře, harfa v basu
+  lament(g, t) {
+    const rng = this.rng;
+    for (const p of LAMENT.map((ph) => realize(ph, this.u * 1.45, rng))) {
+      this.kit.harp(g, 'D3', t, 0.07);
+      this.kit.harp(g, LOW5[p[0].name] || 'A2', t + 0.05, 0.05);
+      t = this.kit.line(g, shift(p, 2), t, { inst: "bowed", gain: GAIN_BOWED * 1.05 });
+      t += this.breath() * 1.3;
+    }
+    return t;
+  }
+
   interlude(g, t) {
     const rng = this.rng;
     const start = t;
@@ -615,6 +779,113 @@ export class Composer {
     this.kit.bell(g, rng() < 0.5 ? 'D4' : 'A3', t, 0.085);
     return Math.max(t + 3, start + 18);
   }
+
+  // ----- nálada „crusade“ (Křížová výprava) -----
+  // bubnový rytmus: takt o 8 jednotkách
+  drums(g, t, bars, u, heavy = 1) {
+    const pat = ['L', 0, 'S', 'L', 'L', 0, 'S', 'S'];
+    for (let b = 0; b < bars; b++) {
+      pat.forEach((x, i) => {
+        if (!x) return;
+        const at = t + (b * 8 + i) * u;
+        if (x === 'L') this.kit.drum(g, i === 0 ? 'HDrumL_Hit' : 'HDrumL_HitMuted', at, (i === 0 ? 0.16 : 0.1) * heavy);
+        else this.kit.drum(g, 'HDrumS_Hand', at, 0.08 * heavy);
+      });
+    }
+    return t + bars * 8 * u;
+  }
+
+  // útok: bubny a fanfáry flétny, harfa udeří basový tón na začátku taktu
+  charge(g, t) {
+    const u = 0.24;
+    const start = t;
+    t = this.drums(g, t, 2, u);
+    for (const ph of [FANFARE[0], FANFARE[1], FANFARE[2], FANFARE[1]]) {
+      const p = ph.map(([name, units]) => ({ name, units, d: units * u * (1 + (this.rng() * 2 - 1) * 0.03) }));
+      const total = p.reduce((x, n) => x + n.d, 0);
+      const bars = Math.ceil(total / (8 * u));
+      this.drums(g, t, bars, u);
+      for (let b = 0; b < bars; b++) this.kit.harp(g, b % 2 ? 'A2' : 'D2', t + b * 8 * u, 0.12);
+      this.kit.line(g, p, t, { inst: 'recorder', gain: GAIN_RECORDER * 1.05 });
+      t += bars * 8 * u;
+    }
+    this.kit.drum(g, 'HDrumL_Hit', t, 0.17);
+    return Math.max(t + 1.2, start + 12);
+  }
+
+  // válečný hymnus: smyčcový žaltář tremolem (opakované tahy smyčcem), těžký buben, umíráček
+  warhymn(g, t) {
+    const u = 0.42;
+    const start = t;
+    this.kit.bell(g, 'D3', t + 0.1, 0.07);
+    for (const ph of WARHYMN) {
+      const notes = [];
+      for (const [name, units] of ph) {
+        // tremolo: dlouhý tón rozdělený na rychlé tahy smyčcem
+        const d = units * u;
+        const n = Math.max(1, Math.round(d / 0.21));
+        for (let k = 0; k < n; k++) notes.push({ name: octaveUp(octaveUp(name)), units: 1, d: d / n });
+      }
+      const total = notes.reduce((x, n) => x + n.d, 0);
+      for (let at = t; at < t + total - 0.01; at += 4 * u) this.kit.drum(g, 'HDrumL_Hit', at, 0.14);
+      for (let at = t + 2 * u; at < t + total - 0.01; at += 4 * u) this.kit.drum(g, 'HDrumL_HitMuted', at, 0.08);
+      this.kit.harp(g, ph[0][0], t, 0.1);
+      this.kit.harp(g, 'D2', t + 0.03, 0.1);
+      t = this.kit.line(g, notes, t, { inst: 'bowed', gain: GAIN_BOWED * 0.8 });
+      t += u;
+    }
+    this.kit.bell(g, 'D3', t, 0.08);
+    return Math.max(t + 1.5, start + 12);
+  }
+
+  // pochod: flétna, bubny, harfa v kvintách
+  march(g, t) {
+    const u = 0.3;
+    const start = t;
+    for (const ph of [MARCH[0], MARCH[1], MARCH[0], MARCH[1]]) {
+      const p = ph.map(([name, units]) => ({ name, units, d: units * u }));
+      const total = p.reduce((x, n) => x + n.d, 0);
+      const bars = Math.ceil(total / (8 * u));
+      this.drums(g, t, bars, u, 0.85);
+      for (let b = 0; b < bars; b++) {
+        this.kit.harp(g, 'D3', t + b * 8 * u, 0.08);
+        this.kit.harp(g, 'A2', t + b * 8 * u + 4 * u, 0.08);
+      }
+      this.kit.line(g, p, t, { inst: 'recorder', gain: GAIN_RECORDER });
+      t += bars * 8 * u;
+    }
+    return Math.max(t + 0.8, start + 10);
+  }
+
+  // ----- znělka Konkláve (po pádu Papeže) -----
+  conclave(g, t) {
+    // umíráček: zvon na D třikrát, varhanní akord (prodleva DRONE.conclave), pak pomalé Veni na smyčcový žaltář
+    for (let k = 0; k < 3; k++) this.kit.bell(g, 'D3', t + 0.15 + k * 2.2, 0.09);
+    const p = VENI.map(([name, units]) => ({ name, units, d: units * 0.62 }));
+    let e = this.kit.line(g, shift(p, 2), t + 3.2, { inst: 'bowed', gain: GAIN_BOWED * 0.75 });
+    this.kit.harp(g, 'D3', t + 3.2, 0.07);
+    this.kit.harp(g, 'A2', e - 1.2, 0.06);
+    // radostné zvony na konci (bílý dým)
+    this.kit.bell(g, 'A3', e + 0.2, 0.06);
+    this.kit.bell(g, 'D4', e + 0.55, 0.07);
+    e += 2.2;
+    return e;
+  }
+}
+
+// Sběrnice jednoho oddílu: vlastní hlasitost a seznam zdrojů, aby šel oddíl rychle ztlumit a zastavit
+function sectionBus(g) {
+  const gain = g.ctx.createGain();
+  gain.connect(g.bus);
+  const sec = { ctx: g.ctx, bus: gain, gain, nodes: new Set(), end: 0 };
+  sec.track = (src, stopAt) => {
+    sec.nodes.add(src);
+    g.nodes.add(src);
+    src.onended = () => { sec.nodes.delete(src); g.nodes.delete(src); };
+    src.stop(stopAt);
+    return src;
+  };
+  return sec;
 }
 
 // ---------- přehrávač ----------
@@ -626,8 +897,12 @@ export class MusicPlayer {
     this.g = null;
     this.kit = null;
     this.kitPromise = null;
+    this.fetched = null;
     this.timer = null;
     this.next = 0;
+    this.mood = 'normal';
+    this.sections = [];
+    this.cueUntil = 0;
     this.base = new URL('../music/', import.meta.url).href;
     document.addEventListener('visibilitychange', () => this.onVisibility());
   }
@@ -640,7 +915,12 @@ export class MusicPlayer {
     if (on) this.start(); else this.stop();
   }
 
-  // volat po gestu uživatele (zvuk je odemčený)
+  // stáhne nahrávky hned při načtení stránky (bez zvuku), aby hudba po prvním kliknutí začala hned
+  prefetch() {
+    if (this.on && !this.fetched) this.fetched = fetchSamples(this.base).catch(() => null);
+  }
+
+  // volat po gestu uživatele (zvuk je odemčený) i hned po načtení stránky
   autostart() { if (this.on && !this.g) this.start(); }
 
   start() {
@@ -649,34 +929,88 @@ export class MusicPlayer {
     const g = new Graph(ctx, ctx.destination, LITE ? 2.5 : 4.6);
     this.g = g;
     if (!this.kitPromise) {
-      this.kitPromise = loadKit(ctx, this.base).catch((e) => {
-        console.warn('Hudba: vzorky se nenačetly, hraje syntéza', e);
-        return new SynthKit();
-      });
+      this.prefetch();
+      this.kitPromise = (this.fetched || Promise.resolve(null))
+        .then((f) => (f ? decodeKit(ctx, f) : loadKit(ctx, this.base)))
+        .catch((e) => {
+          console.warn('Hudba: vzorky se nenačetly, hraje syntéza', e);
+          return new SynthKit();
+        });
     }
     this.kitPromise.then((kit) => {
       if (this.g !== g) return; // mezitím vypnuto
       this.kit = kit;
-      const t = ctx.currentTime + 0.2;
+      const t = ctx.currentTime + 0.05;
       g.out.gain.setValueAtTime(0.0001, t);
-      g.out.gain.exponentialRampToValueAtTime(LEVEL, t + 2.5);
-      if (kit.drone && kit.droneNext !== undefined) kit.droneNext = null;
+      g.out.gain.exponentialRampToValueAtTime(LEVEL, t + 0.6);
+      if (kit.droneNext !== undefined) kit.droneNext = null;
       this.composer = new Composer(kit);
       this.next = t;
       this.tick();
-      this.timer = setInterval(() => this.tick(), 500);
+      this.timer = setInterval(() => this.tick(), 400);
     });
   }
 
+  // naplánuje další oddíl, když se blíží konec naplánovaného
   tick() {
     const g = this.g;
     if (!g || !this.composer || document.hidden) return;
     const now = g.ctx.currentTime;
-    if (this.next < now + 0.2) {
-      this.next = now + 0.5;
+    if (this.next < now + 0.1) {
+      this.next = now + 0.3;
       if (this.kit.droneNext !== undefined) this.kit.droneNext = null;
     }
-    if (this.next - now < 3) this.next = this.composer.section(g, this.next);
+    if (this.next - now < 3) this.schedule(this.next);
+    // uklidit doznělé oddíly
+    this.sections = this.sections.filter((sec) => {
+      if (sec.end + 6 > now) return true;
+      try { sec.gain.disconnect(); } catch (e) { /* nic */ }
+      return false;
+    });
+  }
+
+  schedule(t, forced = null) {
+    const sec = sectionBus(this.g);
+    sec.end = this.composer.section(sec, t, this.mood, forced);
+    this.sections.push(sec);
+    this.next = sec.end;
+  }
+
+  // utlumí vše naplánované (do ~1 s) a začne znovu od `at`
+  cut(at) {
+    const g = this.g;
+    if (!g) return;
+    const now = g.ctx.currentTime;
+    for (const sec of this.sections) {
+      const p = sec.gain.gain;
+      p.cancelScheduledValues(now);
+      p.setValueAtTime(p.value, now);
+      p.linearRampToValueAtTime(0.0001, now + 0.9);
+      for (const n of sec.nodes) { try { n.stop(now + 1); } catch (e) { /* už zastaveno */ } }
+      sec.end = now + 1;
+    }
+    if (this.kit && this.kit.droneNext !== undefined) this.kit.droneNext = null;
+    this.next = at;
+  }
+
+  // nálada hudby: 'normal' nebo 'crusade' (odvozená ze stavu hry – platí i po obnovení partie)
+  setMood(mood) {
+    if (mood === this.mood) return;
+    this.mood = mood;
+    if (!this.g || !this.composer) return;
+    const now = this.g.ctx.currentTime;
+    if (this.cueUntil > now) return; // znělka Konkláve dohraje, pak naváže nová nálada
+    this.cut(now + 0.25);
+    this.schedule(this.next);
+  }
+
+  // znělka Konkláve po pádu Papeže (pevná délka), pak se vrátí aktuální nálada
+  cue(kind) {
+    if (!this.g || !this.composer) return;
+    const now = this.g.ctx.currentTime;
+    this.cut(now + 1.1);
+    this.schedule(this.next, kind);
+    this.cueUntil = this.next;
   }
 
   stop() {
@@ -693,6 +1027,7 @@ export class MusicPlayer {
     if (this.kit && this.kit.kind === 'synth') this.kit = null, this.kitPromise = null;
     setTimeout(() => { try { g.duckG.disconnect(); } catch (e) { /* nic */ } }, 900);
     this.g = null;
+    this.sections = [];
   }
 
   onVisibility() {
@@ -716,11 +1051,17 @@ export class MusicPlayer {
     p.setTargetAtTime(1, now + hold, 0.7);
   }
 
-  // reakce na události hry
+  // reakce na události hry: pád Papeže spustí znělku Konkláve (zvony zvukových efektů jen krátce ztlumí
+  // hudbu), vyhlášení Křížové výpravy krátce ztlumí hudbu pro roh; nálada se pak změní přes setMood
   react(evs) {
+    if (evs.some((e) => e.type === 'popeFall') && !evs.some((e) => e.type === 'gameover')) {
+      this.duck(0.5, 1.2);
+      this.cue('conclave');
+      return;
+    }
     let lvl = 1, hold = 0;
     for (const e of evs) {
-      const m = { popeFall: [0.25, 3.5], conclave: [0.3, 3.2], crusade: [0.35, 3], heat: [0.4, 2.2], absolve: [0.55, 1.6], gameover: [0.12, 9] }[e.type];
+      const m = { crusade: [0.4, 2], heat: [0.45, 1.8], absolve: [0.6, 1.4], gameover: [0.12, 9] }[e.type];
       if (m && m[0] < lvl) { lvl = m[0]; hold = Math.max(hold, m[1]); }
     }
     if (lvl < 1) this.duck(lvl, hold);
@@ -730,16 +1071,25 @@ export class MusicPlayer {
   kitKind() { return this.kit ? this.kit.kind : 'none'; }
 }
 
-// Offline vykreslení pro ověření (bez zvuku): vrátí AudioBuffer a přehled oddílů
-export async function renderOffline(seconds = 120, rate = 22050, seed = 7, { base = null, synth = false } = {}) {
+// Offline vykreslení pro ověření (bez zvuku): vrátí AudioBuffer a přehled oddílů.
+// `plan` = posloupnost oddílů (např. ['intro', 'charge', 'conclave']); jinak nálada `mood`.
+export async function renderOffline(seconds = 120, rate = 22050, seed = 7, { base = null, synth = false, mood = 'normal', plan = null } = {}) {
   used.clear();
+  for (const k of Object.keys(shiftStats)) delete shiftStats[k];
   const ctx = new OfflineAudioContext(2, Math.ceil(seconds * rate), rate);
   const g = new Graph(ctx, ctx.destination, 3);
   const kit = synth ? new SynthKit() : await loadKit(ctx, base || new URL('../music/', import.meta.url).href);
   const comp = new Composer(kit, seed);
   let t = 0.1;
   const sections = [];
-  while (t < seconds) { const k0 = t; t = comp.section(g, t); sections.push([comp.last, +k0.toFixed(1), +t.toFixed(1)]); }
+  let i = 0;
+  while (t < seconds) {
+    const k0 = t;
+    const sec = sectionBus(g);
+    t = comp.section(sec, t, mood, plan && i < plan.length ? plan[i] : null);
+    i++;
+    sections.push([comp.last, +k0.toFixed(1), +t.toFixed(1)]);
+  }
   const buf = await ctx.startRendering();
-  return { buf, sections, used: [...used].sort(), kit: kit.kind };
+  return { buf, sections, used: [...used].sort(), kit: kit.kind, shifts: { ...shiftStats } };
 }
