@@ -1,14 +1,14 @@
 // Schizma – aplikace (lobby, deska, online hra)
-import * as E from './engine.js?v=22';
-import { pieceSVG, CHIP_SVG, HEAT_SVG, CRUSADE_CHIP_SVG, ICON } from './pieces.js?v=22';
-import { FX } from './fx.js?v=22';
-import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=22';
-import { RULES_HTML } from './rules.js?v=22';
-import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=22';
-import { MusicPlayer } from './music.js?v=22';
+import * as E from './engine.js?v=23';
+import { pieceSVG, CHIP_SVG, HEAT_SVG, CRUSADE_CHIP_SVG, ICON } from './pieces.js?v=23';
+import { FX } from './fx.js?v=23';
+import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=23';
+import { RULES_HTML } from './rules.js?v=23';
+import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=23';
+import { MusicPlayer } from './music.js?v=23';
 
 const music = new MusicPlayer(getCtx);
-import { LEVELS } from './ai.js?v=22';
+import { LEVELS } from './ai.js?v=23';
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -1446,7 +1446,7 @@ class Game {
     this.aiWait = new Map();
     this.aiBases = [new URL('../model/', import.meta.url).href];
     try {
-      this.worker = new Worker(new URL('./ai-worker.js?v=22', import.meta.url), { type: 'module' });
+      this.worker = new Worker(new URL('./ai-worker.js?v=23', import.meta.url), { type: 'module' });
       this.worker.onmessage = (e) => {
         const cb = this.aiWait.get(e.data.id);
         if (cb) { this.aiWait.delete(e.data.id); cb(e.data); }
@@ -1473,7 +1473,7 @@ class Game {
         return this.aiCall(msg);
       });
     }
-    return import('./ai.js?v=22').then(async (A) => {
+    return import('./ai.js?v=23').then(async (A) => {
       if (!this.aiModel) {
         this.aiKind = 'material';
         this.aiModel = A.materialModel;
@@ -1571,7 +1571,7 @@ class Game {
   // Celý seznam akcí (~5 znaků na tah) – i partie o 600 půltazích se vejde do limitu zprávy ntfy (4 kB)
   setupChat() {
     $('chat').hidden = false;
-    const quick = ['Dobrý tah!', 'Kaj se!', 'Monitum!', 'Deus vult!'];
+    const quick = ['Dobrý tah!', 'Kaj se!', 'Monitum!', 'Deus vult!', 'ViniKAJÍCNĚ!'];
     $('chat-quick').innerHTML = '';
     for (const q of quick) {
       const b = document.createElement('button');
