@@ -5,6 +5,8 @@ Online hra šachové varianty **Schizma** – dva papežové, jen jedna pravá v
 
 **Hrát:** https://kuchartobias-source.github.io/remorse_chess/
 
+Původní nápad na tuto šachovou variantu (Remorse Chess) má [@bardelo_bardalini](https://www.instagram.com/bardelo_bardalini/) na Instagramu.
+
 ## Jak hrát ve dvou
 
 1. Na úvodní stránce zvol barvu a klikni na **Založit online hru**.
