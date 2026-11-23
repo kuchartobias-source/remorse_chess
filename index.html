@@ -10,8 +10,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=19">
-  <link rel="stylesheet" href="css/fx.css?v=19">
+  <link rel="stylesheet" href="css/style.css?v=20">
+  <link rel="stylesheet" href="css/fx.css?v=20">
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -43,6 +43,11 @@
       <p class="lead">Rozhoduje inkvizice, vina a oheň. Figurky po zabití propadají pokání, Hranice planou podle úspěchů Inkvizitora a heretického vzdoropapeže čeká jediný ze dvou konců: plameny hranice, nebo potupné podrobení.</p>
     </section>
     <section class="cards">
+      <div class="card continue" id="continue-card" hidden>
+        <h2>Pokračovat ve hře</h2>
+        <p>Rozehrané partie v tomto prohlížeči.</p>
+        <div class="continue-list" id="continue-list"></div>
+      </div>
       <div class="card">
         <h2>Online hra s přítelem</h2>
         <p>Založ hru, pošli soupeři odkaz a hrajte každý na svém zařízení.</p>
@@ -170,6 +175,6 @@
     <div class="rbody" id="rules-body"></div>
   </dialog>
 
-  <script type="module" src="js/app.js?v=19"></script>
+  <script type="module" src="js/app.js?v=20"></script>
 </body>
 </html>

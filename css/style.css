@@ -505,3 +505,8 @@ footer.foot { text-align: center; color: var(--dim); font-size: 14px; padding: 8
 .history .hrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .history .hrow .row { flex: none; display: flex; gap: 6px; }
 .history .hres.win { color: #9fd38a; } .history .hres.loss { color: #e48a8a; }
+
+/* Pokračovat v rozehrané hře */
+.card.continue { border-color: rgba(214,171,76,.55); box-shadow: 0 0 18px rgba(214,171,76,.12); }
+.continue-list .hrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.continue-list .hrow:last-child { border-bottom: 0; }

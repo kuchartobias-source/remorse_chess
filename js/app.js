@@ -1,14 +1,14 @@
 // Schizma – aplikace (lobby, deska, online hra)
-import * as E from './engine.js?v=19';
-import { pieceSVG, CHIP_SVG, HEAT_SVG, CRUSADE_CHIP_SVG, ICON } from './pieces.js?v=19';
-import { FX } from './fx.js?v=19';
-import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=19';
-import { RULES_HTML } from './rules.js?v=19';
-import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=19';
-import { MusicPlayer } from './music.js?v=19';
+import * as E from './engine.js?v=20';
+import { pieceSVG, CHIP_SVG, HEAT_SVG, CRUSADE_CHIP_SVG, ICON } from './pieces.js?v=20';
+import { FX } from './fx.js?v=20';
+import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=20';
+import { RULES_HTML } from './rules.js?v=20';
+import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=20';
+import { MusicPlayer } from './music.js?v=20';
 
 const music = new MusicPlayer(getCtx);
-import { LEVELS } from './ai.js?v=19';
+import { LEVELS } from './ai.js?v=20';
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -103,6 +103,32 @@ function showLobby() {
     location.hash = `stroj=${c}&uroven=${aiLevel}`;
   };
   setupHistory();
+  setupContinue();
+}
+
+// Rozehrané partie, ve kterých lze pokračovat (z historie v tomto prohlížeči)
+function resumeHash(x) {
+  if (x.res) return null;
+  if (x.kind === 'online') return ROOM_RE.test(x.id) ? 'hra=' + x.id : null;
+  if (x.kind === 'ai') {
+    const s = store.get(KEY + 'ai');
+    return s && s.id === x.id && !s.ext ? `stroj=${other(s.color)}&uroven=${s.level}` : null;
+  }
+  const s = store.get(KEY + 'local');
+  return s && s.id === x.id && !s.ext ? 'mistni' + (s.flip ? '&otacet=1' : '') : null;
+}
+
+function setupContinue() {
+  const list = (store.get(KEY + 'archive') || []).map((x) => ({ x, h: resumeHash(x) })).filter((r) => r.h).slice(0, 5);
+  const card = $('continue-card');
+  card.hidden = !list.length;
+  if (!list.length) return;
+  $('continue-list').innerHTML = list.map(({ x, h }, i) => {
+    const side = x.me ? ` · hraješ za ${x.me === 'w' ? 'bílé' : 'černé'}` : '';
+    return `<div class="hrow"><div class="hinfo"><b>${escapeHTML(x.desc)}</b>${side}<br><small>${fmtDate(x.u || x.t)} · ${x.a.length} půltahů</small></div>`
+      + `<button class="btn small${i === 0 ? ' primary' : ''}" data-go="${escapeHTML(h)}" type="button">Pokračovat</button></div>`;
+  }).join('');
+  $('continue-list').querySelectorAll('[data-go]').forEach((b) => { b.onclick = () => { location.hash = b.dataset.go; }; });
 }
 
 // ---------------- Historie partií ----------------
@@ -1390,7 +1416,7 @@ class Game {
     this.aiWait = new Map();
     this.aiBases = [new URL('../model/', import.meta.url).href];
     try {
-      this.worker = new Worker(new URL('./ai-worker.js?v=19', import.meta.url), { type: 'module' });
+      this.worker = new Worker(new URL('./ai-worker.js?v=20', import.meta.url), { type: 'module' });
       this.worker.onmessage = (e) => {
         const cb = this.aiWait.get(e.data.id);
         if (cb) { this.aiWait.delete(e.data.id); cb(e.data); }
@@ -1417,7 +1443,7 @@ class Game {
         return this.aiCall(msg);
       });
     }
-    return import('./ai.js?v=19').then(async (A) => {
+    return import('./ai.js?v=20').then(async (A) => {
       if (!this.aiModel) {
         this.aiKind = 'material';
         this.aiModel = A.materialModel;
