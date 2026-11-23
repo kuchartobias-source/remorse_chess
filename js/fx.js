@@ -265,6 +265,14 @@ export class FX {
     this.add(c, 'quench');
   }
 
+  // Inkvizice: oběť je zajata – fialový závoj a okovy, figurka zmizí ze šachovnice
+  seize(sq) {
+    if (this.off) return;
+    const c = this.cell(sq, 1600);
+    this.add(c, 'seizeveil');
+    this.add(c, 'shackle');
+  }
+
   // Zajetí: řetěz se natáhne od Křižáka k Papeži a okovy sevřou Papeže
   chainLine(from, to, ms = 420) {
     if (this.off) return;

@@ -156,5 +156,6 @@ export const ICON = {
   monitum: '<svg class="ico" viewBox="0 0 20 20"><path d="M10 1.8 L19 17.6 H1 Z" fill="#f07a1a" stroke="#4a1a02" stroke-width="1"/><path d="M9 6.8 H11 L10.7 12.6 H9.3 Z M9 14 H11 V16 H9 Z" fill="#2b1203"/></svg>',
   heat: '<svg class="ico" viewBox="0 0 20 20"><ellipse cx="10" cy="16" rx="8" ry="2.6" fill="#f07a1a"/><path d="M10 2 C6 7 5.5 9.5 5.5 11.5 A4.5 4.5 0 0 0 14.5 11.5 C14.5 9 12.5 7.5 12 5 C11 6.8 10.5 7.4 10 7.8 C10.3 5.8 10.3 3.6 10 2 Z" fill="#ffb12e"/></svg>',
   chain: '<svg class="ico" viewBox="0 0 20 20"><g fill="none" stroke="#c9ccd2" stroke-width="2"><rect x="1.5" y="7" width="8" height="6" rx="3"/><rect x="10.5" y="7" width="8" height="6" rx="3"/></g><path d="M7.5 10 H12.5" stroke="#8d939c" stroke-width="2.2"/></svg>',
+  seal: '<svg class="ico" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.6" fill="#7a3fb8" stroke="#2c0f4a" stroke-width="1"/><circle cx="10" cy="10" r="5.2" fill="none" stroke="#e3cdfa" stroke-width="1"/><path d="M8.9 5.6 H11.1 V8.4 H13.9 V10.6 H11.1 V14.4 H8.9 V10.6 H6.1 V8.4 H8.9 Z" fill="#f3e6ff"/></svg>',
   logs: '<svg class="ico" viewBox="0 0 20 20"><rect x="2" y="11" width="16" height="5" rx="2.5" fill="#8b5a33"/><rect x="5" y="6" width="10" height="5" rx="2.5" fill="#a06a3c"/><path d="M14 3 L6 18" stroke="#f07a1a" stroke-width="1.6"/></svg>',
 };

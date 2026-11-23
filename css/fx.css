@@ -253,3 +253,15 @@
 @keyframes jolt { 20% { transform: translateX(-5%) rotate(-4deg); } 45% { transform: translateX(5%) rotate(4deg); } 70% { transform: translateX(-2%); } }
 .ribbon.captive { background: linear-gradient(180deg, #d9dce2, #8d939c); color: #1d1a1f; border-color: #f1f3f6; }
 .ribbon.captive::before, .ribbon.captive::after { background: #5d636c; }
+
+/* Inkvizice: fialový žeton pod Inkvizitorem (žeton Pokání přebarvený), Inkvizitor se nenaklání */
+.piece.inq .chip { filter: hue-rotate(255deg) saturate(1.3) drop-shadow(0 0 4px rgba(150, 80, 220, .6)); }
+.piece.inq.pen .pc { transform: translateY(-6%); }
+.piece.w.inq.pen .pc { filter: drop-shadow(0 0 4px rgba(150, 80, 220, .55)) drop-shadow(0 2px 1.5px rgba(0,0,0,.55)); }
+.piece.b.inq.pen .pc { filter: drop-shadow(0 0 .6px rgba(255, 228, 190, .85)) drop-shadow(0 0 5px rgba(150, 80, 220, .65)) drop-shadow(0 2px 1.5px rgba(0,0,0,.55)); }
+.seizeveil { position: absolute; inset: -6%; border-radius: 50%; background: radial-gradient(circle, rgba(120, 60, 200, .75), rgba(60, 20, 110, .35) 55%, transparent 72%); animation: seizeveil 1.4s ease-out forwards; }
+@keyframes seizeveil { from { transform: scale(.3); opacity: 0; } 30% { opacity: 1; } to { transform: scale(1.3); opacity: 0; } }
+.piece.die-seized .pc { animation: dieseized 1s ease-in forwards; }
+@keyframes dieseized { 30% { filter: brightness(.5) sepia(1) hue-rotate(220deg); } to { transform: scale(.4) translateY(30%); opacity: 0; filter: blur(3px) hue-rotate(220deg); } }
+.ribbon.inquisition { background: linear-gradient(180deg, #5b2a8a, #2c0f4a); color: #f3e6ff; border-color: #c9a6f0; }
+.ribbon.inquisition::before, .ribbon.inquisition::after { background: #3d1766; }

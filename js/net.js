@@ -4,8 +4,8 @@
 const BASE = 'https://ntfy.sh/';
 // Kód místnosti: 12 znaků
 export const ROOM_RE = /^[a-z0-9]{12}$/;
-// Verze protokolu = verze pravidel (sz1: Schizma)
-const APP = 'sz1';
+// Verze protokolu = verze pravidel (sz2: Schizma s Inkvizicí a imunitou Kardinálů)
+const APP = 'sz2';
 
 export function newRoomId() {
   const a = new Uint8Array(12);

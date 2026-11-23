@@ -234,6 +234,8 @@ export function playEvents(evs) {
     else if (cap.kind === 'burn') sfx.burn(cap.rooks && cap.rooks.length ? 0.05 : 0.1);
     else if (cap.kind === 'execute') sfx.burn(0.05, true);
     else if (cap.kind === 'crusade') sfx.crusade();
+    else if (cap.kind === 'ambush') sfx.crusade();
+    else if (cap.kind === 'inquisition') sfx.clank(0.12);
     else if (cap.kind === 'ep') sfx.secret();
   } else if (mv) {
     if (mv.piece.t === 'R') sfx.leap();
@@ -247,7 +249,7 @@ export function playEvents(evs) {
     if (e.type === 'conclave') sfx.conclave(popeFell ? 2.1 : 1.3);
     if (e.type === 'crusade') sfx.crusadeCall(popeFell ? 3.2 : 0.6);
     if (e.type === 'heat') sfx.heat(0.65, e.level);
-    if (e.type === 'heatLost') sfx.extinguish();
+    if (e.type === 'heatLost' || e.type === 'inqFoiled') sfx.extinguish();
     if (e.type === 'monitum') sfx.monitum(popeFell ? 3 : 0.7);
     if (e.type === 'captive') sfx.clank(0.45);
     if (e.type === 'freed') sfx.unchain(0.4);

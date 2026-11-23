@@ -14,13 +14,16 @@ function t(name, fn) {
 const eq = (a, b, m = '') => { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${m} očekáváno ${JSON.stringify(b)}, je ${JSON.stringify(a)}`); };
 const ok = (v, m) => { if (!v) throw new Error(m || 'nesplněno'); };
 
-// Pozice ze zápisu: {'e1':'wK', 'd4':'bP*'} (* = pokání), tah barvy turn
+// Pozice ze zápisu: {'e1':'wK', 'd4':'bP*', 'a1':'wR3'} (* = pokání / u Inkvizitora žeton Inkvizice,
+// číslice = Žár Hranice), tah barvy turn
 function pos(map, turn = 'w', extra = {}) {
   const s = E.initialState();
   s.board = Array(64).fill(null);
   let id = 100;
   for (const [sq, code] of Object.entries(map)) {
-    s.board[E.sqIndex(sq)] = { id: ++id, c: code[0], t: code[1], pen: code.includes('*') };
+    const pc = { id: ++id, c: code[0], t: code[1], pen: code.includes('*') };
+    if (pc.t === 'R') pc.heat = +(code.match(/\d/) || [1])[0];
+    s.board[E.sqIndex(sq)] = pc;
   }
   s.turn = turn;
   Object.assign(s, extra);
@@ -34,7 +37,7 @@ const kindOf = (s, a) => E.legalMoves(s).find((m) => E.moveToString(m) === a)?.k
 // Hranice daleko v rohu, aby nic neupalovaly
 const FAR = { a1: 'wR', h1: 'wR', a8: 'bR', h8: 'bR' };
 
-t('Výchozí pozice: Hříšníci 16 tahů + Misionáři 4 + Hranice 0', () => eq(acts(E.initialState()).length, 20));
+t('Výchozí pozice: Poutníci 16 tahů + Misionáři 4 + Hranice 0', () => eq(acts(E.initialState()).length, 20));
 
 t('Výchozí jezdci jsou Misionáři, střelci Kardinálové', () => {
   const s = E.initialState();
@@ -77,7 +80,7 @@ t('Hranice nebere a nelze ji odstranit', () => {
 });
 
 t('Hranice se Žárem 3 skáče až o 3 pole přes figurky', () => {
-  const s = pos({ e1: 'wK', e8: 'bK', d4: 'wR', d5: 'wP', d6: 'bP', a1: 'wR', a8: 'bR', h8: 'bR', h1: 'wQ' }, 'w', { inq: { w: 3, b: 0 } });
+  const s = pos({ e1: 'wK', e8: 'bK', d4: 'wR3', d5: 'wP', d6: 'bP', a1: 'wR', a8: 'bR', h8: 'bR', h1: 'wQ' });
   ok(has(s, 'd4d7'));
   ok(has(s, 'd4g1'));
   ok(!has(s, 'd4d8'));
@@ -99,32 +102,61 @@ t('Poutník neupaluje – v dosahu Hranice bere s pokáním', () => {
 });
 
 t('Žár neblokují překážky', () => {
-  const s = pos({ e1: 'wK', e8: 'bK', d4: 'wR', a1: 'wR', a8: 'bR', h8: 'bR', h5: 'wQ', e5: 'bN', d5: 'wP' }, 'w', { inq: { w: 1, b: 0 } });
+  const s = pos({ e1: 'wK', e8: 'bK', d4: 'wR', a1: 'wR', a8: 'bR', h8: 'bR', h5: 'wQ', e5: 'bN', d5: 'wP' });
   // e5 je v poloměru 1 od d4, Inkvizitor h5 bere e5 upálením
   eq(kindOf(s, 'h5e5'), 'burn');
 });
 
-// ---------- Žár ----------
-t('Inkvizice zvyšují Žár (1 → úroveň 2, 3 → úroveň 3)', () => {
-  let s = pos({ ...FAR, e1: 'wK', e8: 'bK', d1: 'wQ', d5: 'bP', c8: 'bB' });
-  eq(E.heatOf(s, 'w'), 1);
+// ---------- Inkvizitor a Žár ----------
+t('Inkvizitor v dosahu Hranice upaluje bez žetonu, Žár neroste', () => {
+  const s = pos({ e1: 'wK', e8: 'bK', d1: 'wR', h1: 'wR', a8: 'bR', h8: 'bR', a5: 'wQ', d2: 'bN', c8: 'bB' });
+  eq(kindOf(s, 'a5d2'), 'burn');
+  const r = apply(s, 'a5d2');
+  ok(!P(r.state, 'd2').pen, 'bez žetonu');
+  eq(P(r.state, 'd1').heat, 1);
+});
+
+t('Inkvizitor mimo dosah zahájí Inkvizici: žeton, nesmí brát, nikdy Pokání', () => {
+  const s = pos({ ...FAR, e1: 'wK', e8: 'bK', d1: 'wQ', d5: 'bP', c5: 'bN', c8: 'bB' });
+  eq(kindOf(s, 'd1d5'), 'inquisition');
   const r = apply(s, 'd1d5');
-  eq(r.state.inq.w, 1); eq(E.heatOf(r.state, 'w'), 2);
+  ok(E.hasToken(P(r.state, 'd5')), 'žeton Inkvizice');
+  ok(!E.isPenitent(P(r.state, 'd5')), 'není Pokání');
+  ok(r.events.some((e) => e.type === 'inqStart'));
+  const s2 = apply(r.state, 'e8f8').state;
+  ok(!has(s2, 'd5c5'), 's žetonem nesmí brát');
+});
+
+t('Dokončení Inkvizice u Hranice: Žár té Hranice +1, žeton zmizí', () => {
+  const s = pos({ e1: 'wK', e8: 'bK', a1: 'wR', h1: 'wR', a8: 'bR', h8: 'bR', c3: 'wQ*', c8: 'bB' });
+  const r = apply(s, 'c3b2');
+  ok(!E.hasToken(P(r.state, 'b2')));
+  eq(P(r.state, 'a1').heat, 2);
+  eq(P(r.state, 'h1').heat, 1);
   ok(r.events.some((e) => e.type === 'heat' && e.level === 2));
-  s = pos({ ...FAR, e1: 'wK', e8: 'bK', d1: 'wQ', d5: 'bP', c8: 'bB' }, 'w', { inq: { w: 2, b: 0 } });
-  eq(E.heatOf(apply(s, 'd1d5').state, 'w'), 3);
+  // druhá inkvizice → 3. úroveň (maximum), třetí už Žár nezvýší
+  const s3 = pos({ e1: 'wK', e8: 'bK', a1: 'wR2', h1: 'wR', a8: 'bR', h8: 'bR', c3: 'wQ*', c8: 'bB' });
+  eq(P(apply(s3, 'c3b2').state, 'a1').heat, 3);
+  const s4 = pos({ e1: 'wK', e8: 'bK', a1: 'wR3', h1: 'wR', a8: 'bR', h8: 'bR', c3: 'wQ*', c8: 'bB' });
+  const r4 = apply(s4, 'c3b2');
+  eq(P(r4.state, 'a1').heat, 3); ok(!E.hasToken(P(r4.state, 'b2')));
 });
 
-t('Ztráta posledního Inkvizitora vynuluje Žár', () => {
-  const s2 = pos({ ...FAR, e1: 'wK', e8: 'bK', d4: 'wQ', e5: 'bB', c8: 'bB' }, 'b', { inq: { w: 3, b: 0 } });
-  const r2 = apply(s2, 'e5d4');
-  eq(r2.state.inq.w, 0);
-  ok(r2.events.some((e) => e.type === 'heatLost' && e.color === 'w'));
+t('Hranice může přiskočit k Inkvizitorovi; u dvou Hranic dostane Žár ta s nižším Žárem', () => {
+  const s = pos({ e1: 'wK', e8: 'bK', a1: 'wR', h1: 'wR', a8: 'bR', h8: 'bR', c3: 'wQ*', c8: 'bB' });
+  eq(P(apply(s, 'a1b2').state, 'b2').heat, 2);
+  const s2 = pos({ e1: 'wK', e8: 'bK', b2: 'wR2', d2: 'wR', a8: 'bR', h8: 'bR', c4: 'wQ*', c8: 'bB' });
+  const r2 = apply(s2, 'c4c3');
+  eq(P(r2.state, 'd2').heat, 2); eq(P(r2.state, 'b2').heat, 2);
 });
 
-t('S dvěma Inkvizitory Žár trvá, dokud žije aspoň jeden', () => {
-  const s = pos({ ...FAR, e1: 'wK', e8: 'bK', d4: 'wQ', g2: 'wQ', e5: 'bB', c8: 'bB' }, 'b', { inq: { w: 2, b: 0 } });
-  eq(apply(s, 'e5d4').state.inq.w, 2);
+t('Přepadení Inkvizitora s žetonem nezpůsobuje Pokání; Žár smrtí Inkvizitora nepadá', () => {
+  const s = pos({ e1: 'wK', e8: 'bK', a1: 'wR3', h1: 'wR', a8: 'bR', h8: 'bR', d4: 'wQ*', e5: 'bP', c8: 'bB', d8: 'bQ' }, 'b');
+  eq(kindOf(s, 'e5d4'), 'ambush');
+  const r = apply(s, 'e5d4');
+  ok(!P(r.state, 'd4').pen);
+  ok(r.events.some((e) => e.type === 'inqFoiled'));
+  eq(P(r.state, 'a1').heat, 3);
 });
 
 // ---------- Papež ----------
@@ -155,10 +187,10 @@ t('Křižák Papeže jen upálí v dosahu Hranice, jinak bere bez pokání', () 
 
 t('Zajetí: Papež ohrožený Křižákem skokem jezdce se nepohne', () => {
   const s = pos({ ...FAR, e1: 'wK', e5: 'bK', d3: 'wC', c8: 'bB', d8: 'bQ' }, 'b');
-  ok(E.isCaptive(s, 'b'));
+  ok(E.isPopeCaptive(s, 'b'));
   ok(!acts(s).some((a) => a.startsWith('e5')));
   const s2 = pos({ ...FAR, e1: 'wK', e5: 'bK', d4: 'wC', c8: 'bB', d8: 'bQ' }, 'b');
-  ok(!E.isCaptive(s2, 'b'));
+  ok(!E.isPopeCaptive(s2, 'b'));
   ok(acts(s2).some((a) => a.startsWith('e5')));
 });
 
@@ -171,18 +203,18 @@ t('Zajetí vzniká a pomíjí tahem Křižáka (události)', () => {
 });
 
 t('Zajatý Papež nezpovídá', () => {
-  const s = pos({ ...FAR, e1: 'wK', e5: 'bK', d3: 'wC', c8: 'bB', d8: 'bQ', g6: 'bQ*' }, 'b');
-  const r = apply(s, 'g6f6');
+  const s = pos({ ...FAR, e1: 'wK', e5: 'bK', d3: 'wC', c8: 'bB', d8: 'bQ', f7: 'bP*' }, 'b');
+  const r = apply(s, 'f7f6');
   ok(P(r.state, 'f6').pen, 'vedle zajatého Papeže zůstává v pokání');
-  const s2 = pos({ ...FAR, e1: 'wK', e5: 'bK', d4: 'wC', c8: 'bB', d8: 'bQ', g6: 'bQ*' }, 'b');
-  ok(!P(apply(s2, 'g6f6').state, 'f6').pen);
+  const s2 = pos({ ...FAR, e1: 'wK', e5: 'bK', d4: 'wC', c8: 'bB', d8: 'bQ', f7: 'bP*' }, 'b');
+  ok(!P(apply(s2, 'f7f6').state, 'f6').pen);
 });
 
 t('Odstranění Křižáka zajetí ukončí', () => {
   const s = pos({ ...FAR, e1: 'wK', e5: 'bK', d3: 'wC', c8: 'bB', d8: 'bQ' }, 'b');
   const r = apply(s, 'd8d3');
   ok(r.events.some((e) => e.type === 'freed' && e.color === 'b'));
-  ok(!E.isCaptive(r.state, 'b'));
+  ok(!E.isPopeCaptive(r.state, 'b'));
 });
 
 t('Smrt Inkvizitora vyhlásí Křížovou výpravu', () => {
@@ -224,14 +256,57 @@ t('Papež zpovídá i diagonálně, Kardinál se zpovídá jen u Papeže', () =>
   ok(r2.state.board[E.sqIndex('b3')].pen, 'Kardinál se u Kardinála nezpovídá');
 });
 
-t('Inkvizitor se zpovídá u Kardinála', () => {
+t('Žeton Inkvizice zpověď neodstraní', () => {
   const s = pos({ ...FAR, e1: 'wK', e8: 'bK', c1: 'wB', f2: 'wQ*' });
-  ok(!P(apply(s, 'f2c2').state, 'c2').pen);
+  ok(E.hasToken(P(apply(s, 'f2c2').state, 'c2')));
+});
+
+// ---------- Kardinálové ----------
+t('Čistý Kardinál padne jen Upálením, nikdy Poutníkem', () => {
+  const s = pos({ ...FAR, e1: 'wK', e8: 'bK', d4: 'wP', e5: 'bB', d3: 'wN', g7: 'wQ' });
+  ok(!has(s, 'd4e5'), 'Poutník ne');
+  ok(!has(s, 'd3e5'), 'Misionář mimo dosah ne');
+  ok(!has(s, 'g7e5'), 'Inkvizitor mimo dosah ne');
+  const s2 = pos({ e1: 'wK', e8: 'bK', f4: 'wR', h1: 'wR', a8: 'bR', h8: 'bR', d4: 'wP', e5: 'bB', d3: 'wN' });
+  ok(!has(s2, 'd4e5'), 'Poutník ani v dosahu');
+  eq(kindOf(s2, 'd3e5'), 'burn');
+});
+
+t('Kající se Kardinál o imunitu přichází', () => {
+  const s = pos({ ...FAR, e1: 'wK', e8: 'bK', d4: 'wP', e5: 'bB*', g7: 'wQ' });
+  eq(kindOf(s, 'd4e5'), 'penance');
+  eq(kindOf(s, 'g7e5'), 'inquisition');
+});
+
+t('Zajatý Kardinál se nepohne, nezpovídá a nejde do Konkláve', () => {
+  const s = pos({ a1: 'wR', h1: 'wR', d7: 'wR', h8: 'bR', e8: 'bK', c8: 'bB', f5: 'bB', g3: 'wC', h5: 'wQ', e1: 'wK' });
+  // Křižák g3 drží Kardinála f5 (skok jezdce)
+  ok(E.isCaptiveAt(s, E.sqIndex('f5')));
+  const r = apply(s, 'h5e8');
+  ok(!r.state.conclave, 'jediný způsobilý Kardinál c8 → automatická volba');
+  eq(P(r.state, 'c8').t, 'K');
+  eq(P(r.state, 'f5').t, 'B');
+  const s2 = pos({ ...FAR, e1: 'wK', e8: 'bK', d4: 'bB', e2: 'wC', d6: 'bP*', g8: 'bQ' }, 'b');
+  ok(!acts(s2).some((a) => a.startsWith('d4')), 'zajatý Kardinál netáhne');
+  ok(P(apply(s2, 'd6d5').state, 'd5').pen, 'zajatý Kardinál nezpovídá');
+  const s3 = pos({ ...FAR, e1: 'wK', e8: 'bK', d4: 'bB', e3: 'wC', d6: 'bP*', g8: 'bQ' }, 'b');
+  ok(!P(apply(s3, 'd6d5').state, 'd5').pen, 'volný Kardinál zpovídá');
+});
+
+t('Anathema, když jsou všichni čistí Kardinálové v zajetí', () => {
+  const s = pos({ a1: 'wR', h1: 'wR', d7: 'wR', h8: 'bR', e8: 'bK', f5: 'bB', g3: 'wC', h5: 'wQ', e1: 'wK' });
+  eq(apply(s, 'h5e8').state.result, { winner: 'w', reason: 'anathema' });
+});
+
+t('Interdikt: jen tahy Hranicí nestačí', () => {
+  const s = pos({ a1: 'wR', h1: 'wR', b1: 'wK', a2: 'wP*', b2: 'wP*', a3: 'bP', b3: 'bP', c1: 'bN', c2: 'bN', e8: 'bK', g8: 'bR', h7: 'bR' }, 'b');
+  const r = apply(s, 'e8e7');
+  eq(r.state.result, { winner: 'b', reason: 'interdict' });
 });
 
 // ---------- Křížová výprava ----------
 t('Ztráta posledního Kardinála: Misionáři → Křižáci, natrvalo', () => {
-  const s = pos({ ...FAR, e1: 'wK', e8: 'bK', c1: 'wB', b1: 'wN*', g1: 'wN', d2: 'bQ' }, 'b');
+  const s = pos({ ...FAR, e1: 'wK', e8: 'bK', c1: 'wB*', b1: 'wN*', g1: 'wN', d2: 'bQ' }, 'b');
   const r = apply(s, 'd2c1');
   eq(P(r.state, 'b1').t, 'C'); ok(!P(r.state, 'b1').pen);
   eq(P(r.state, 'g1').t, 'C');
@@ -260,7 +335,7 @@ t('Dvojkrok na poslední řadu = Spása (bez Hranice)', () => {
   eq(apply(s, 'd6d8q').state.ep, -1);
 });
 
-t('Tajný hřích po dvojkroku kdekoliv, bez pokání; kající ho nesmí', () => {
+t('Zbloudění po dvojkroku kdekoliv, bez pokání; kající ho nesmí', () => {
   const s = pos({ ...FAR, e1: 'wK', e8: 'bK', d3: 'wP', e5: 'bP' });
   const r = apply(s, 'd3d5');
   ok(has(r.state, 'e5d4'));

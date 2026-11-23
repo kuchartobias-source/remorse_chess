@@ -1,6 +1,6 @@
 // Umělá inteligence Schizmatu: hodnotová síť (MLP natrénovaná samohrou v ai/train.py)
 // + prohledávání o 1–2 půltahy. Kódování pozice odpovídá přesně ai/nn.py.
-import * as E from './engine.js?v=20';
+import * as E from './engine.js?v=21';
 
 const CLASSES = ['P', 'P*', 'N', 'N*', 'C', 'B', 'B*', 'R1', 'R2', 'R3', 'Q', 'Q*', 'K'];
 const NCLS = CLASSES.length;
@@ -16,14 +16,13 @@ export const ROOK_PEN = 0.01;
 export function encode(st) {
   const me = st.turn;
   const op = E.other(me);
-  const lv = { w: E.heatOf(st, 'w'), b: E.heatOf(st, 'b') };
   const flip = me === 'w' ? 0 : 56;
   const idx = [];
   const counts = new Array(2 * NCLS).fill(0);
   for (let sq = 0; sq < 64; sq++) {
     const p = st.board[sq];
     if (!p) continue;
-    const cl = p.t === 'R' ? 6 + lv[p.c] : CLS[p.t][p.pen ? 1 : 0];
+    const cl = p.t === 'R' ? 6 + E.rookHeat(p) : CLS[p.t][p.pen ? 1 : 0];
     const plane = (p.c === me ? 0 : NCLS) + cl;
     idx.push(plane * 64 + (sq ^ flip));
     counts[plane]++;
@@ -31,8 +30,11 @@ export function encode(st) {
   const ex = new Float32Array(N_EXTRA);
   for (let i = 0; i < 2 * NCLS; i++) ex[i] = counts[i] * 0.25;
   const o = 2 * NCLS;
-  ex[o] = st.inq[me] / 3;
-  ex[o + 1] = st.inq[op] / 3;
+  // součet získaného Žáru Hranic (0..4 → 0..1), vlastní a soupeřův
+  const heat = { w: 0, b: 0 };
+  for (const p of st.board) if (p && p.t === 'R') heat[p.c] += E.rookHeat(p) - 1;
+  ex[o] = heat[me] / 4;
+  ex[o + 1] = heat[op] / 4;
   ex[o + 2] = st.crusade[me] ? 1 : 0;
   ex[o + 3] = st.crusade[op] ? 1 : 0;
   ex[o + 4] = st.ep >= 0 ? 1 : 0;
