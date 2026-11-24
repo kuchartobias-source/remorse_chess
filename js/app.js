@@ -1,14 +1,14 @@
 // Schizma – aplikace (lobby, deska, online hra)
-import * as E from './engine.js?v=24';
-import { pieceSVG, CHIP_SVG, HEAT_SVG, CRUSADE_CHIP_SVG, ICON } from './pieces.js?v=24';
-import { FX } from './fx.js?v=24';
-import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=24';
-import { RULES_HTML } from './rules.js?v=24';
-import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=24';
-import { MusicPlayer } from './music.js?v=24';
+import * as E from './engine.js?v=25';
+import { pieceSVG, CHIP_SVG, HEAT_SVG, CRUSADE_CHIP_SVG, ICON } from './pieces.js?v=25';
+import { FX } from './fx.js?v=25';
+import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=25';
+import { RULES_HTML } from './rules.js?v=25';
+import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=25';
+import { MusicPlayer } from './music.js?v=25';
 
 const music = new MusicPlayer(getCtx);
-import { LEVELS } from './ai.js?v=24';
+import { LEVELS } from './ai.js?v=25';
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -34,15 +34,15 @@ const params = new URLSearchParams(location.hash.slice(1));
 
 const INFO = {
   K: 'Papež – táhne o 1 pole. Soupeřovu figurku smí odstranit jen Upálením (cíl v dosahu jeho Hranice) a sám padne jen Upálením v dosahu soupeřovy Hranice – Poutník ho neodstraní nikdy. Pokání nepropadá. Zpovídá všechny (i diagonálně). Ohrožuje-li ho soupeřův Křižák skokem jezdce, je v zajetí: nesmí se pohnout ani zpovídat.',
-  Q: 'Inkvizitor – má odpustky a nikdy nepropadá Pokání. V dosahu Hranice upaluje. Mimo dosah zahájí Inkvizici: dostane oranžový žeton a nesmí brát, dokud nedojde vedle své Hranice – žeton se pak přesune pod ni a její Žár stoupne o 1 (max 3; u dvou Hranic si vybereš).',
+  Q: 'Inkvizitor – má odpustky a nikdy nepropadá Pokání. V dosahu Hranice upaluje. Mimo dosah zahájí Inkvizici: dostane červený žeton a nesmí brát, dokud nedojde vedle své Hranice – žeton se pak přesune pod ni a její Žár stoupne o 1 (max 3; u dvou Hranic si vybereš).',
   R: 'Hranice – nebere a nelze ji odstranit. Skáče na volné pole v poloměru svého Žáru (1–3). Soupeřovy figurky v jejím dosahu lze upálit bez Pokání (neplatí pro Poutníky).',
-  B: 'Kardinál – zpovídá Poutníky a Misionáře (jen vodorovně a svisle), sám se zpovídá u Papeže. Čistý Kardinál padne jen Upálením a může být zvolen Papežem. Ohrožuje-li ho soupeřův Křižák skokem jezdce, je v zajetí.',
+  B: 'Kardinál – zpovídá Poutníky a Misionáře (jen vodorovně a svisle), sám se zpovídá u Papeže. Bezúhonný Kardinál padne jen Upálením a může být zvolen Papežem. Ohrožuje-li ho soupeřův Křižák skokem jezdce, je v zajetí.',
   N: 'Misionář – táhne jako jezdec, po zabití mimo dosah Hranice propadá Pokání. Zpověď u Kardinála nebo Papeže. Když strana přijde o posledního Kardinála nebo Inkvizitora, stane se Křižákem.',
-  C: 'Křižák – táhne jako jezdec a díky papežskému odpustku nikdy nepropadá Pokání. Papeže a čistého Kardinála smí jen upálit (v dosahu Hranice); ohrožuje-li je skokem jezdce, drží je v zajetí.',
-  P: 'Poutník – smí kdykoliv o 1 nebo 2 pole vpřed. Nikdy neupaluje: každé zabití znamená Pokání (kromě Zbloudění a přepadení Inkvizitora). Papeže ani čistého Kardinála odstranit nesmí. Zpověď u Kardinála nebo Papeže.',
+  C: 'Křižák – táhne jako jezdec a díky papežskému odpustku nikdy nepropadá Pokání. Papeže a bezúhonného Kardinála smí jen upálit (v dosahu Hranice); ohrožuje-li je skokem jezdce, drží je v zajetí.',
+  P: 'Poutník – smí kdykoliv o 1 nebo 2 pole vpřed. Nikdy neupaluje: každé Krveprolití znamená Pokání (kromě Svedení a přepadení Inkvizitora). Papeže ani bezúhonného Kardinála odstranit nesmí. Zpověď u Kardinála nebo Papeže.',
 };
 const PEN_INFO = {
-  P: 'Kaje se – nesmí brát (ani Zblouděním), dokud nestojí vodorovně či svisle vedle Kardinála nebo kdekoliv vedle Papeže.',
+  P: 'Kaje se – nesmí brát (Svedení en passant ale smí), dokud nestojí vodorovně či svisle vedle Kardinála nebo kdekoliv vedle Papeže.',
   N: 'Kaje se – nesmí brát, dokud nestojí vodorovně či svisle vedle Kardinála nebo kdekoliv vedle Papeže.',
   Q: 'Probíhá Inkvizice – nesmí brát, dokud nestojí vedle své Hranice (i diagonálně).',
   B: 'Kaje se – přišel o imunitu (padne i běžným zabitím), nesmí brát a nemůže být zvolen Papežem, dokud se nevyzpovídá u Papeže.',
@@ -182,6 +182,9 @@ class BoardView {
     this.pieceLayer = $('pieces');
     this.fx = new FX($('fx'), (sq) => this.posOf(sq), $('fx-under'));
     this.els = new Map();
+    this.timers = new Set();
+    this.busyUntil = 0;
+    this.state = null;
     this.sqEls = new Array(64);
     this.orient = 'w';
     this.buildSquares();
@@ -270,6 +273,8 @@ class BoardView {
   // Srovná DOM se stavem; `events` (události posledního tahu) spustí animace
   sync(state, events = null) {
     const evs = events || [];
+    if (events) this.flush();
+    this.state = state;
     const capEv = evs.find((e) => e.type === 'capture');
     const mvEv = evs.find((e) => e.type === 'move');
     const special = new Set(evs.filter((e) => ['promote', 'conclave', 'penance', 'absolve', 'inqStart', 'inqDone'].includes(e.type)).map((e) => e.id));
@@ -316,14 +321,16 @@ class BoardView {
   }
 
   kill(el, kind, pope = false) {
-    const v = pope ? 'pope' : ({ penance: 'blood', burn: 'burn', execute: 'burn', crusade: 'fall', ambush: 'blood', inquisition: 'seized', ep: 'quiet' }[kind] || 'quiet');
+    const v = pope ? 'pope' : ({ penance: 'blood', burn: 'burn', execute: 'burn', crusade: 'fall', ambush: 'blood', inquisition: 'seized', ep: 'astray' }[kind] || 'quiet');
     el.classList.add('die');
     setTimeout(() => el.classList.add('die-' + v), 170);
     setTimeout(() => el.remove(), 1500);
   }
 
   animate(evs) {
-    const later = (ms, fn) => setTimeout(fn, ms);
+    const later = (ms, fn) => this.later(ms, fn);
+    const Q = []; // fronta ohlášení { ms, run }
+    let end = null;
     const get = (id) => this.els.get(id);
     const popeFell = evs.some((e) => e.type === 'popeFall');
     const mv = evs.find((e) => e.type === 'move');
@@ -356,7 +363,7 @@ class BoardView {
           } else if (e.kind === 'ambush') {
             later(160, () => this.fx.slash(e.sq));
             later(240, () => this.fx.blood(e.sq));
-          } else if (e.kind === 'ep') later(140, () => this.fx.shadow(e.sq));
+          } else if (e.kind === 'ep') later(140, () => this.fx.astray(e.sq, mv && E.fileOf(mv.to) < E.fileOf(e.sq) ? 1 : -1));
           break;
         case 'penance': {
           const el = get(e.id);
@@ -387,35 +394,50 @@ class BoardView {
           later(520, () => { this.applyLook(el); el.classList.add('morph'); later(700, () => el.classList.remove('morph')); });
           break;
         }
-        case 'popeFall':
+        case 'popeFall': {
           later(260, () => {
             this.el.classList.remove('shake');
             void this.el.offsetWidth;
             this.el.classList.add('shake');
             later(650, () => this.el.classList.remove('shake'));
           });
+          if (evs.some((x) => x.type === 'gameover')) break; // Anathema – ohlásí ji konec partie
+          const auto = evs.some((x) => x.type === 'conclave');
+          Q.push({ ms: auto ? 1700 : 2300, run: () => {
+            this.fx.proclaim({ title: 'SEDE VACANTE', cls: 'sede', icon: ICON.crown, ms: auto ? 1700 : 2300,
+              sub: auto ? `${PLAYER[e.color]} Papež padl – na stolec usedá jediný bezúhonný Kardinál`
+                : `${PLAYER[e.color]} Papež padl – Konkláve volí nástupce` });
+            this.fx.fumata(false, auto ? 1500 : 2600);
+            if (auto) this.fx.wash('sede', 1800);
+            sfx.sede(0);
+          } });
           break;
+        }
         case 'conclave': {
           const el = get(e.id);
-          if (!el) break;
-          const t0 = popeFell ? 1400 : 150;
-          later(t0, () => this.fx.smoke(e.sq));
-          later(t0 + 300, () => this.fx.tiaraDrop(e.sq));
-          later(t0 + 450, () => this.fx.ribbon('HABEMUS PAPAM'));
-          later(t0 + 1300, () => {
-            this.applyLook(el);
-            el.classList.add('morph');
-            this.fx.halo(e.sq);
-            later(800, () => el.classList.remove('morph'));
-          });
+          Q.push({ ms: 2500, run: () => {
+            this.fx.proclaim({ title: 'HABEMUS PAPAM', sub: `Nový Papež na ${E.sqName(e.sq)}`, cls: 'habemus', icon: ICON.crown, ms: 2500 });
+            this.fx.fumata(true, 2600);
+            this.fx.wash('habemus', 2400);
+            this.fx.smoke(e.sq);
+            sfx.conclave(0.15);
+            later(250, () => this.fx.tiaraDrop(e.sq));
+            later(650, () => this.fx.heaven(e.sq));
+            later(1050, () => {
+              if (!el) return;
+              this.applyLook(el);
+              el.classList.add('morph');
+              later(800, () => el.classList.remove('morph'));
+            });
+          } });
           break;
         }
         case 'inqStart': {
           const el = get(e.id);
-          later(700, () => {
-            this.fx.ribbon(`<i class="cross">${ICON.seal}</i>INKVIZICE<i class="cross">${ICON.seal}</i>`, 'inquisition', 1900);
+          Q.push({ ms: 1700, run: () => {
+            this.fx.proclaim({ title: 'INKVIZICE', sub: 'Zajatec čeká na Hranici – Inkvizitor do té doby nesmí brát', cls: 'inquisition', icon: ICON.seal, ms: 1700 });
             if (el) { this.applyLook(el); el.classList.add('chip-in'); later(650, () => el.classList.remove('chip-in')); }
-          });
+          } });
           break;
         }
         case 'inqDone': {
@@ -430,18 +452,21 @@ class BoardView {
           break;
         }
         case 'inqFoiled':
-          later(500, () => this.fx.extinguish(e.sq));
+          later(380, () => this.fx.sealBreak(e.sq));
+          later(520, () => this.fx.extinguish(e.sq));
           break;
         case 'heat': {
-          const t0 = evs.some((x) => x.type === 'inqDone') ? 1000 : 650;
-          later(t0, () => this.fx.ribbon(`<i class="cross">${ICON.heat}</i>ŽÁR ${'I'.repeat(e.level)}<i class="cross">${ICON.heat}</i>`, 'heat', 2200));
-          e.rooks.forEach((sq, i) => {
-            later(t0 + 250 + i * 180, () => {
-              this.fx.heatUp(sq, e.level);
-              const x = this.pieceAt(sq);
-              if (x) { this.applyLook(x); x.classList.add('heat-in'); later(900, () => x.classList.remove('heat-in')); }
+          Q.push({ ms: 1800, run: () => {
+            this.fx.proclaim({ title: `ŽÁR ${'I'.repeat(e.level)}`, sub: `Hranice teď sahá do ${e.level} ${e.level > 1 ? 'polí' : 'pole'} a skáče dál`, cls: 'heat', icon: ICON.heat, ms: 1800 });
+            sfx.heat(0, e.level);
+            e.rooks.forEach((sq, i) => {
+              later(200 + i * 180, () => {
+                this.fx.heatUp(sq, e.level);
+                const x = this.pieceAt(sq);
+                if (x) { this.applyLook(x); x.classList.add('heat-in'); later(900, () => x.classList.remove('heat-in')); }
+              });
             });
-          });
+          } });
           break;
         }
         case 'heatLost': {
@@ -456,49 +481,129 @@ class BoardView {
           break;
         }
         case 'captive': {
-          e.by.forEach((from, i) => later(320 + i * 120, () => this.fx.chainLine(from, e.sq)));
-          later(800, () => {
-            this.fx.shackle(e.sq);
-            this.fx.ribbon(`<i class="cross">${ICON.chain}</i>ZAJETÍ!<i class="cross">${ICON.chain}</i>`, 'captive', 1900);
-            const x = this.pieceAt(e.sq);
-            if (x) { x.classList.add('jolt'); later(500, () => x.classList.remove('jolt')); }
-          });
+          // více zajatých v jednom tahu (vidlička) = jedno ohlášení
+          if (evs.find((x) => x.type === 'captive') !== e) break;
+          const all = evs.filter((x) => x.type === 'captive');
+          const who = all.map((x) => `${NAME[x.t]} na ${E.sqName(x.sq)}`).join(' a ');
+          Q.push({ ms: 1900, run: () => {
+            all.forEach((x) => x.by.forEach((from, i) => later(i * 120, () => this.fx.chainLine(from, x.sq))));
+            later(450, () => {
+              all.forEach((x) => {
+                this.fx.shackle(x.sq);
+                const el = this.pieceAt(x.sq);
+                if (el) { el.classList.add('jolt'); later(500, () => el.classList.remove('jolt')); }
+              });
+              this.fx.proclaim({ title: 'ZAJETÍ', sub: `${PLAYER[e.color]} ${who} – nesmí se pohnout ani zpovídat`, cls: 'captive', icon: ICON.chain, ms: 1500 });
+            });
+            sfx.clank(0.15);
+          } });
           break;
         }
         case 'freed':
-          later(380, () => this.fx.breakChains(e.sq));
+          later(380, () => { this.fx.breakChains(e.sq); this.fx.freed(e.sq); });
           break;
         case 'monitum': {
-          const t0 = popeFell ? 3000 : 700;
-          later(t0, () => { this.fx.ribbon(`<i class="cross">${ICON.monitum}</i>MONITUM!<i class="cross">${ICON.monitum}</i>`, 'monitum', 2000); this.fx.warn(e.sq); });
+          const rooks = [];
+          const st = this.state;
+          if (st) {
+            st.board.forEach((p, sq) => {
+              if (p && p.t === 'R' && p.c === e.by
+                && Math.max(Math.abs(E.fileOf(sq) - E.fileOf(e.sq)), Math.abs(E.rankOf(sq) - E.rankOf(e.sq))) <= E.rookHeat(p)) rooks.push(sq);
+            });
+          }
+          Q.push({ ms: 1900, run: () => {
+            this.fx.proclaim({ title: 'IGNIS!', sub: `${PLAYER[e.color]} Papež na ${E.sqName(e.sq)} je v dosahu Hranice – hrozí mu poprava`, cls: 'ignis', icon: ICON.fire, ms: 1900 });
+            this.fx.wash('ignis', 1800);
+            rooks.forEach((r) => this.fx.fireLine(r, e.sq, 420));
+            later(300, () => { this.fx.ignite(e.sq); this.fx.warn(e.sq); });
+            sfx.ignis(0);
+          } });
           break;
         }
         case 'crusade': {
-          const t0 = popeFell ? 3000 : 600;
-          later(t0, () => this.fx.ribbon(`<i class="cross">${ICON.cross}</i>DEUS VULT<i class="cross">${ICON.cross}</i>`, 'crusade', 2400));
-          e.ids.forEach((id, i) => {
-            const el = get(id);
-            if (!el) return;
-            const t1 = t0 + 350 + i * 160;
-            later(t1, () => el.classList.add('shed'));
-            later(t1 + 380, () => {
-              el.classList.remove('shed');
-              this.applyLook(el);
-              el.classList.add('slam');
-              this.fx.dust(el._sq);
-              later(520, () => el.classList.remove('slam'));
+          const lost = e.cause === 'inquisitor' ? 'Inkvizitora' : 'posledního Kardinála';
+          Q.push({ ms: 2600, run: () => {
+            this.fx.proclaim({ title: 'DEUS VULT!', cls: 'crusade', icon: ICON.cross, ms: 2600,
+              sub: `${PLAYER[e.color]} přišel o ${lost} – ${e.ids.length ? 'Misionáři se stávají Křižáky' : 'Křížová výprava je vyhlášena'}` });
+            this.fx.wash('crusade', 2300);
+            this.fx.crosses(2000);
+            sfx.deusVult(0);
+            e.ids.forEach((id, i) => {
+              const el = get(id);
+              if (!el) return;
+              const t1 = 500 + i * 180;
+              later(t1, () => el.classList.add('shed'));
+              later(t1 + 380, () => {
+                el.classList.remove('shed');
+                this.applyLook(el);
+                el.classList.add('slam');
+                this.fx.dust(el._sq);
+                later(520, () => el.classList.remove('slam'));
+              });
             });
-          });
+          } });
+          break;
+        }
+        case 'gameover': {
+          const r = e.result;
+          if (!r || !r.winner) break;
+          const loser = other(r.winner);
+          const anathema = r.reason === 'anathema';
+          end = { ms: 2800, run: () => {
+            if (anathema) {
+              this.fx.proclaim({ title: 'ANATHEMA', sub: `Vymýcení – ${PLAYER[loser].toLowerCase()} nemá koho dosadit na papežský stolec`, cls: 'anathema', icon: ICON.fire, ms: 2800 });
+              this.fx.wash('anathema', 2800);
+              const sqs = [];
+              this.state.board.forEach((p, sq) => { if (p && p.c === loser) sqs.push(sq); });
+              later(500, () => this.fx.snuff(sqs));
+              sfx.anathema(0);
+            } else {
+              this.fx.proclaim({ title: 'INTERDIKT', sub: `Podrobení – ${PLAYER[loser].toLowerCase()} nemá tah aktivní figurkou`, cls: 'interdict', icon: ICON.chain, ms: 2800 });
+              this.fx.wash('interdict', 2800);
+              this.fx.sealStamp(2600);
+              later(420, () => {
+                this.el.classList.remove('shake');
+                void this.el.offsetWidth;
+                this.el.classList.add('shake');
+                later(650, () => this.el.classList.remove('shake'));
+              });
+              sfx.interdict(0);
+            }
+          } };
           break;
         }
         default: break;
       }
     }
+    // Ohlášení jdou za sebou, nikdy přes sebe; konec partie vždy jako poslední
+    if (end) Q.push(end);
+    let t = popeFell ? 1350 : evs.some((x) => x.type === 'inqDone') ? 950 : 520;
+    for (const it of Q) { later(t, it.run); t += it.ms + 140; }
+    this.busyUntil = performance.now() + (Q.length ? t : 700);
   }
 
   pieceAt(sq) {
     for (const el of this.els.values()) if (el._sq === sq) return el;
     return null;
+  }
+
+  // časovač animace, který lze zrušit (další tah, listování historií)
+  later(ms, fn) {
+    const t = setTimeout(() => { this.timers.delete(t); fn(); }, ms);
+    this.timers.add(t);
+    return t;
+  }
+
+  // kolik ms ještě běží animace a ohlášení posledního tahu
+  busyMs() { return Math.max(0, this.busyUntil - performance.now()); }
+
+  // ukončí rozehrané animace a ohlášení (vzhled figurek pak srovná sync)
+  flush() {
+    for (const t of this.timers) clearTimeout(t);
+    this.timers.clear();
+    this.busyUntil = 0;
+    this.fx.clearProclaims();
+    for (const el of this.els.values()) el.classList.remove('shed', 'slam', 'morph', 'chip-in', 'chip-out', 'heat-in', 'heat-out', 'jolt', 'glow', 'recoil');
   }
 
   showHints(list) {
@@ -590,8 +695,7 @@ class Game {
     if (this.ai) this.aiTurn(r.events);
     if (this.mode === 'local' && this.autoFlip && !this.result()) {
       const ply = this.state.ply;
-      const slow = r.events.some((e) => e.type === 'popeFall' || e.type === 'conclave');
-      setTimeout(() => { if (this.state.ply === ply) { this.view.setOrient(this.state.turn); this.refresh(); } }, slow ? 2700 : 1100);
+      setTimeout(() => { if (this.state.ply === ply) { this.view.setOrient(this.state.turn); this.refresh(); } }, Math.max(1100, this.view.busyMs() + 300));
     }
   }
 
@@ -640,6 +744,7 @@ class Game {
     this.clearSel();
     if (this.overlayEl && !this.overlayEl.classList.contains('final')) this.closeOverlay();
     const step = animate && k === prev + 1 && k > 0 ? this.hist[k - 1].events : null;
+    this.view.flush();
     this.view.sync(this.shownState(), step);
     this.legal = this.canAct() ? E.legalMoves(this.state) : [];
     this.refreshPanels();
@@ -677,11 +782,14 @@ class Game {
 
   startAuto() {
     if (this.viewPly == null || this.viewPly >= this.hist.length) this.showPly(0);
+    let wait = 0;
     this.autoTimer = setInterval(() => {
+      if ((wait -= 250) > 0) return;
       const cur = this.viewPly == null ? this.hist.length : this.viewPly;
       if (cur >= this.hist.length) { this.stopAuto(); return; }
       this.showPly(cur + 1, true);
-    }, 1500);
+      wait = Math.max(1500, this.view.busyMs() + 400);
+    }, 250);
     this.renderNav();
   }
 
@@ -849,7 +957,7 @@ class Game {
     if (sede && !smoke) {
       smoke = document.createElement('div');
       smoke.className = 'sede-smoke';
-      smoke.innerHTML = '<i></i><i></i><i></i>';
+      smoke.innerHTML = '<b class="chimney"></b><i></i><i></i><i></i>';
       b.appendChild(smoke);
     } else if (!sede && smoke) smoke.remove();
     const loser = res && res.winner ? other(res.winner) : null;
@@ -1015,7 +1123,7 @@ class Game {
         crusade: `${A} pobil ${V} na ${at}. Papežský odpustek ho chrání před pokáním.`,
         inquisition: `${A} zajal ${V} na ${at} a zahajuje Inkvizici – musí k Hranici, než bude smět znovu brát.`,
         ambush: `${A} přepadl Inkvizitora na ${at} během Inkvizice – bez pokání, zajatec je předčasně popraven.`,
-        ep: `${A} svedl soupeřova Poutníka na ${at} ze správné cesty – Zbloudění, bez pokání.`,
+        ep: `${A} svedl soupeřova Poutníka na ${at} ze správné cesty – Svedení, bez pokání.`,
       }[cap.kind]);
     } else if (mv && mv.piece.t === 'R') {
       out.push(`${cap1(adj(mv.piece.c, 'R'))} Hranice se přenesla ${E.sqName(mv.from)}–${E.sqName(mv.to)}.`);
@@ -1044,7 +1152,7 @@ class Game {
       if (e.type === 'inqFoiled') out.push(`Inkvizitor padl uprostřed Inkvizice – zajatec je předčasně popraven, Žár se nezvýší.`);
       if (e.type === 'captive') out.push(`<b>Zajetí!</b> ${PLAYER[e.color]} ${NAME[e.t]} na ${E.sqName(e.sq)} je v zajetí ${e.by.length > 1 ? 'Křižáků' : 'Křižáka'} – nesmí se pohnout ani zpovídat${e.t === 'B' ? ' a nemůže do Konkláve' : ''}.`);
       if (e.type === 'freed') out.push(`${PLAYER[e.color]} ${NAME[e.t] || 'hodnostář'} na ${E.sqName(e.sq)} je opět volný.`);
-      if (e.type === 'monitum') out.push(`<b>Monitum!</b> ${PLAYER[e.color]} Papež na ${E.sqName(e.sq)} stojí v dosahu soupeřovy Hranice.`);
+      if (e.type === 'monitum') out.push(`<b>Ignis!</b> ${PLAYER[e.color]} Papež na ${E.sqName(e.sq)} stojí v dosahu soupeřovy Hranice – hrozí mu poprava.`);
     }
     return out;
   }
@@ -1053,7 +1161,7 @@ class Game {
     if (r.reason === 'draw') return 'Remíza dohodou.';
     const L = PLAYER[other(r.winner)], W = PLAYER[r.winner];
     return {
-      anathema: `Anathema – Vymýcení! ${L} Papež padl a není žádný způsobilý Kardinál (čistý a mimo zajetí), kterého by šlo dosadit na papežský stolec. Vítězí ${W}.`,
+      anathema: `Anathema – Vymýcení! ${L} Papež padl a není žádný způsobilý Kardinál (bezúhonný a mimo zajetí), kterého by šlo dosadit na papežský stolec. Vítězí ${W}.`,
       interdict: `Interdikt – Podrobení! ${L} nemá žádný tah aktivní figurkou (Hranice se nepočítají) a prohrává. Vítězí ${W}.`,
       resign: `${L} se vzdal. Vítězí ${W}.`,
     }[r.reason] || `Vítězí ${W}.`;
@@ -1071,7 +1179,7 @@ class Game {
     } else if (res) status = `<b>${this.resultText(res)}</b>`;
     else if (this.state.conclave) {
       const c = this.state.conclave.color;
-      status = `<b>Konkláve!</b> ${PLAYER[c]}${c === this.me ? ' (ty)' : ''} volí nového Papeže z čistých Kardinálů mimo zajetí.`;
+      status = `<b>Konkláve!</b> ${PLAYER[c]}${c === this.me ? ' (ty)' : ''} volí nového Papeže z bezúhonných Kardinálů mimo zajetí.`;
     } else {
       const t = this.state.turn;
       const machine = this.ai && t === this.ai.color;
@@ -1181,7 +1289,7 @@ class Game {
   // ---------- výzvy a překryvy ----------
   prompts(animated) {
     const res = this.result();
-    const delay = animated ? 1500 : 0;
+    const delay = animated ? Math.max(1500, this.view.busyMs() + 200) : 0;
     const key = this.actions.length + ':' + (res ? res.reason : '');
     if (res && this.finalShownFor !== key) {
       this.finalShownFor = key;
@@ -1193,11 +1301,11 @@ class Game {
       const n = this.state.conclave.options.length;
       setTimeout(() => {
         if (!this.state.conclave) return;
-        this.openOverlay(`<div class="box"><h2>Papež padl!</h2><p>Konkláve: vyber jednoho ze svých ${n} čistých Kardinálů – stane se novým Papežem.</p>`
+        this.openOverlay(`<div class="box"><h2>Papež padl!</h2><p>Konkláve: vyber jednoho ze svých ${n} bezúhonných Kardinálů – stane se novým Papežem.</p>`
           + '<div class="row"><button class="btn primary" data-close>Vybrat na šachovnici</button></div></div>', (ov) => {
           ov.querySelector('[data-close]').onclick = () => this.closeOverlay();
         });
-      }, animated ? 1800 : 0);
+      }, animated ? Math.max(1800, this.view.busyMs() + 150) : 0);
     }
   }
 
@@ -1392,7 +1500,7 @@ class Game {
     }
     if (this.state.conclave && this.canAct()) {
       if (this.state.conclave.options.includes(sq)) this.act('@' + E.sqName(sq));
-      else toast('Vyber jednoho ze zvýrazněných čistých Kardinálů (mimo zajetí).');
+      else toast('Vyber jednoho ze zvýrazněných bezúhonných Kardinálů (mimo zajetí).');
       return;
     }
     if (this.sel >= 0 && this.selMoves.some((m) => m.to === sq)) {
@@ -1477,7 +1585,7 @@ class Game {
     this.aiWait = new Map();
     this.aiBases = [new URL('../model/', import.meta.url).href];
     try {
-      this.worker = new Worker(new URL('./ai-worker.js?v=24', import.meta.url), { type: 'module' });
+      this.worker = new Worker(new URL('./ai-worker.js?v=25', import.meta.url), { type: 'module' });
       this.worker.onmessage = (e) => {
         const cb = this.aiWait.get(e.data.id);
         if (cb) { this.aiWait.delete(e.data.id); cb(e.data); }
@@ -1504,7 +1612,7 @@ class Game {
         return this.aiCall(msg);
       });
     }
-    return import('./ai.js?v=24').then(async (A) => {
+    return import('./ai.js?v=25').then(async (A) => {
       if (!this.aiModel) {
         this.aiKind = 'material';
         this.aiModel = A.materialModel;
@@ -1523,8 +1631,8 @@ class Game {
     if (!this.ai || this.result() || this.state.turn !== this.ai.color || this.thinking) return;
     this.thinking = true;
     this.refreshPanels();
-    const slow = events && events.some((e) => ['popeFall', 'conclave', 'crusade', 'heat', 'monitum', 'captive'].includes(e.type));
-    const delay = events ? (slow ? 2600 : 800) : 500;
+    // stroj počká, až doběhnou ohlášení (Ignis, Konkláve, Deus vult…)
+    const delay = events ? Math.max(800, this.view.busyMs() + 250) : 500;
     const len = this.actions.length;
     const t0 = Date.now();
     this.aiCall({ type: 'move' }).then((r) => {
@@ -1602,7 +1710,7 @@ class Game {
   // Celý seznam akcí (~5 znaků na tah) – i partie o 600 půltazích se vejde do limitu zprávy ntfy (4 kB)
   setupChat() {
     $('chat').hidden = false;
-    const quick = ['Dobrý tah!', 'Kaj se!', 'Monitum!', 'Deus vult!', 'ViniKAJÍCNĚ!'];
+    const quick = ['Dobrý tah!', 'Kaj se!', 'Ignis!', 'Deus vult!', 'ViniKAJÍCNĚ!'];
     $('chat-quick').innerHTML = '';
     for (const q of quick) {
       const b = document.createElement('button');

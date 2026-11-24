@@ -239,7 +239,7 @@ t('Žádná rošáda', () => {
   ok(!has(s, 'e1g1')); ok(!has(s, 'e1c1'));
 });
 
-t('Monitum: soupeřův Papež se ocitne v dosahu Hranice', () => {
+t('Ignis!: soupeřův Papež se ocitne v dosahu Hranice', () => {
   const s = pos({ a1: 'wR', f4: 'wR', a8: 'bR', h8: 'bR', e1: 'wK', e6: 'bK', c8: 'bB' });
   const r = apply(s, 'f4f5');
   ok(r.events.some((e) => e.type === 'monitum' && e.color === 'b'));
@@ -301,7 +301,7 @@ t('Zajatý Kardinál se nepohne, nezpovídá a nejde do Konkláve', () => {
   ok(!P(apply(s3, 'd6d5').state, 'd5').pen, 'volný Kardinál zpovídá');
 });
 
-t('Anathema, když jsou všichni čistí Kardinálové v zajetí', () => {
+t('Anathema, když jsou všichni bezúhonní Kardinálové v zajetí', () => {
   const s = pos({ a1: 'wR', h1: 'wR', d7: 'wR', h8: 'bR', e8: 'bK', f5: 'bB', g3: 'wC', h5: 'wQ', e1: 'wK' });
   eq(apply(s, 'h5e8').state.result, { winner: 'w', reason: 'anathema' });
 });
@@ -343,15 +343,25 @@ t('Dvojkrok na poslední řadu = Spása (bez Hranice)', () => {
   eq(apply(s, 'd6d8q').state.ep, -1);
 });
 
-t('Zbloudění po dvojkroku kdekoliv, bez pokání; kající ho nesmí', () => {
+t('Svedení po dvojkroku kdekoliv, bez pokání', () => {
   const s = pos({ ...FAR, e1: 'wK', e8: 'bK', d3: 'wP', e5: 'bP' });
   const r = apply(s, 'd3d5');
   ok(has(r.state, 'e5d4'));
   const r2 = apply(r.state, 'e5d4');
   ok(!P(r2.state, 'd4').pen);
   ok(!P(r2.state, 'd5'));
+});
+
+t('Svedení smí i kající se Poutník – Pokání mu zůstane', () => {
   const s2 = pos({ ...FAR, e1: 'wK', e8: 'bK', d3: 'wP', e5: 'bP*' });
-  ok(!has(apply(s2, 'd3d5').state, 'e5d4'));
+  const r = apply(s2, 'd3d5');
+  eq(kindOf(r.state, 'e5d4'), 'ep');
+  const r2 = apply(r.state, 'e5d4');
+  ok(P(r2.state, 'd4').pen);
+  ok(!P(r2.state, 'd5'));
+  // kající se Poutník ale dál nesmí brát běžně
+  const s3 = pos({ ...FAR, e1: 'wK', e8: 'bK', d4: 'wN', e5: 'bP*' });
+  ok(!has(s3, 'e5d4'));
 });
 
 t('Spása ruší pokání', () => {
@@ -361,14 +371,14 @@ t('Spása ruší pokání', () => {
 });
 
 // ---------- Konkláve a konec ----------
-t('Pád Papeže s jedním čistým Kardinálem: automatická volba', () => {
+t('Pád Papeže s jedním bezúhonným Kardinálem: automatická volba', () => {
   const s = pos({ a1: 'wR', h1: 'wR', d7: 'wR', h8: 'bR', e8: 'bK', c8: 'bB', f5: 'bB*', h5: 'wQ', e1: 'wK' });
   const r = apply(s, 'h5e8');
   eq(P(r.state, 'c8').t, 'K');
   ok(r.events.some((e) => e.type === 'conclave'));
 });
 
-t('Konkláve se dvěma čistými Kardinály', () => {
+t('Konkláve se dvěma bezúhonnými Kardinály', () => {
   const s = pos({ a1: 'wR', h1: 'wR', d7: 'wR', h8: 'bR', e8: 'bK', c8: 'bB', f5: 'bB', h5: 'wQ', e1: 'wK' });
   const r = apply(s, 'h5e8');
   ok(r.state.conclave);
@@ -378,7 +388,7 @@ t('Konkláve se dvěma čistými Kardinály', () => {
   eq(r2.state.turn, 'b');
 });
 
-t('Anathema: Papež padne a není čistý Kardinál', () => {
+t('Anathema: Papež padne a není bezúhonný Kardinál', () => {
   const s = pos({ a1: 'wR', h1: 'wR', d7: 'wR', h8: 'bR', e8: 'bK', c8: 'bB*', h5: 'wQ', e1: 'wK' });
   const r = apply(s, 'h5e8');
   eq(r.state.result, { winner: 'w', reason: 'anathema' });

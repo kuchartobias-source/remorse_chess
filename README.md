@@ -1,7 +1,7 @@
 # Schizma
 
 Online hra šachové varianty **Schizma** – dva papežové, jen jedna pravá víra. Pokání, zpověď,
-Žár Hranic, upalování na hranici, Monitum, konkláve a křížové výpravy.
+Žár Hranic, upalování na hranici, Ignis!, konkláve a křížové výpravy.
 
 **Hrát:** https://kuchartobias-source.github.io/remorse_chess/
 

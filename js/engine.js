@@ -3,7 +3,7 @@
 // Výklad nejasných míst pravidel (viz také RULES-NOTES.md):
 //  - Pořadí na konci tahu: tah → pokání / zahájení Inkvizice → proměna ruší pokání → zpověď kajících
 //    figurek hráče na tahu → dokončení Inkvizice u Hranice (Žár) → pád Papeže (Konkláve / Anathema)
-//    → Křížová výprava → zajetí → Monitum → kontrola, zda má soupeř tah aktivní figurkou (Interdikt).
+//    → Křížová výprava → zajetí → Ignis! → kontrola, zda má soupeř tah aktivní figurkou (Interdikt).
 //  - Každá Hranice má vlastní Žár (1–3, trvalý). Dosah = čtverec o poloměru Žáru, překážky neblokují.
 //  - Hranice se přemisťuje skokem na volné pole ve svém poloměru, nikdy nebere a nelze ji odstranit.
 //  - Inkvizitor nikdy nepropadá Pokání. Pole `pen` u Inkvizitora znamená žeton Inkvizice (probíhající
@@ -11,7 +11,7 @@
 //    Inkvizitor vedle (8 polí) své Hranice. Sousedí-li se dvěma Hranicemi, které ještě mohou růst, hráč si
 //    vybere, kterou rozpálí – volba je součástí tahu (zápis „c4c3>b2“). Přepadení Inkvizitora s žetonem
 //    nezpůsobuje Pokání.
-//  - Papež a čistý Kardinál padnou jen Upálením (v dosahu soupeřovy Hranice); Poutník je neodstraní nikdy.
+//  - Papež a bezúhonný Kardinál padnou jen Upálením (v dosahu soupeřovy Hranice); Poutník je neodstraní nikdy.
 //  - Zajetí: soupeřův Křižák ve vzdálenosti skoku jezdce drží Papeže i každého Kardinála – nesmí táhnout,
 //    nezpovídá a zajatý Kardinál nemůže do Konkláve (posuzuje se v pozici na konci tahu).
 //  - Křížová výprava: strana bez Kardinála nebo bez Inkvizitora; trvalý příznak strany.
@@ -105,14 +105,14 @@ export function rookReachSquares(state, color) {
   return out;
 }
 
-// Je figurka imunní vůči běžnému zabití (padne jen Upálením)? Papež a čistý Kardinál.
+// Je figurka imunní vůči běžnému zabití (padne jen Upálením)? Papež a bezúhonný Kardinál.
 const immune = (v) => v.t === 'K' || (v.t === 'B' && !v.pen);
 
 // Smí figurka `p` odstranit figurku `victim` na poli `to`? Vrací druh braní, nebo null.
 //  kind: 'penance' (bere a propadá Pokání), 'burn' (Upálení na hranici – bez Pokání),
 //        'crusade' (Křižák mimo dosah Hranice), 'execute' (Papež upaluje),
 //        'inquisition' (Inkvizitor mimo dosah Hranice – zahájí Inkvizici),
-//        'ambush' (přepadení Inkvizitora během Inkvizice – bez Pokání), 'ep' (Zbloudění)
+//        'ambush' (přepadení Inkvizitora během Inkvizice – bez Pokání), 'ep' (Svedení)
 export function captureKind(state, p, victim, to) {
   if (victim.t === 'R' || p.t === 'R' || p.pen) return null;
   const reach = inRookReach(state, p.c, to);
@@ -229,7 +229,7 @@ export function legalMoves(state) {
         if (v && v.c !== p.c) {
           const kind = captureKind(state, p, v, to);
           if (kind) add(to, kind);
-        } else if (!v && to === state.ep && !p.pen) {
+        } else if (!v && to === state.ep) { // Svedení smí i kající se Poutník
           add(to, 'ep', { epVictim: at(f + df, r) });
         }
       }
@@ -452,7 +452,7 @@ function applyMove(state, m) {
   }
   finishTurn(state, events);
   captivityEvents(state, capBefore, events);
-  // Monitum: soupeřův Papež se nově ocitl v dosahu mých Hranic
+  // Ignis! (dříve Monitum): soupeřův Papež se nově ocitl v dosahu mých Hranic
   if (!state.result && !state.conclave) {
     const ps = popeSquare(state, foe);
     if (ps >= 0 && !popeWasInReach && inRookReach(state, mover, ps)) {
@@ -533,5 +533,5 @@ export const KIND_LABEL = {
   execute: 'poprava na hranici',
   inquisition: 'zahájení Inkvizice',
   ambush: 'přepadení Inkvizitora',
-  ep: 'Zbloudění',
+  ep: 'Svedení',
 };

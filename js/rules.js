@@ -1,15 +1,16 @@
 // Text pravidel zobrazený v aplikaci
-import { pieceSVG, ICON } from './pieces.js?v=24';
+import { pieceSVG, ICON } from './pieces.js?v=25';
 
 const m = (t) => `<span class="mini w">${pieceSVG(t)}</span><span class="mini b">${pieceSVG(t)}</span>`;
 
 export const RULES_HTML = `
-<p class="note">Dva papežové, jen jedna pravá víra. Ve Schizmatu rozhoduje inkvizice, vina a oheň – figurky po zabití
-propadají pokání a heretického vzdoropapeže čeká jediný ze dvou konců: plameny hranice, nebo potupné podrobení.</p>
+<p class="note">Dva papežové, jen jedna pravá víra. Prolitá krev žádá zpověď, žár hranic živí inkvizice a ztráta hodnostářů
+vyvolá nemilosrdnou křížovou výpravu. Kacířského vzdoropapeže může potkat jen jediný ze dvou konců: plameny hranice, nebo
+bezpodmínečné podrobení.</p>
 
 <h3>1. Cíl hry a konec partie</h3>
 <p>Cílem je zničit církevní hierarchii soupeře tak, aby už neměl koho dosadit na papežský stolec, nebo jej zcela
-ochromit. Ve Schizmatu neexistuje povinný šach ani rošáda.</p>
+ochromit. Ve Schizmatu neexistuje povinný šach ani rošáda. Remíza je možná výhradně dohodou hráčů.</p>
 <ul>
   <li><b>Anathema (Vymýcení):</b> prohráváš, když ti padne Papež (Upálením na hranici) a nemáš žádného
   <b>způsobilého Kardinála</b> – všichni jsou odstraněni, v Pokání, nebo drženi v zajetí soupeřovým Křižákem.</li>
@@ -19,8 +20,9 @@ ochromit. Ve Schizmatu neexistuje povinný šach ani rošáda.</p>
   <li><b>Konkláve:</b> když ti soupeř upálí Papeže, hra nekončí, máš-li Kardinála, který není v Pokání ani v zajetí.
   Hned vybereš jednoho takového Kardinála a ten se na svém poli stane Papežem se všemi jeho schopnostmi. Máš-li jen
   jednoho, zvolí se sám.</li>
-  <li><b>Žádný šach a Monitum:</b> Papež smí dobrovolně vstoupit na ohrožené pole. Dostane-li se soupeřův Papež do dosahu
-  tvé Hranice, aplikace zvolá <b>Monitum!</b> ${ICON.monitum} (napomenutí).</li>
+  <li><b>Ignis! (Varování Papeže):</b> šach neexistuje – Papež smí dobrovolně vstoupit na ohrožené pole a nikdo není povinen
+  jeho napadení řešit. Dostane-li ale hráč soupeřova Papeže do přímého ohrožení popravou (do dosahu své Hranice), musí ho
+  varovat zvoláním <b>„Ignis!“</b> ${ICON.monitum} (Oheň). Aplikace to zvolá za tebe.</li>
 </ul>
 
 <h3>2. Figurky a žetony</h3>
@@ -35,14 +37,15 @@ ochromit. Ve Schizmatu neexistuje povinný šach ani rošáda.</p>
   <tr><td>${m('P')}</td><td><b>Poutník</b></td><td>Pěšec</td><td>2. a 7. řada</td></tr>
 </table>
 <p>Figurky táhnou jako v šachu, s výjimkou Hranic, Poutníků a pravidel níže. Žetony pod figurkami:
-<b style="color:#e33">červený</b> = Pokání, <b style="color:#f80">oranžový</b> = Inkvizice pod Inkvizitorem a Žár pod
-Hranicí (po dokončení Inkvizice se žeton přesune zpod Inkvizitora pod Hranici), <b style="color:#d6a531">zlatý s křížem</b> = Křižák.
-Zajatý Papež či Kardinál má na sobě okovy.</p>
+<b style="color:#a560e0">fialový</b> = Pokání, <b style="color:#e8414d">červený</b> = Inkvizice pod Inkvizitorem a Žár pod
+Hranicí (po dokončení Inkvizice se žeton přesune zpod Inkvizitora pod Hranici), <b style="color:#3d9be6">modrý s křížem</b> = Křižák
+a jím zajatý hodnostář (Papež či Kardinál má navíc okovy).</p>
 
 <h3>3. Pokání a Zpověď</h3>
 <ul>
-  <li><b>Propadnutí Pokání:</b> kdykoliv figurka odstraní soupeřovu figurku, propadá Pokání. Výjimky: Inkvizitor
-  (papežské odpustky), Křižáci, Upálení na hranici, Zbloudění (en passant) a odstranění Inkvizitora během Inkvizice.</li>
+  <li><b>Krveprolití a Pokání:</b> kdykoliv figurka odstraní soupeřovu figurku Krveprolitím (běžným vyřazením), propadá
+  Pokání. Výjimky: figurky s papežskými odpustky (Inkvizitor a Křižáci), Upálení na hranici, Svedení (en passant)
+  a odstranění Inkvizitora během Inkvizice.</li>
   <li><b>Důsledek:</b> kající se figurka se smí pohybovat, ale nesmí odstranit žádnou soupeřovu figurku, dokud nezíská rozhřešení.</li>
   <li><b>Zpověď</b> proběhne automaticky na konci tahu, kdy kající se figurka a zpovědník sousedí. <b>Kardinál</b> zpovídá jen
   kardinálně (vodorovně a svisle), <b>Papež</b> i diagonálně. Zajatý Papež ani Kardinál zpovídat nemůže.</li>
@@ -55,15 +58,15 @@ Zajatý Papež či Kardinál má na sobě okovy.</p>
   <li><b>Přemisťování:</b> Hranice skáče přes figurky na libovolné volné pole ve čtverci o poloměru svého Žáru (v základu 1 pole).</li>
   <li><b>Upálení na hranici:</b> soupeřovu figurku v dosahu aspoň jedné tvé Hranice (překážky žár neblokují) smí odstranit
   kterákoliv tvá nekající se figurka kromě Poutníka – bez Pokání. Poutník nikoho neupaluje a soupeřova Papeže ani
-  čistého Kardinála neodstraní vůbec.</li>
+  bezúhonného Kardinála neodstraní vůbec.</li>
 </ul>
 
 <h3>5. Inkvizitor, Inkvizice a Žár Hranic</h3>
 <ul>
   <li><b>Odpustky:</b> Inkvizitor nikdy nepropadá Pokání. V dosahu vlastní Hranice prostě upaluje – bez žetonu a bez
   navýšení Žáru.</li>
-  <li><b>Zahájení Inkvizice:</b> vezme-li Inkvizitor figurku <b>mimo</b> žár vlastních Hranic (nesmí jít o Papeže ani čistého
-  Kardinála), je zajatá a natrvalo ze hry (její ztráta působí hned, např. Křížová výprava). Inkvizitor dostane oranžový žeton
+  <li><b>Zahájení Inkvizice:</b> vezme-li Inkvizitor figurku <b>mimo</b> žár vlastních Hranic (nesmí jít o Papeže ani bezúhonného
+  Kardinála), je zajatá a natrvalo ze hry (její ztráta působí hned, např. Křížová výprava). Inkvizitor dostane červený žeton
   ${ICON.seal} a dokud proces běží, nesmí brát vůbec.</li>
   <li><b>Dokončení:</b> na konci tvého tahu, kdy Inkvizitor se žetonem sousedí (i diagonálně) s tvou Hranicí – ať přišel on, nebo
   Hranice přiskočila – je zajatec upálen, žeton se přesune pod Hranici a <b>Žár té Hranice stoupne o 1</b>. Sousedí-li
@@ -82,51 +85,53 @@ Zajatý Papež či Kardinál má na sobě okovy.</p>
 <ul>
   <li><b>Papež</b> si nešpiní ruce krví: soupeřovu figurku odstraní jen Upálením (cíl v dosahu jeho Hranice) a sám padne jen
   Upálením v dosahu soupeřovy Hranice – Poutník ho neodstraní nikdy.</li>
-  <li><b>Čistý Kardinál</b> může být stejně jako Papež odstraněn jen Upálením. Jakmile propadne Pokání, o imunitu přichází –
-  dokud se nevyzpovídá u Papeže, může ho vzít i Poutník a jiné figurky (i jako cíl Inkvizice).</li>
+  <li><b>Bezúhonný Kardinál</b> může být stejně jako Papež odstraněn jen Upálením. Jakmile prolije krev a propadne Pokání,
+  o imunitu přichází – dokud se nevyzpovídá u Papeže, může padnout i Krveprolitím (a být i cílem Inkvizice).</li>
 </ul>
 
 <h3>7. Misionáři, Křížová výprava a Zajetí</h3>
 <ul>
-  <li><b>Misionáři</b> na začátku nemají odpustky a po zabití propadají Pokání.</li>
+  <li><b>Misionáři</b> na začátku nemají odpustky a po Krveprolití (mimo dosah Hranice) propadají Pokání.</li>
   <li><b>Křížová výprava:</b> když hráč přijde o posledního Kardinála nebo posledního Inkvizitora, jeho Misionáři se natrvalo
   stávají <b>Křižáky</b> s odpustky – zbaví se Pokání a už ho nikdy nepropadnou (ani když hráč později proměnou získá nového
   Kardinála či Inkvizitora).</li>
-  <li><b>Zajetí:</b> stojí-li Křižák tak, že skokem do „L“ ohrožuje soupeřova Papeže nebo kteréhokoliv Kardinála (čistého
+  <li><b>Zajetí:</b> stojí-li Křižák tak, že skokem do „L“ ohrožuje soupeřova Papeže nebo kteréhokoliv Kardinála (bezúhonného
   i kajícího se), drží ho v zajetí ${ICON.chain} – při vidličce i více hodnostářů najednou. Zajatý se nesmí pohnout ani
   zpovídat a zajatý Kardinál se nemůže účastnit Konkláve, dokud Křižák neodskočí nebo nepadne.</li>
 </ul>
 
-<h3>8. Poutníci: postup, Spása a Zbloudění</h3>
+<h3>8. Poutníci: postup, Spása a Svedení</h3>
 <ul>
   <li><b>Postup:</b> Poutník smí o 1 nebo 2 pole vpřed <b>kdykoliv</b>, jsou-li cílové i mezilehlé pole volné.</li>
   <li><b>Spása:</b> Poutník na poslední řadě se promění v Inkvizitora, Kardinála nebo Misionáře (po vyhlášení Křížové výpravy
   rovnou v Křižáka) a zbaví se Pokání. V Hranici se proměnit nemůže.</li>
-  <li><b>Zbloudění (en passant):</b> v bezprostředně následujícím tahu, když soupeřův Poutník postoupí o 2 pole a mine pole
-  ohrožované tvým Poutníkem. Tvůj Poutník ho svede z cesty bez krveprolití, a proto nepropadá Pokání. Smí jen nekající se Poutník.</li>
+  <li><b>Svedení (en passant):</b> v bezprostředně následujícím tahu, když soupeřův Poutník postoupí o 2 pole a mine pole
+  ohrožované tvým Poutníkem. Tvůj Poutník ho v jeho spěchu svede z cesty bez Krveprolití, a proto nepropadá Pokání.
+  <b>Svést smí i Poutník s žetonem Pokání</b> (žeton mu zůstane).</li>
 </ul>
 
 <h3>Rychlý tahák</h3>
 <div class="cheat">
 <ul>
-  <li><b>Konec hry:</b> hříšný ani zajatý Kardinál nemůže být zvolen Papežem – pád posledního Papeže je Anathema; soupeř bez
+  <li><b>Konec hry:</b> kajícný ani zajatý Kardinál nemůže být zvolen Papežem – pád posledního Papeže je Anathema; soupeř bez
   tahu aktivní figurkou je Interdikt.</li>
   <li><b>Hranice</b> jsou nezničitelné, neberou a skáčou v poloměru svého Žáru (1–3). Umožňují čisté Upálení (ne Poutníkům).</li>
   <li><b>Inkvizitor</b> nepropadá Pokání. V dosahu Hranice upaluje, mimo něj zahájí Inkvizici a nesmí brát, dokud nedojde
   k Hranici – ta pak získá trvale +1 Žár (max 3). Přepadení Inkvizitora s žetonem je bez Pokání.</li>
-  <li><b>Papež a čistý Kardinál</b> padnou jen Upálením; kající se Kardinál o imunitu přichází.</li>
+  <li><b>Papež a bezúhonný Kardinál</b> padnou jen Upálením; kající se Kardinál o imunitu přichází. Soupeřův Papež v dosahu
+  tvé Hranice = <b>Ignis!</b></li>
   <li><b>Zpověď</b> na konci vlastního tahu: Kardinál zpovídá kardinálně, Papež i diagonálně.</li>
   <li><b>Křižák</b> drží v zajetí Papeže i Kardinály, na které míří skokem jezdce – i vidličkou.</li>
-  <li><b>Poutníci</b> smí kdykoliv o 1–2 pole; Zbloudění nezpůsobuje Pokání.</li>
+  <li><b>Poutníci</b> smí kdykoliv o 1–2 pole; Svedení nezpůsobuje Pokání a smí ho i kající se Poutník.</li>
 </ul>
 </div>
 
 <h3>Nápověda v aplikaci</h3>
 <ul>
-  <li>Tečka = tah na volné pole. <span style="color:#e33">Červený kruh</span> = braní s Pokáním.
-  <span style="color:#f80">Plamenný kruh</span> = braní bez Pokání (upálení, poprava, Křižák, Inkvizice, přepadení, Zbloudění).</li>
+  <li>Tečka = tah na volné pole. <span style="color:#a560e0">Fialový kruh</span> = Krveprolití s Pokáním.
+  <span style="color:#f80">Plamenný kruh</span> = braní bez Pokání (upálení, poprava, Křižák, Inkvizice, přepadení, Svedení).</li>
   <li>Zlatá svatozář v rohu pole = po tahu proběhne zpověď. Koruna = proměna.</li>
-  <li>Pulzující oranžový kruh pod Papežem = je v dosahu soupeřovy Hranice. Okovy = zajetí, Křižák, který drží, má rudý rámeček.</li>
+  <li>Pulzující oranžový kruh pod Papežem = je v dosahu soupeřovy Hranice (Ignis!). Okovy = zajetí, Křižák, který drží, má rudý rámeček.</li>
   <li>Tlačítko <b>Dosah hranic</b> zvýrazní pole v dosahu tvých Hranic (oranžově) a soupeřových (fialově šrafovaně).
   U jména hráče je vidět Žár obou jeho Hranic.</li>
 </ul>

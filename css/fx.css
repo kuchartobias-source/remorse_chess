@@ -56,12 +56,12 @@
 }
 @keyframes falldrop { 85% { top: 78%; opacity: 1; } to { top: 82%; opacity: 0; transform: translateX(-50%) scale(1.6, .3); } }
 .drop-ring {
-  position: absolute; left: 50%; top: 86%; width: 10%; height: 4%; border: 2px solid rgba(220, 30, 50, .9);
+  position: absolute; left: 50%; top: 86%; width: 10%; height: 4%; border: 2px solid rgba(150, 70, 215, .9);
   border-radius: 50%; transform: translate(-50%, -50%) scale(0); animation: dropring .7s .38s ease-out forwards;
 }
 @keyframes dropring { to { transform: translate(-50%, -50%) scale(7, 4); opacity: 0; } }
 .shard {
-  position: absolute; bottom: 8%; width: 12%; height: 9%; background: linear-gradient(135deg, #ff4a5c, #8e0a1b);
+  position: absolute; bottom: 8%; width: 12%; height: 9%; background: linear-gradient(135deg, #c48aff, #4a157a);
   clip-path: polygon(50% 0, 100% 70%, 30% 100%, 0 40%); animation: shard 1.1s cubic-bezier(.2, .7, .4, 1) forwards;
 }
 @keyframes shard { 20% { opacity: 1; } to { transform: translate(var(--dx), -380%) rotate(var(--rot)); opacity: 0; filter: brightness(2.5) sepia(1); } }
@@ -127,7 +127,9 @@
 /* Sede vacante: deska potemní, z komína stoupá černý dým */
 .board .squares { transition: filter 1s ease; }
 .board.sede .squares { filter: brightness(.55) saturate(.6); }
-.sede-smoke { position: absolute; left: 50%; top: -4%; width: 18%; height: 30%; transform: translateX(-50%); pointer-events: none; z-index: 7; }
+.sede-smoke { position: absolute; left: 50%; top: -20%; width: 18%; height: 22%; transform: translateX(-50%); pointer-events: none; z-index: 7; }
+.sede-smoke .chimney { position: absolute; left: 42%; width: 16%; bottom: -10%; height: 32%; background: linear-gradient(90deg, #6d5a48, #a08a72 45%, #5a4838); border: 1px solid #2b2018; border-radius: 2px 2px 0 0; }
+.sede-smoke i { bottom: 18% !important; }
 .sede-smoke i { position: absolute; left: 30%; bottom: 0; width: 40%; height: 30%; border-radius: 50%; background: radial-gradient(circle, rgba(20, 18, 20, .9), transparent 70%); animation: sedesmoke 3s linear infinite; filter: blur(2px); }
 .sede-smoke i:nth-child(2) { animation-delay: -1s; }
 .sede-smoke i:nth-child(3) { animation-delay: -2s; }
@@ -255,7 +257,7 @@
 .ribbon.captive::before, .ribbon.captive::after { background: #5d636c; }
 
 /* Inkvizice: fialový žeton pod Inkvizitorem (žeton Pokání přebarvený), Inkvizitor se nenaklání */
-.piece.inq .chip { filter: hue-rotate(24deg) saturate(1.25) brightness(1.2) drop-shadow(0 0 4px rgba(255, 130, 30, .6)); }
+.piece.inq .chip { --chip-side: #5e0815; --chip-top: #c9202f; --chip-edge: #3d040c; --chip-ring: #ffb36b; filter: drop-shadow(0 0 4px rgba(235, 50, 40, .65)); }
 .piece.inq.pen .pc { transform: translateY(-6%); }
 .piece.w.inq.pen .pc { filter: drop-shadow(0 0 4px rgba(255, 130, 30, .55)) drop-shadow(0 2px 1.5px rgba(0,0,0,.55)); }
 .piece.b.inq.pen .pc { filter: drop-shadow(0 0 .6px rgba(255, 228, 190, .85)) drop-shadow(0 0 5px rgba(255, 130, 30, .65)) drop-shadow(0 2px 1.5px rgba(0,0,0,.55)); }
@@ -268,7 +270,174 @@
 
 /* žeton Inkvizice přelétá pod Hranici */
 .chipfly { position: absolute; width: 8%; height: 2.6%; transform: translate(-50%, -50%); border-radius: 50%;
-  background: radial-gradient(ellipse, #ffd36b, #f07a1a 60%, #6b2a05); box-shadow: 0 0 10px rgba(255, 140, 30, .9);
+  background: radial-gradient(ellipse, #ffb36b, #c9202f 60%, #5e0815); box-shadow: 0 0 10px rgba(235, 60, 40, .9);
   transition: left .55s cubic-bezier(.4, 0, .2, 1), top .55s cubic-bezier(.4, -0.6, .2, 1); z-index: 9; }
 .chipfly.go { animation: chipflyfade .9s ease-in forwards; }
 @keyframes chipflyfade { 0%, 70% { opacity: 1; } to { opacity: 0; transform: translate(-50%, -50%) scale(1.4); } }
+
+/* ================= Ohlášení (proklamace) – IGNIS!, SEDE VACANTE, HABEMUS PAPAM, DEUS VULT… ================= */
+.procl {
+  position: absolute; left: 50%; top: 44%; z-index: 9; transform: translate(-50%, -50%);
+  min-width: 56%; max-width: 94%; box-sizing: border-box; text-align: center;
+  padding: calc(var(--bs) * .02) calc(var(--bs) * .045) calc(var(--bs) * .022);
+  background: linear-gradient(180deg, #f6ead0, #dcc596); color: #5a1a12;
+  border: 2px solid #a37a2c; border-radius: calc(var(--bs) * .01);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, .6), inset 0 0 0 calc(var(--bs) * .005) rgba(255, 255, 255, .12);
+  animation: proclin var(--ms, 2s) cubic-bezier(.2, .9, .3, 1) forwards; pointer-events: none;
+}
+.procl-title { font-family: var(--font-title); font-weight: 900; letter-spacing: .1em; font-size: calc(var(--bs) * .062); line-height: 1.05; white-space: nowrap; }
+.procl-sub { font-size: calc(var(--bs) * .025); line-height: 1.3; margin-top: .45em; letter-spacing: .03em; opacity: .92; }
+.procl-emb {
+  width: calc(var(--bs) * .095); height: calc(var(--bs) * .095); margin: calc(var(--bs) * -.068) auto calc(var(--bs) * .006);
+  border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 40% 35%, #fff6dc, #d6b66a 70%, #8a6420);
+  border: 2px solid #7a5a14; box-shadow: 0 4px 14px rgba(0, 0, 0, .55); animation: emb var(--ms, 2s) ease forwards;
+}
+.procl-emb svg, .procl-emb .ico { width: 64%; height: 64%; display: block; }
+.procl-glow { position: absolute; left: 50%; top: 50%; width: 240%; aspect-ratio: 1; transform: translate(-50%, -50%); z-index: -1; opacity: 0; pointer-events: none;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 236, 170, .5) 0 5deg, transparent 5deg 18deg);
+  -webkit-mask: radial-gradient(circle, #000 12%, transparent 55%); mask: radial-gradient(circle, #000 12%, transparent 55%); }
+.procl-mote { position: absolute; bottom: 10%; width: calc(var(--bs) * .009); height: calc(var(--bs) * .009); border-radius: 50%; background: #ffe7a0; box-shadow: 0 0 6px #ffcf5a; opacity: 0; animation: mote var(--d, 1.2s) ease-out forwards; }
+@keyframes mote { 0% { opacity: 0; transform: translate(0, 0); } 20% { opacity: 1; } to { opacity: 0; transform: translate(var(--dx), calc(var(--bs) * -.16)); } }
+@keyframes proclin {
+  0% { transform: translate(-50%, -50%) scale(1.7); opacity: 0; filter: blur(8px); }
+  8% { transform: translate(-50%, -50%) scale(.95); opacity: 1; filter: blur(0); }
+  12% { transform: translate(-50%, -50%) scale(1.02); }
+  16% { transform: translate(-50%, -50%) scale(1); }
+  84% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -66%) scale(.98); opacity: 0; }
+}
+@keyframes emb { 0%, 6% { transform: scale(0) rotate(-90deg); } 16% { transform: scale(1.15) rotate(8deg); } 22% { transform: scale(1) rotate(0); } }
+@keyframes glowspin { 0% { opacity: 0; transform: translate(-50%, -50%) rotate(0) scale(.6); } 15% { opacity: 1; } 80% { opacity: .9; } to { opacity: 0; transform: translate(-50%, -50%) rotate(40deg) scale(1.1); } }
+.procl.gone, .boardwash.gone, .fumata.gone, .fallcross.gone, .sealstamp.gone { animation: goneout .3s ease forwards !important; }
+@keyframes goneout { to { opacity: 0; } }
+
+/* IGNIS! – ohnivá výstraha */
+.procl.ignis { background: radial-gradient(ellipse at 50% 120%, #6b2005, #1c0a05 70%); color: #ffd9a0; border-color: #f07a1a; box-shadow: 0 0 34px rgba(255, 90, 10, .65), 0 14px 40px rgba(0, 0, 0, .6); animation-name: proclin, proclshake; animation-duration: var(--ms, 2s), .5s; animation-delay: 0s, .18s; animation-timing-function: cubic-bezier(.2, .9, .3, 1), ease; animation-fill-mode: forwards, none; }
+.procl.ignis .procl-title { background: linear-gradient(0deg, #ff4a0a 10%, #ffb347 55%, #fff4c0 90%); background-size: 100% 220%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: flametext .5s ease-in-out infinite alternate; filter: drop-shadow(0 0 8px rgba(255, 110, 20, .85)); font-size: calc(var(--bs) * .08); }
+.procl.ignis .procl-emb { background: radial-gradient(circle at 45% 40%, #fff3a0, #ff8a1a 55%, #8a1a02); border-color: #4a1a02; }
+.procl.ignis .procl-glow { background: repeating-conic-gradient(from 0deg, rgba(255, 120, 30, .45) 0 5deg, transparent 5deg 18deg); animation: glowspin var(--ms, 2s) ease-out forwards; }
+.procl.ignis .procl-mote { background: #ffb347; box-shadow: 0 0 8px #ff5a12; }
+@keyframes flametext { from { background-position: 0 0; } to { background-position: 0 100%; } }
+@keyframes proclshake { 0%, 100% { margin-left: 0; } 20% { margin-left: -1.2%; } 40% { margin-left: 1.2%; } 60% { margin-left: -.7%; } 80% { margin-left: .5%; } }
+
+/* SEDE VACANTE – černý dým */
+.procl.sede { background: linear-gradient(180deg, #2c2732, #0f0c12); color: #ddd3ea; border-color: #6c5a80; }
+.procl.sede .procl-emb { background: radial-gradient(circle at 45% 40%, #6a6070, #26202c 70%); border-color: #0f0c12; }
+.procl.sede .procl-mote { background: rgba(30, 26, 34, .9); box-shadow: 0 0 10px rgba(0, 0, 0, .8); width: calc(var(--bs) * .02); height: calc(var(--bs) * .02); filter: blur(2px); }
+
+/* HABEMUS PAPAM – bílý dým a zlaté světlo */
+.procl.habemus { background: linear-gradient(180deg, #fffdf4, #efdfae); color: #6b4a0c; border-color: #d6a531; box-shadow: 0 0 40px rgba(255, 230, 150, .8), 0 14px 40px rgba(0, 0, 0, .5); }
+.procl.habemus .procl-glow { animation: glowspin var(--ms, 2s) ease-out forwards; }
+.procl.habemus .procl-title { text-shadow: 0 0 12px rgba(255, 220, 120, .9); }
+
+/* DEUS VULT – křížová výprava */
+.procl.crusade { background: linear-gradient(180deg, #c01c32, #6d0a17); color: #fff3df; border-color: #f1d488; box-shadow: 0 0 36px rgba(220, 30, 50, .6), 0 14px 40px rgba(0, 0, 0, .6); animation-name: proclslam; }
+.procl.crusade .procl-title { color: #f6d77f; font-size: calc(var(--bs) * .082); text-shadow: 0 3px 0 #5a0610, 0 0 14px rgba(255, 210, 120, .6); }
+.procl.crusade .procl-glow { background: repeating-conic-gradient(from 0deg, rgba(255, 90, 90, .45) 0 5deg, transparent 5deg 18deg); animation: glowspin var(--ms, 2s) ease-out forwards; }
+.procl.crusade .procl-mote { background: #f6d77f; }
+@keyframes proclslam {
+  0% { transform: translate(-50%, -50%) scale(2.6); opacity: 0; filter: blur(10px); }
+  7% { transform: translate(-50%, -50%) scale(.9); opacity: 1; filter: blur(0); }
+  10% { transform: translate(-50%, -50%) scale(1.06) rotate(-1deg); }
+  14% { transform: translate(-50%, -50%) scale(1) rotate(.6deg); }
+  18% { transform: translate(-50%, -50%) scale(1) rotate(0); }
+  84% { transform: translate(-50%, -50%) scale(1); opacity: 1; filter: blur(0); }
+  100% { transform: translate(-50%, -50%) scale(1.25); opacity: 0; filter: blur(4px); }
+}
+
+/* Inkvizice, Žár, Zajetí */
+.procl.inquisition { background: linear-gradient(180deg, #5e0815, #22030a); color: #ffe2b0; border-color: #c9202f; }
+.procl.inquisition .procl-emb { background: radial-gradient(circle at 45% 40%, #ff8a8a, #c9202f 60%, #5e0815); border-color: #3d040c; }
+.procl.heat { background: linear-gradient(180deg, #ffb347, #c4410c); color: #2b0c02; border-color: #ffe08a; }
+.procl.heat .procl-mote { background: #fff1a0; box-shadow: 0 0 8px #ff7a1a; }
+.procl.captive { background: linear-gradient(180deg, #e3e6eb, #8d939c); color: #1d1a1f; border-color: #2f8fd6; }
+.procl.captive .procl-emb { background: radial-gradient(circle at 45% 40%, #cfe8ff, #2f8fd6 65%, #0d3558); border-color: #082642; }
+
+/* Konec partie */
+.procl.anathema { background: radial-gradient(ellipse at 50% 0%, #3a0a12, #070304 75%); color: #ff9a9a; border-color: #8d1020; box-shadow: 0 0 50px rgba(150, 0, 22, .8), 0 14px 40px rgba(0, 0, 0, .7); }
+.procl.anathema .procl-title { letter-spacing: .16em; text-shadow: 0 0 16px rgba(255, 40, 60, .7); }
+.procl.anathema .procl-emb { background: radial-gradient(circle at 45% 40%, #5a1a22, #150406 70%); border-color: #8d1020; }
+.procl.interdict { background: linear-gradient(180deg, #3b2d4a, #150f1c); color: #e8d6ff; border-color: #e2b25c; }
+.procl.interdict .procl-emb { background: radial-gradient(circle at 45% 40%, #e2b25c, #6a1220 70%); border-color: #3a0610; }
+
+/* celodeskové závoje */
+.boardwash { position: absolute; inset: 0; z-index: 8; pointer-events: none; opacity: 0; animation: washin var(--ms, 1.8s) ease forwards; }
+@keyframes washin { 0% { opacity: 0; } 18% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; } }
+.boardwash.ignis { box-shadow: inset 0 0 calc(var(--bs) * .14) calc(var(--bs) * .02) rgba(255, 90, 10, .7); }
+.boardwash.crusade { background: linear-gradient(105deg, transparent 35%, rgba(255, 60, 70, .38) 50%, transparent 65%) no-repeat, rgba(110, 0, 18, .18); background-size: 300% 100%, auto; box-shadow: inset 0 0 calc(var(--bs) * .16) rgba(170, 0, 25, .75); animation-name: washin, washsweep; animation-duration: var(--ms, 1.8s), 1.1s; animation-fill-mode: forwards, none; }
+@keyframes washsweep { from { background-position: 120% 0, 0 0; } to { background-position: -20% 0, 0 0; } }
+.boardwash.habemus { background: radial-gradient(ellipse at 50% -10%, rgba(255, 246, 210, .75), rgba(255, 230, 160, .25) 45%, transparent 70%); }
+.boardwash.sede { background: rgba(8, 6, 12, .5); }
+.boardwash.anathema { background: radial-gradient(ellipse at 50% 50%, transparent 25%, rgba(40, 0, 6, .75) 80%); }
+.boardwash.interdict { background: rgba(30, 20, 40, .45); }
+
+/* Konkláve: komín nad deskou a dým (černý / bílý) */
+.fumata { position: absolute; left: 50%; top: -1%; width: 12.5%; height: 12.5%; transform: translateX(-50%); z-index: 8; pointer-events: none; }
+.fumata .chimney { position: absolute; left: 36%; width: 28%; bottom: 60%; height: 70%; background: linear-gradient(90deg, #6d5a48, #a08a72 45%, #5a4838); border: 1px solid #2b2018; border-radius: 2px 2px 0 0; animation: chimney 3s ease forwards; }
+.fumata .chimney::before { content: ''; position: absolute; left: -18%; right: -18%; top: -10%; height: 16%; background: #4a3c30; border-radius: 2px; }
+@keyframes chimney { from { transform: translateY(40%); opacity: 0; } 12% { transform: translateY(0); opacity: 1; } 85% { opacity: 1; } to { opacity: 0; } }
+.fumata .plume { position: absolute; left: 25%; bottom: 120%; width: 50%; height: 50%; border-radius: 50%; filter: blur(3px); opacity: 0;
+  background: radial-gradient(circle, rgba(22, 20, 24, .95), rgba(40, 36, 40, .55) 45%, transparent 70%); animation: plume var(--d, 2.2s) ease-out forwards; }
+.fumata.white .plume { background: radial-gradient(circle, #fff, rgba(245, 245, 245, .75) 45%, transparent 70%); filter: blur(2px) drop-shadow(0 0 6px rgba(255, 255, 255, .7)); }
+@keyframes plume { from { transform: translate(0, 0) scale(.3); opacity: 0; } 15% { opacity: .95; } to { transform: translate(var(--dx), -320%) scale(var(--s, 2)); opacity: 0; } }
+
+/* Habemus Papam: sloup světla na nového Papeže */
+.heavenbeam { position: absolute; left: 10%; width: 80%; top: -400%; bottom: 0; mix-blend-mode: screen; filter: blur(2px);
+  background: linear-gradient(180deg, rgba(255, 250, 220, 0), rgba(255, 244, 200, .6) 60%, rgba(255, 250, 230, .95)); animation: heavenbeam 2.2s ease-out forwards; }
+@keyframes heavenbeam { from { transform: scaleX(0); opacity: 0; } 25% { transform: scaleX(1); opacity: 1; } 70% { opacity: .8; } to { transform: scaleX(.3); opacity: 0; } }
+.glint { position: absolute; width: 14%; height: 14%; background: #fff6c8; clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%); animation: glint 1.2s ease-out forwards; opacity: 0; }
+@keyframes glint { 0% { opacity: 0; transform: scale(.2) rotate(0); } 40% { opacity: 1; transform: scale(1.4) rotate(45deg); } to { opacity: 0; transform: scale(.4) rotate(90deg) translateY(120%); } }
+
+/* Deus vult: padající kříže */
+.fallcross { position: absolute; top: -8%; width: var(--sz, 4%); aspect-ratio: 1; z-index: 8; pointer-events: none; opacity: 0; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .6)); animation: fallcross 1.6s ease-in forwards; }
+.fallcross svg { width: 100%; height: 100%; display: block; }
+@keyframes fallcross { 0% { opacity: 0; transform: translate(0, 0) rotate(0); } 12% { opacity: 1; } 85% { opacity: 1; } to { opacity: 0; transform: translate(var(--dx), calc(var(--bs) * 1.02)) rotate(var(--rot)); } }
+
+/* Ignis!: ohnivý prstenec pod Papežem */
+.ignisring { position: absolute; inset: -6%; border-radius: 50%; border: calc(var(--bs) * .007) solid rgba(255, 120, 20, .95); box-shadow: 0 0 18px rgba(255, 80, 10, .9), inset 0 0 14px rgba(255, 80, 10, .7); animation: ignisring 1.7s ease-out forwards; }
+@keyframes ignisring { 0% { transform: scale(.2); opacity: 0; } 25% { transform: scale(1); opacity: 1; } 70% { opacity: 1; } to { transform: scale(1.15); opacity: 0; } }
+.flame.small { width: 18%; bottom: auto; }
+
+/* Svedení: Poutník odbloudí – stopy a zmatený vír */
+.footprint { position: absolute; width: 9%; height: 13%; border-radius: 50% 50% 45% 45%; background: rgba(60, 38, 20, .55); opacity: 0; transform: rotate(-35deg); animation: footprint 1.5s ease forwards; }
+.footprint.r { transform: rotate(-20deg); }
+@keyframes footprint { 0% { opacity: 0; } 15% { opacity: 1; } 70% { opacity: .8; } to { opacity: 0; } }
+.swirl { position: absolute; inset: 15%; border-radius: 50%; border: calc(var(--bs) * .004) dashed rgba(150, 120, 200, .85); animation: swirl 1.2s ease-out forwards; }
+@keyframes swirl { from { transform: rotate(0) scale(.3); opacity: 0; } 30% { opacity: 1; } to { transform: rotate(540deg) scale(1.3); opacity: 0; } }
+.piece.die-astray .pc { animation: dieastray 1.1s ease-in forwards; transform-origin: 50% 90%; }
+@keyframes dieastray {
+  20% { transform: translate(8%, -4%) rotate(8deg); }
+  40% { transform: translate(18%, -2%) rotate(-6deg); }
+  60% { transform: translate(30%, -8%) rotate(10deg); opacity: .8; }
+  to { transform: translate(55%, -16%) rotate(-12deg) scale(.8); opacity: 0; filter: blur(2px) grayscale(.6); }
+}
+
+/* Zmaření Inkvizice: pečeť pukne */
+.sealcrack { position: absolute; left: 30%; top: 70%; width: 40%; height: 14%; border-radius: 50%; background: radial-gradient(ellipse, #ff6a6a, #c9202f 55%, #5e0815); box-shadow: 0 0 12px rgba(235, 50, 40, .8); animation: sealcrack .7s ease-out forwards; }
+@keyframes sealcrack { 0% { transform: scale(1); opacity: 1; } 40% { transform: scale(1.3, 1.1); filter: brightness(1.8); } to { transform: scale(.2); opacity: 0; } }
+.waxbit { position: absolute; left: 44%; top: 70%; width: 10%; height: 7%; background: linear-gradient(135deg, #ff6a6a, #7a0a16); clip-path: polygon(50% 0, 100% 60%, 40% 100%, 0 35%); animation: waxbit 1.1s cubic-bezier(.2, .7, .4, 1) forwards; }
+@keyframes waxbit { to { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); opacity: 0; } }
+
+/* Zajetí pomine */
+.freering { position: absolute; inset: 0; border-radius: 50%; border: calc(var(--bs) * .006) solid rgba(80, 170, 240, .95); box-shadow: 0 0 16px rgba(60, 150, 230, .8); animation: freering 1.1s ease-out forwards; }
+@keyframes freering { from { transform: scale(.5); opacity: 1; } to { transform: scale(1.8); opacity: 0; } }
+
+/* Anathema: svíce zhasnou; Interdikt: pečeť dopadne */
+.wick { position: absolute; left: 45%; top: 4%; width: 10%; height: 14%; border-radius: 50% 50% 40% 40%; background: radial-gradient(ellipse at 50% 80%, #fff3a0, #ffb32e 50%, transparent 72%); animation: wick .6s ease-in forwards; }
+@keyframes wick { 0% { opacity: 1; } 60% { opacity: 1; transform: scale(1, .6); } to { opacity: 0; transform: scale(.2); } }
+.wisp { position: absolute; left: 44%; top: 0; width: 12%; height: 30%; border-radius: 50%; background: radial-gradient(ellipse, rgba(190, 185, 195, .7), transparent 70%); filter: blur(2px); opacity: 0; animation: wisp 1.8s .4s ease-out forwards; }
+@keyframes wisp { 0% { opacity: 0; transform: translate(0, 0) scale(.4); } 20% { opacity: .9; } to { opacity: 0; transform: translate(var(--dx), -220%) scale(1.6, 2.4); } }
+.sealstamp { position: absolute; left: 50%; top: 76%; width: 26%; aspect-ratio: 1; z-index: 8; pointer-events: none; transform: translate(-50%, -50%); filter: drop-shadow(0 10px 18px rgba(0, 0, 0, .7)); animation: sealstamp var(--ms, 2.6s) cubic-bezier(.5, 0, .3, 1) forwards; }
+.sealstamp svg { width: 100%; height: 100%; display: block; }
+@keyframes sealstamp {
+  0% { transform: translate(-50%, -50%) scale(3) rotate(-25deg); opacity: 0; }
+  16% { transform: translate(-50%, -50%) scale(.92) rotate(0); opacity: 1; }
+  22% { transform: translate(-50%, -50%) scale(1.04); }
+  28% { transform: translate(-50%, -50%) scale(1); }
+  80% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+}
+
+@media (max-width: 600px) {
+  .procl-sub { font-size: calc(var(--bs) * .03); }
+}

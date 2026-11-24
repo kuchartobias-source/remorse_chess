@@ -118,31 +118,31 @@ export function pieceSVG(t) {
   return `<svg class="pc" viewBox="0 0 100 100" aria-hidden="true">${SVG[t]}</svg>`;
 }
 
-// Pokerový žeton Pokání (leží pod figurkou)
+// Pokerový žeton pod figurkou: fialový = Pokání, u Inkvizitora červený = Inkvizice (barvy přes CSS proměnné)
 export const CHIP_SVG = `<svg class="chip" viewBox="0 0 100 100" aria-hidden="true">
-  <ellipse cx="50" cy="92.5" rx="45" ry="9.5" fill="#5e0815"/>
-  <ellipse cx="50" cy="89" rx="45" ry="9.5" fill="#c3172f" stroke="#3d040c" stroke-width="1.2"/>
+  <ellipse cx="50" cy="92.5" rx="45" ry="9.5" style="fill:var(--chip-side,#2e0f45)"/>
+  <ellipse cx="50" cy="89" rx="45" ry="9.5" style="fill:var(--chip-top,#7b35b0);stroke:var(--chip-edge,#1c0730)" stroke-width="1.2"/>
   <ellipse cx="50" cy="89" rx="45" ry="9.5" fill="none" stroke="#fff4e0" stroke-width="3.4" stroke-dasharray="6.5 8.5"/>
-  <ellipse cx="50" cy="89" rx="33" ry="6.3" fill="none" stroke="#ffd9c0" stroke-width="1"/>
+  <ellipse cx="50" cy="89" rx="33" ry="6.3" fill="none" style="stroke:var(--chip-ring,#e6c8ff)" stroke-width="1"/>
 </svg>`;
 
 // Žetony Žáru (leží pod Hranicí): 1 žeton = 2. úroveň, 2 žetony = 3. úroveň
 const heatChip = (dy) => `<g transform="translate(0 ${dy})">
-  <ellipse cx="50" cy="92.5" rx="45" ry="9.5" fill="#6b2a05"/>
-  <ellipse cx="50" cy="89" rx="45" ry="9.5" fill="#f07a1a" stroke="#4a1a02" stroke-width="1.2"/>
-  <ellipse cx="50" cy="89" rx="45" ry="9.5" fill="none" stroke="#ffe28a" stroke-width="3.4" stroke-dasharray="3 6 9 6"/>
-  <ellipse cx="50" cy="89" rx="31" ry="5.8" fill="none" stroke="#ffd36b" stroke-width="1"/>
+  <ellipse cx="50" cy="92.5" rx="45" ry="9.5" fill="#5e0815"/>
+  <ellipse cx="50" cy="89" rx="45" ry="9.5" fill="#c9202f" stroke="#3d040c" stroke-width="1.2"/>
+  <ellipse cx="50" cy="89" rx="45" ry="9.5" fill="none" stroke="#ffd6a0" stroke-width="3.4" stroke-dasharray="3 6 9 6"/>
+  <ellipse cx="50" cy="89" rx="31" ry="5.8" fill="none" stroke="#ffb36b" stroke-width="1"/>
 </g>`;
 export const HEAT_SVG = `<svg class="heat" viewBox="0 0 100 100" aria-hidden="true">
   <g class="h1">${heatChip(0)}</g><g class="h2">${heatChip(-6.5)}</g>
 </svg>`;
 
-// Zlatý žeton Křižáka (třetí barva) – Misionář povýšený na Křižáka
+// Modrý žeton Křižáka (třetí barva) – leží pod Křižákem i pod hodnostářem, kterého drží v zajetí
 export const CRUSADE_CHIP_SVG = `<svg class="cchip" viewBox="0 0 100 100" aria-hidden="true">
-  <ellipse cx="50" cy="92.5" rx="45" ry="9.5" fill="#6b4c10"/>
-  <ellipse cx="50" cy="89" rx="45" ry="9.5" fill="#d6a531" stroke="#4a3408" stroke-width="1.2"/>
-  <ellipse cx="50" cy="89" rx="45" ry="9.5" fill="none" stroke="#fff3c8" stroke-width="3.4" stroke-dasharray="7 7"/>
-  <path d="M47.6 83.5 H52.4 V86.6 H58 V91 H52.4 V94.6 H47.6 V91 H42 V86.6 H47.6 Z" fill="#b3182c"/>
+  <ellipse cx="50" cy="92.5" rx="45" ry="9.5" fill="#0d3558"/>
+  <ellipse cx="50" cy="89" rx="45" ry="9.5" fill="#2f8fd6" stroke="#082642" stroke-width="1.2"/>
+  <ellipse cx="50" cy="89" rx="45" ry="9.5" fill="none" stroke="#e8f4ff" stroke-width="3.4" stroke-dasharray="7 7"/>
+  <path d="M47.6 83.5 H52.4 V86.6 H58 V91 H52.4 V94.6 H47.6 V91 H42 V86.6 H47.6 Z" fill="#fff6e0" stroke="#082642" stroke-width=".6"/>
 </svg>`;
 
 // Malé ikony pro výpis tahů
@@ -156,6 +156,6 @@ export const ICON = {
   monitum: '<svg class="ico" viewBox="0 0 20 20"><path d="M10 1.8 L19 17.6 H1 Z" fill="#f07a1a" stroke="#4a1a02" stroke-width="1"/><path d="M9 6.8 H11 L10.7 12.6 H9.3 Z M9 14 H11 V16 H9 Z" fill="#2b1203"/></svg>',
   heat: '<svg class="ico" viewBox="0 0 20 20"><ellipse cx="10" cy="16" rx="8" ry="2.6" fill="#f07a1a"/><path d="M10 2 C6 7 5.5 9.5 5.5 11.5 A4.5 4.5 0 0 0 14.5 11.5 C14.5 9 12.5 7.5 12 5 C11 6.8 10.5 7.4 10 7.8 C10.3 5.8 10.3 3.6 10 2 Z" fill="#ffb12e"/></svg>',
   chain: '<svg class="ico" viewBox="0 0 20 20"><g fill="none" stroke="#c9ccd2" stroke-width="2"><rect x="1.5" y="7" width="8" height="6" rx="3"/><rect x="10.5" y="7" width="8" height="6" rx="3"/></g><path d="M7.5 10 H12.5" stroke="#8d939c" stroke-width="2.2"/></svg>',
-  seal: '<svg class="ico" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.6" fill="#c4410c" stroke="#4a1a02" stroke-width="1"/><circle cx="10" cy="10" r="5.2" fill="none" stroke="#ffd36b" stroke-width="1"/><path d="M8.9 5.6 H11.1 V8.4 H13.9 V10.6 H11.1 V14.4 H8.9 V10.6 H6.1 V8.4 H8.9 Z" fill="#fff0d0"/></svg>',
+  seal: '<svg class="ico" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.6" fill="#c9202f" stroke="#3d040c" stroke-width="1"/><circle cx="10" cy="10" r="5.2" fill="none" stroke="#ffd36b" stroke-width="1"/><path d="M8.9 5.6 H11.1 V8.4 H13.9 V10.6 H11.1 V14.4 H8.9 V10.6 H6.1 V8.4 H8.9 Z" fill="#fff0d0"/></svg>',
   logs: '<svg class="ico" viewBox="0 0 20 20"><rect x="2" y="11" width="16" height="5" rx="2.5" fill="#8b5a33"/><rect x="5" y="6" width="10" height="5" rx="2.5" fill="#a06a3c"/><path d="M14 3 L6 18" stroke="#f07a1a" stroke-width="1.6"/></svg>',
 };

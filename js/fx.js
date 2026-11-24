@@ -334,6 +334,150 @@ export class FX {
     this.add(c, 'warnring second');
   }
 
+  // ---- Ohlášení (proklamace) – velký prapor uprostřed desky; řadí je fronta v BoardView ----
+  proclaim({ title, sub = '', cls = '', icon = '', ms = 2000 }) {
+    if (this.off) return null;
+    const el = document.createElement('div');
+    el.className = 'procl ' + cls;
+    el.style.setProperty('--ms', ms + 'ms');
+    el.innerHTML = '<div class="procl-glow"></div>'
+      + (icon ? `<div class="procl-emb">${icon}</div>` : '')
+      + `<div class="procl-title">${title}</div>`
+      + (sub ? `<div class="procl-sub">${sub}</div>` : '');
+    for (let i = 0; i < n(12); i++) {
+      this.add(el, 'procl-mote', { left: rnd(4, 96) + '%', '--dx': rnd(-50, 50) + '%', '--d': rnd(900, 1600) + 'ms', 'animation-delay': rnd(150, ms * 0.55) + 'ms' });
+    }
+    this.layer.appendChild(el);
+    setTimeout(() => el.remove(), ms + 120);
+    return el;
+  }
+
+  // rychle odklidí rozehraná ohlášení (další tah, listování historií)
+  clearProclaims() {
+    this.layer.querySelectorAll('.procl, .ribbon, .boardwash, .fumata, .fallcross, .sealstamp').forEach((el) => {
+      el.classList.add('gone');
+      setTimeout(() => el.remove(), 320);
+    });
+  }
+
+  // celodeskový závoj: barevný záblesk, viněta nebo světlo
+  wash(cls, ms = 1800) {
+    if (this.off) return null;
+    const el = document.createElement('div');
+    el.className = 'boardwash ' + cls;
+    el.style.setProperty('--ms', ms + 'ms');
+    this.layer.appendChild(el);
+    setTimeout(() => el.remove(), ms + 80);
+    return el;
+  }
+
+  // Konkláve: dým z komína nad deskou – černý (nevolba) nebo bílý (Habemus Papam)
+  fumata(white = false, ms = 3200) {
+    if (this.off) return;
+    const el = document.createElement('div');
+    el.className = 'fumata' + (white ? ' white' : '');
+    el.innerHTML = '<div class="chimney"></div>';
+    for (let i = 0; i < n(16); i++) {
+      this.add(el, 'plume', { '--dx': rnd(-120, 120) + '%', '--s': rnd(1.4, 2.8).toFixed(2), '--d': rnd(1700, 2600) + 'ms', 'animation-delay': rnd(0, ms * 0.65) + 'ms' });
+    }
+    this.layer.appendChild(el);
+    setTimeout(() => el.remove(), ms + 2700);
+  }
+
+  // Habemus Papam: zlaté paprsky dopadnou na nového Papeže
+  heaven(sq) {
+    if (this.off) return;
+    const c = this.cell(sq, 2400);
+    this.add(c, 'heavenbeam');
+    this.add(c, 'rays');
+    this.add(c, 'halo');
+    for (let i = 0; i < n(10); i++) this.add(c, 'glint', { left: rnd(10, 90) + '%', top: rnd(-120, 60) + '%', 'animation-delay': rnd(0, 900) + 'ms' });
+  }
+
+  // Deus vult: shora se snesou rudé kříže
+  crosses(ms = 2200) {
+    if (this.off) return;
+    const svg = '<svg viewBox="0 0 20 20"><path d="M8.3 1.5 H11.7 V6.5 H17 V9.9 H11.7 V18.5 H8.3 V9.9 H3 V6.5 H8.3 Z" fill="#d8303f" stroke="#fff3df" stroke-width=".9"/></svg>';
+    for (let i = 0; i < n(16); i++) {
+      const el = document.createElement('div');
+      el.className = 'fallcross';
+      el.innerHTML = svg;
+      el.style.left = rnd(2, 94) + '%';
+      el.style.setProperty('--rot', rnd(-160, 160) + 'deg');
+      el.style.setProperty('--dx', rnd(-8, 8) + '%');
+      el.style.setProperty('--sz', rnd(3.2, 6) + '%');
+      el.style.animationDelay = rnd(0, ms * 0.5) + 'ms';
+      el.style.animationDuration = rnd(1300, 2000) + 'ms';
+      this.layer.appendChild(el);
+      setTimeout(() => el.remove(), ms + 2100);
+    }
+  }
+
+  // Ignis!: plamínky vyšlehnou kolem ohroženého Papeže
+  ignite(sq) {
+    if (this.off) return;
+    const c = this.cell(sq, 1900, true);
+    this.add(c, 'ignisring');
+    for (let i = 0; i < n(10); i++) {
+      const a = (i / n(10)) * Math.PI * 2;
+      this.add(c, 'flame small', { left: 50 + Math.cos(a) * 42 - 9 + '%', top: 50 + Math.sin(a) * 30 - 20 + '%', '--d': rnd(600, 1000) + 'ms', '--sk': rnd(-12, 12) + 'deg', 'animation-delay': rnd(0, 350) + 'ms', height: rnd(30, 45) + '%' });
+    }
+  }
+
+  // Svedení: Poutník odbloudí z cesty – za ním zůstanou stopy
+  astray(sq, dir = 1) {
+    if (this.off) return;
+    const c = this.cell(sq, 1900);
+    for (let i = 0; i < 5; i++) {
+      this.add(c, 'footprint' + (i % 2 ? ' r' : ''), { left: 40 + dir * i * 16 + '%', top: 62 - i * 9 + (i % 2) * 6 + '%', 'animation-delay': 120 + i * 140 + 'ms' });
+    }
+    this.add(c, 'swirl');
+  }
+
+  // Zmaření Inkvizice: rudá pečeť Inkvizice pukne na kusy vosku
+  sealBreak(sq) {
+    if (this.off) return;
+    const c = this.cell(sq, 1600);
+    this.add(c, 'sealcrack');
+    for (let i = 0; i < n(9); i++) {
+      const a = rnd(0, Math.PI * 2), d = rnd(50, 120);
+      this.add(c, 'waxbit', { '--dx': Math.cos(a) * d + '%', '--dy': Math.sin(a) * d * 0.7 - 30 + '%', '--rot': rnd(-300, 300) + 'deg', 'animation-delay': rnd(0, 80) + 'ms' });
+    }
+  }
+
+  // Zajetí pomine: modrý žeton Křižáka odlétne a hodnostář se nadechne
+  freed(sq) {
+    if (this.off) return;
+    const c = this.cell(sq, 1400, true);
+    this.add(c, 'freering');
+  }
+
+  // Anathema: svíce zhasínají – nad figurkami poraženého stoupá dým
+  snuff(sqs) {
+    if (this.off) return;
+    sqs.forEach((sq, i) => {
+      setTimeout(() => {
+        if (this.off) return;
+        const c = this.cell(sq, 2400);
+        this.add(c, 'wick');
+        for (let k = 0; k < 2; k++) this.add(c, 'wisp', { '--dx': rnd(-30, 30) + '%', 'animation-delay': k * 260 + 'ms' });
+      }, i * 90);
+    });
+  }
+
+  // Interdikt: doprostřed desky dopadne těžká pečeť
+  sealStamp(ms = 2600) {
+    if (this.off) return;
+    const el = document.createElement('div');
+    el.className = 'sealstamp';
+    el.innerHTML = '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="#6a1220" stroke="#3a0610" stroke-width="3"/>'
+      + '<circle cx="50" cy="50" r="34" fill="none" stroke="#e2b25c" stroke-width="2.4" stroke-dasharray="4 3"/>'
+      + '<path d="M45 22 H55 V40 H73 V50 H55 V78 H45 V50 H27 V40 H45 Z" fill="#e2b25c"/></svg>';
+    el.style.setProperty('--ms', ms + 'ms');
+    this.layer.appendChild(el);
+    setTimeout(() => el.remove(), ms + 100);
+  }
+
   clear() {
     this.layer.innerHTML = '';
     this.under.innerHTML = '';

@@ -216,6 +216,41 @@ export const sfx = {
     }
     tone({ f: 60, f2: 40, delay: delay + 1.2, dur: 0.5, gain: 0.5 });
   },
+  // Ignis!: dvojí varovný zvon a vyšlehnutí plamene
+  ignis(delay = 0) {
+    if (!ok()) return;
+    noise({ delay, dur: 0.7, gain: 0.32, f: 400, f2: 2400, q: 0.8, attack: 0.08 });
+    bell(311.13, { delay: delay + 0.05, dur: 1.2, gain: 0.17 });
+    bell(311.13, { delay: delay + 0.37, dur: 1.6, gain: 0.21 });
+    for (let i = 0; i < 12; i++) noise({ delay: delay + rnd(0.1, 0.9), dur: 0.012, gain: rnd(0.05, 0.16), type: 'highpass', f: 2200, q: 0.7, attack: 0.001 });
+  },
+  // Sede vacante: tlumený úder a hluboký tón
+  sede(delay = 0) {
+    if (!ok()) return;
+    bell(98, { delay, dur: 3, gain: 0.3 });
+    chord([98, 116.54, 146.83], { delay: delay + 0.1, dur: 2.2, gain: 0.03, attack: 0.6, lp: 700 });
+  },
+  // Deus vult: válečné bubny a roh
+  deusVult(delay = 0) {
+    if (!ok()) return;
+    for (const d of [0, 0.22, 0.44, 0.9]) {
+      tone({ f: 95, f2: 45, delay: delay + d, dur: 0.35, gain: 0.55 });
+      noise({ delay: delay + d, dur: 0.12, gain: 0.22, type: 'lowpass', f: 300, attack: 0.002 });
+    }
+    sfx.crusadeCall(delay + 0.35);
+  },
+  // Anathema: třikrát umíráček
+  anathema(delay = 0) {
+    if (!ok()) return;
+    for (let i = 0; i < 3; i++) bell(65.4, { delay: delay + i * 0.85, dur: 3, gain: 0.4 });
+  },
+  // Interdikt: těžká pečeť dopadne a zarachotí řetězy
+  interdict(delay = 0) {
+    if (!ok()) return;
+    knock(delay + 0.38, 0.6, 0.9);
+    tone({ f: 70, f2: 35, delay: delay + 0.38, dur: 0.6, gain: 0.7 });
+    sfx.clank(delay + 0.6);
+  },
   win() { if (ok()) { chord([261.63, 329.63, 392, 523.25], { dur: 2.8, gain: 0.07, attack: 0.08, type: 'square', lp: 2200 }); bell(523.25, { delay: 0.1, dur: 2, gain: 0.08 }); } },
   lose() { if (ok()) { chord([130.81, 261.63, 311.13, 392], { dur: 3.2, gain: 0.07, attack: 0.1, type: 'square', lp: 1300 }); bell(65.4, { delay: 0.2, dur: 4, gain: 0.35 }); } },
   draw() { if (ok()) chord([196, 293.66, 392], { dur: 2.4, gain: 0.06, attack: 0.12, type: 'square', lp: 1500 }); },
@@ -223,7 +258,8 @@ export const sfx = {
   chat() { if (ok(true)) { tone({ type: 'triangle', f: 988, dur: 0.12, gain: 0.07 }); tone({ type: 'triangle', f: 1319, delay: 0.09, dur: 0.18, gain: 0.07 }); } },
 };
 
-// Zvuky pro události jednoho tahu (časování odpovídá animacím)
+// Zvuky pro události jednoho tahu (časování odpovídá animacím).
+// Zvuky ohlášení (Ignis, Konkláve, Deus vult, Žár, Zajetí, konec) spouští fronta ohlášení v app.js.
 export function playEvents(evs) {
   if (!ok()) return;
   const mv = evs.find((e) => e.type === 'move');
@@ -246,12 +282,7 @@ export function playEvents(evs) {
     if (e.type === 'absolve') sfx.absolve(evs.some((x) => x.type === 'penance' && x.id === e.id) ? 1.0 : 0.4);
     if (e.type === 'promote') sfx.promote();
     if (e.type === 'popeFall') sfx.popeFall();
-    if (e.type === 'conclave') sfx.conclave(popeFell ? 2.1 : 1.3);
-    if (e.type === 'crusade') sfx.crusadeCall(popeFell ? 3.2 : 0.6);
-    if (e.type === 'heat') sfx.heat(0.65, e.level);
     if (e.type === 'heatLost' || e.type === 'inqFoiled') sfx.extinguish();
-    if (e.type === 'monitum') sfx.monitum(popeFell ? 3 : 0.7);
-    if (e.type === 'captive') sfx.clank(0.45);
     if (e.type === 'freed') sfx.unchain(0.4);
   }
 }
