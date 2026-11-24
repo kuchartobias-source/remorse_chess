@@ -1,5 +1,5 @@
 // Text pravidel zobrazený v aplikaci
-import { pieceSVG, ICON } from './pieces.js?v=23';
+import { pieceSVG, ICON } from './pieces.js?v=24';
 
 const m = (t) => `<span class="mini w">${pieceSVG(t)}</span><span class="mini b">${pieceSVG(t)}</span>`;
 
@@ -35,8 +35,8 @@ ochromit. Ve Schizmatu neexistuje povinný šach ani rošáda.</p>
   <tr><td>${m('P')}</td><td><b>Poutník</b></td><td>Pěšec</td><td>2. a 7. řada</td></tr>
 </table>
 <p>Figurky táhnou jako v šachu, s výjimkou Hranic, Poutníků a pravidel níže. Žetony pod figurkami:
-<b style="color:#e33">červený</b> = Pokání, <b style="color:#a77ae6">fialový</b> = probíhající Inkvizice,
-<b style="color:#f80">oranžový</b> = Žár Hranice, <b style="color:#d6a531">zlatý s křížem</b> = Křižák.
+<b style="color:#e33">červený</b> = Pokání, <b style="color:#f80">oranžový</b> = Inkvizice pod Inkvizitorem a Žár pod
+Hranicí (po dokončení Inkvizice se žeton přesune zpod Inkvizitora pod Hranici), <b style="color:#d6a531">zlatý s křížem</b> = Křižák.
 Zajatý Papež či Kardinál má na sobě okovy.</p>
 
 <h3>3. Pokání a Zpověď</h3>
@@ -63,11 +63,11 @@ Zajatý Papež či Kardinál má na sobě okovy.</p>
   <li><b>Odpustky:</b> Inkvizitor nikdy nepropadá Pokání. V dosahu vlastní Hranice prostě upaluje – bez žetonu a bez
   navýšení Žáru.</li>
   <li><b>Zahájení Inkvizice:</b> vezme-li Inkvizitor figurku <b>mimo</b> žár vlastních Hranic (nesmí jít o Papeže ani čistého
-  Kardinála), je zajatá a natrvalo ze hry (její ztráta působí hned, např. Křížová výprava). Inkvizitor dostane fialový žeton
+  Kardinála), je zajatá a natrvalo ze hry (její ztráta působí hned, např. Křížová výprava). Inkvizitor dostane oranžový žeton
   ${ICON.seal} a dokud proces běží, nesmí brát vůbec.</li>
   <li><b>Dokončení:</b> na konci tvého tahu, kdy Inkvizitor se žetonem sousedí (i diagonálně) s tvou Hranicí – ať přišel on, nebo
-  Hranice přiskočila – je zajatec upálen, žeton zmizí a <b>Žár té Hranice stoupne o 1</b>. U Hranice s maximem se proces jen
-  dokončí.</li>
+  Hranice přiskočila – je zajatec upálen, žeton se přesune pod Hranici a <b>Žár té Hranice stoupne o 1</b>. Sousedí-li
+  Inkvizitor s oběma tvými Hranicemi, <b>vybereš si</b>, kterou rozpálíš. U Hranice s maximem se proces jen dokončí.</li>
   <li><b>Trvalý Žár a přepadení:</b> Žár si každá Hranice drží do konce hry. Odstraní-li soupeř Inkvizitora během Inkvizice,
   zajatec je předčasně popraven, Žár se nezvýší a útočník Pokání nepropadá.</li>
 </ul>
@@ -133,11 +133,11 @@ Zajatý Papež či Kardinál má na sobě okovy.</p>
 
 <h3>Výklad nejasných míst</h3>
 <ul class="note">
-  <li>Sousedí-li Inkvizitor při dokončení Inkvizice se dvěma Hranicemi, Žár dostane ta s nižším Žárem (při shodě ta blíž
-  k levému dolnímu rohu šachovnice).</li>
-  <li>Kající se Kardinál v zajetí se smí vyzpovídat u volného Papeže – zajetí brání jen zpovídání ostatních.</li>
-  <li>Zpověď, dokončení Inkvizice i zajetí se posuzují v pozici na konci tahu. Zpovídají se jen figurky hráče, který táhl.</li>
-  <li>Nového Papeže volí poražená strana jako svou první akci. Remíza je možná jen dohodou hráčů.</li>
+  <li>Zpověď, dokončení Inkvizice i zajetí se posuzují v pozici na konci tahu. Zpovídají se jen figurky hráče, který táhl;
+  zajatý kající se Kardinál se smí vyzpovídat u volného Papeže.</li>
+  <li>Nového Papeže volí poražená strana jako svou první akci (před vlastním tahem). Remíza je možná výhradně dohodou hráčů.</li>
+  <li>Volbu Hranice při dokončení Inkvizice nabídne aplikace jen tehdy, když mohou růst obě Hranice; Hranice s maximálním
+  Žárem se volby neúčastní.</li>
 </ul>
 
 <p class="note"><b>Inspirace a kredit:</b> Schizma vznikla na základě inspirace šachovou variantou <i>Remorse chess</i>,

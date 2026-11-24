@@ -142,12 +142,20 @@ t('Dokončení Inkvizice u Hranice: Žár té Hranice +1, žeton zmizí', () => 
   eq(P(r4.state, 'a1').heat, 3); ok(!E.hasToken(P(r4.state, 'b2')));
 });
 
-t('Hranice může přiskočit k Inkvizitorovi; u dvou Hranic dostane Žár ta s nižším Žárem', () => {
+t('Hranice může přiskočit k Inkvizitorovi; u dvou Hranic hráč volí, kterou rozpálí', () => {
   const s = pos({ e1: 'wK', e8: 'bK', a1: 'wR', h1: 'wR', a8: 'bR', h8: 'bR', c3: 'wQ*', c8: 'bB' });
   eq(P(apply(s, 'a1b2').state, 'b2').heat, 2);
   const s2 = pos({ e1: 'wK', e8: 'bK', b2: 'wR2', d2: 'wR', a8: 'bR', h8: 'bR', c4: 'wQ*', c8: 'bB' });
-  const r2 = apply(s2, 'c4c3');
-  eq(P(r2.state, 'd2').heat, 2); eq(P(r2.state, 'b2').heat, 2);
+  ok(!has(s2, 'c4c3'), 'bez volby to nejde');
+  ok(has(s2, 'c4c3>b2') && has(s2, 'c4c3>d2'));
+  const r2 = apply(s2, 'c4c3>b2');
+  eq(P(r2.state, 'b2').heat, 3); eq(P(r2.state, 'd2').heat, 1);
+  const r3 = apply(s2, 'c4c3>d2');
+  eq(P(r3.state, 'b2').heat, 2); eq(P(r3.state, 'd2').heat, 2);
+  // Hranice s maximem se volby neúčastní
+  const s4 = pos({ e1: 'wK', e8: 'bK', b2: 'wR3', d2: 'wR', a8: 'bR', h8: 'bR', c4: 'wQ*', c8: 'bB' });
+  ok(has(s4, 'c4c3') && !has(s4, 'c4c3>b2'));
+  eq(P(apply(s4, 'c4c3').state, 'd2').heat, 2);
 });
 
 t('Přepadení Inkvizitora s žetonem nezpůsobuje Pokání; Žár smrtí Inkvizitora nepadá', () => {

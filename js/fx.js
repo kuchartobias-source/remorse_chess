@@ -265,7 +265,22 @@ export class FX {
     this.add(c, 'quench');
   }
 
-  // Inkvizice: oběť je zajata – fialový závoj a okovy, figurka zmizí ze šachovnice
+  // žeton Inkvizice přeletí zpod Inkvizitora pod Hranici (stane se žetonem Žáru)
+  chipFly(from, to) {
+    if (this.off) return;
+    const a = this.center(from), b = this.center(to);
+    const el = document.createElement('div');
+    el.className = 'chipfly';
+    el.style.left = a.x + '%';
+    el.style.top = a.y + 4 + '%';
+    el.style.setProperty('--dx', (b.x - a.x) + '%');
+    el.style.setProperty('--dy', (b.y - a.y) + '%');
+    this.layer.appendChild(el);
+    requestAnimationFrame(() => { el.style.left = b.x + '%'; el.style.top = b.y + 4 + '%'; el.classList.add('go'); });
+    setTimeout(() => el.remove(), 1000);
+  }
+
+  // Inkvizice: oběť je zajata – temný závoj a okovy, figurka zmizí ze šachovnice
   seize(sq) {
     if (this.off) return;
     const c = this.cell(sq, 1600);

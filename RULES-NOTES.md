@@ -17,9 +17,9 @@ Pravidla v PDF nechávají několik míst otevřených. Aplikace je vykládá ta
 5. **Inkvizice:** Inkvizitor bere mimo dosah vlastních Hranic → oběť je natrvalo ze hry a Inkvizitor
    dostane žeton (v kódu pole `pen` u Inkvizitora). S žetonem nesmí brát. Inkvizice se dokončí na konci
    tahu jeho majitele, stojí-li Inkvizitor vedle (i diagonálně) své Hranice. **Sousedí-li se dvěma
-   Hranicemi, Žár dostane ta s nižším Žárem, při shodě ta na nižším poli** (PDF říká „vybrané“ Hranici;
-   aplikace volí za hráče, aby se nemusel měnit formát tahů). Žeton Inkvizice není Pokání – zpověď ho
-   neodstraní a proměna Poutníka se k němu nevztahuje.
+   Hranicemi, které ještě mohou růst (Žár < 3), hráč si vybere, kterou rozpálí** – volba je součástí tahu
+   (zápis `c4c3>b2`, v aplikaci dialog). Může-li růst jen jedna, rozpálí se ta. Žeton Inkvizice není
+   Pokání – zpověď ho neodstraní a proměna Poutníka se k němu nevztahuje.
 6. **Kající se figurka nesmí odstranit nic** – ani Upálením, ani Zblouděním.
 7. **Papež a čistý Kardinál** padnou jen Upálením (v dosahu soupeřovy Hranice); upálit je smí každá
    nekající se figurka kromě Poutníka (i Křižák a Inkvizitor). Kající se Kardinál je běžný cíl.

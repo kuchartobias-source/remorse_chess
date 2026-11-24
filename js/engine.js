@@ -8,8 +8,9 @@
 //  - Hranice se přemisťuje skokem na volné pole ve svém poloměru, nikdy nebere a nelze ji odstranit.
 //  - Inkvizitor nikdy nepropadá Pokání. Pole `pen` u Inkvizitora znamená žeton Inkvizice (probíhající
 //    proces): Inkvizitor s žetonem nesmí brát. Inkvizice se dokončí na konci tahu majitele, stojí-li
-//    Inkvizitor vedle (8 polí) své Hranice; má-li vedle sebe více Hranic, Žár dostane ta s nejnižším
-//    Žárem (při shodě ta na nižším poli). Přepadení Inkvizitora s žetonem nezpůsobuje Pokání.
+//    Inkvizitor vedle (8 polí) své Hranice. Sousedí-li se dvěma Hranicemi, které ještě mohou růst, hráč si
+//    vybere, kterou rozpálí – volba je součástí tahu (zápis „c4c3>b2“). Přepadení Inkvizitora s žetonem
+//    nezpůsobuje Pokání.
 //  - Papež a čistý Kardinál padnou jen Upálením (v dosahu soupeřovy Hranice); Poutník je neodstraní nikdy.
 //  - Zajetí: soupeřův Křižák ve vzdálenosti skoku jezdce drží Papeže i každého Kardinála – nesmí táhnout,
 //    nezpovídá a zajatý Kardinál nemůže do Konkláve (posuzuje se v pozici na konci tahu).
@@ -200,6 +201,7 @@ export function legalMoves(state) {
   if (state.result || state.conclave) return [];
   const { board, turn } = state;
   const moves = [];
+  const tokenSide = board.some((x) => x && x.c === turn && hasToken(x));
   for (let from = 0; from < 64; from++) {
     const p = board[from];
     if (!p || p.c !== turn) continue;
@@ -236,13 +238,42 @@ export function legalMoves(state) {
     for (const to of targets(state, from)) {
       const v = board[to];
       if (v && v.c === p.c) continue;
+      let m = null;
       if (v) {
         const kind = captureKind(state, p, v, to);
-        if (kind) moves.push({ from, to, kind });
-      } else moves.push({ from, to, kind: null });
+        if (kind) m = { from, to, kind };
+      } else m = { from, to, kind: null };
+      if (!m) continue;
+      const choices = (p.t === 'Q' || p.t === 'R') && tokenSide ? heatChoices(state, m) : [];
+      if (choices.length >= 2) for (const r of choices) moves.push({ ...m, heatRook: r });
+      else moves.push(m);
     }
   }
   return moves;
+}
+
+// Hranice, mezi kterými hráč volí při dokončení Inkvizice tímto tahem (≥ 2 sousední Hranice se Žárem < 3),
+// jinak prázdné pole. Posuzuje se pozice po tahu.
+function heatChoices(state, m) {
+  const { board } = state;
+  const p = board[m.from];
+  const pos = (sq) => (sq === m.from ? -1 : sq === m.to ? m.from : sq); // co stojí na poli po tahu
+  for (let sq = 0; sq < 64; sq++) {
+    const origin = sq === m.to ? m.from : sq === m.from ? -1 : sq;
+    if (origin < 0) continue;
+    const q = board[origin];
+    if (!q || q.c !== p.c || !hasToken(q)) continue;
+    const out = [];
+    for (const [df, dr] of KING) {
+      const j = at(fileOf(sq) + df, rankOf(sq) + dr);
+      if (j < 0) continue;
+      const o = pos(j);
+      const r = o >= 0 ? board[o] : null;
+      if (r && r.c === p.c && r.t === 'R' && rookHeat(r) < 3) out.push(j);
+    }
+    if (out.length) return out.sort((a, b) => a - b);
+  }
+  return [];
 }
 
 // Má hráč na tahu tah aktivní figurkou (cokoliv kromě Hranice)?
@@ -251,7 +282,7 @@ export function hasActiveMove(state) {
 }
 
 export function moveToString(m) {
-  return sqName(m.from) + sqName(m.to) + (m.promo ? m.promo.toLowerCase() : '');
+  return sqName(m.from) + sqName(m.to) + (m.promo ? m.promo.toLowerCase() : '') + (m.heatRook != null ? '>' + sqName(m.heatRook) : '');
 }
 
 // Kardinálové způsobilí pro Konkláve: bez Pokání a mimo zajetí
@@ -289,8 +320,9 @@ function confess(state, color, events) {
   }
 }
 
-// Dokončení Inkvizice: Inkvizitor s žetonem stojí vedle své Hranice → Žár té Hranice +1 (max 3)
-function completeInquisitions(state, color, events) {
+// Dokončení Inkvizice: Inkvizitor s žetonem stojí vedle své Hranice → Žár té Hranice +1 (max 3).
+// `choice` = pole Hranice zvolené hráčem; jinak (jediná možnost) Hranice s nejnižším Žárem, pak nižší pole.
+function completeInquisitions(state, color, events, choice = -1) {
   const { board } = state;
   for (let i = 0; i < 64; i++) {
     const q = board[i];
@@ -301,6 +333,7 @@ function completeInquisitions(state, color, events) {
       if (j < 0) continue;
       const r = board[j];
       if (!r || r.c !== color || r.t !== 'R') continue;
+      if (j === choice) { best = j; break; }
       if (best < 0 || rookHeat(r) < rookHeat(board[best]) || (rookHeat(r) === rookHeat(board[best]) && j < best)) best = j;
     }
     if (best < 0) continue;
@@ -400,7 +433,7 @@ function applyMove(state, m) {
   state.ep = m.double && !m.promo ? (m.from + m.to) / 2 : -1;
 
   confess(state, mover, events);
-  completeInquisitions(state, mover, events);
+  completeInquisitions(state, mover, events, m.heatRook != null ? m.heatRook : -1);
 
   state.turn = foe;
   state.ply += 1;

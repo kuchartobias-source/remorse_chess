@@ -1,14 +1,14 @@
 // Schizma – aplikace (lobby, deska, online hra)
-import * as E from './engine.js?v=23';
-import { pieceSVG, CHIP_SVG, HEAT_SVG, CRUSADE_CHIP_SVG, ICON } from './pieces.js?v=23';
-import { FX } from './fx.js?v=23';
-import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=23';
-import { RULES_HTML } from './rules.js?v=23';
-import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=23';
-import { MusicPlayer } from './music.js?v=23';
+import * as E from './engine.js?v=24';
+import { pieceSVG, CHIP_SVG, HEAT_SVG, CRUSADE_CHIP_SVG, ICON } from './pieces.js?v=24';
+import { FX } from './fx.js?v=24';
+import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=24';
+import { RULES_HTML } from './rules.js?v=24';
+import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=24';
+import { MusicPlayer } from './music.js?v=24';
 
 const music = new MusicPlayer(getCtx);
-import { LEVELS } from './ai.js?v=23';
+import { LEVELS } from './ai.js?v=24';
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -24,7 +24,7 @@ const SIDE_HR = { w: 'Bílé', b: 'Černé' };
 const SIDE_GEN = { w: 'bílé', b: 'černé' };
 const ACC = { K: 'Papeže', Q: 'Inkvizitora', R: 'Hranici', B: 'Kardinála', N: 'Misionáře', C: 'Křižáka', P: 'Poutníka' };
 const GEN = { K: 'Papeže', B: 'Kardinála' };
-const ACTION_RE = /^([a-h][1-8][a-h][1-8][qbn]?|@[a-h][1-8])$/;
+const ACTION_RE = /^([a-h][1-8][a-h][1-8][qbn]?(>[a-h][1-8])?|@[a-h][1-8])$/;
 const KEY = 'sz2-';
 const inqWord = (n) => (n >= 1 && n <= 4 ? 'inkvizice' : 'inkvizic');
 const cap1 = (s) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -34,7 +34,7 @@ const params = new URLSearchParams(location.hash.slice(1));
 
 const INFO = {
   K: 'Papež – táhne o 1 pole. Soupeřovu figurku smí odstranit jen Upálením (cíl v dosahu jeho Hranice) a sám padne jen Upálením v dosahu soupeřovy Hranice – Poutník ho neodstraní nikdy. Pokání nepropadá. Zpovídá všechny (i diagonálně). Ohrožuje-li ho soupeřův Křižák skokem jezdce, je v zajetí: nesmí se pohnout ani zpovídat.',
-  Q: 'Inkvizitor – má odpustky a nikdy nepropadá Pokání. V dosahu Hranice upaluje. Mimo dosah zahájí Inkvizici: dostane fialový žeton a nesmí brát, dokud nedojde vedle své Hranice – ta pak dostane Žár o 1 vyšší (max 3).',
+  Q: 'Inkvizitor – má odpustky a nikdy nepropadá Pokání. V dosahu Hranice upaluje. Mimo dosah zahájí Inkvizici: dostane oranžový žeton a nesmí brát, dokud nedojde vedle své Hranice – žeton se pak přesune pod ni a její Žár stoupne o 1 (max 3; u dvou Hranic si vybereš).',
   R: 'Hranice – nebere a nelze ji odstranit. Skáče na volné pole v poloměru svého Žáru (1–3). Soupeřovy figurky v jejím dosahu lze upálit bez Pokání (neplatí pro Poutníky).',
   B: 'Kardinál – zpovídá Poutníky a Misionáře (jen vodorovně a svisle), sám se zpovídá u Papeže. Čistý Kardinál padne jen Upálením a může být zvolen Papežem. Ohrožuje-li ho soupeřův Křižák skokem jezdce, je v zajetí.',
   N: 'Misionář – táhne jako jezdec, po zabití mimo dosah Hranice propadá Pokání. Zpověď u Kardinála nebo Papeže. Když strana přijde o posledního Kardinála nebo Inkvizitora, stane se Křižákem.',
@@ -420,6 +420,7 @@ class BoardView {
         }
         case 'inqDone': {
           const el = get(e.id);
+          later(300, () => this.fx.chipFly(e.sq, e.rook));
           later(350, () => this.fx.fireLine(e.sq, e.rook, 320));
           later(650, () => {
             this.fx.fire(e.sq, false);
@@ -796,11 +797,18 @@ class Game {
     this.renderStory();
   }
 
+  // přesný tah předtahu, nebo jeho varianta s volbou Hranice (rozpálí se ta s nižším Žárem)
+  premoveAction(a) {
+    const la = E.legalActions(this.state);
+    if (la.includes(a)) return a;
+    return la.find((x) => x.startsWith(a + '>')) || null;
+  }
+
   tryPremove() {
     const pm = this.premove;
     if (!pm || !this.canAct() || this.state.conclave) return;
     if (this.result()) { this.premove = null; return; }
-    if (!E.legalActions(this.state).includes(pm.a)) {
+    if (!this.premoveAction(pm.a)) {
       this.cancelPremove('Předtah už není povolený – zrušen.');
       return;
     }
@@ -808,7 +816,8 @@ class Game {
     setTimeout(() => {
       if (this.premove !== pm) return;
       this.premove = null;
-      if (this.state.ply === ply && this.canAct() && E.legalActions(this.state).includes(pm.a)) this.act(pm.a);
+      const a = this.state.ply === ply && this.canAct() ? this.premoveAction(pm.a) : null;
+      if (a) this.act(a);
       else this.refreshPanels();
     }, 280);
   }
@@ -1214,6 +1223,27 @@ class Game {
     });
   }
 
+  // dokončení Inkvizice vedle dvou Hranic: hráč vybere, kterou rozpálí
+  askHeat(ms) {
+    const opts = ms.map((m) => {
+      const r = this.state.board[m.heatRook];
+      const lv = E.rookHeat(r);
+      return `<button type="button" data-h="${m.heatRook}">${mini('R', r.c)}<small>Hranice ${E.sqName(m.heatRook)}<br>Žár ${lv} → ${lv + 1}</small></button>`;
+    }).join('');
+    this.view.mark({ choice: new Set(ms.map((m) => m.heatRook)) });
+    this.openOverlay(`<div class="box"><h2>Dokončení Inkvizice</h2><p>Inkvizitor stojí u dvou Hranic. Kterou rozpálíš?</p>`
+      + `<div class="promo-opts">${opts}</div><div class="row" style="margin-top:12px"><button class="btn small ghost" data-x>Zpět</button></div></div>`, (ov) => {
+      ov.querySelectorAll('[data-h]').forEach((b) => {
+        b.onclick = () => {
+          this.closeOverlay();
+          const m = ms.find((x) => x.heatRook === +b.dataset.h);
+          if (m) this.act(E.moveToString(m));
+        };
+      });
+      ov.querySelector('[data-x]').onclick = () => { this.closeOverlay(); this.renderMarks(); };
+    });
+  }
+
   askPromo(ms) {
     const c = this.state.turn;
     const crusade = this.state.crusade[c];
@@ -1422,6 +1452,7 @@ class Game {
     const ms = this.selMoves.filter((m) => m.to === to && m.from === from);
     if (!ms.length) return;
     if (ms.length > 1 && ms[0].promo) { this.askPromo(ms); return; }
+    if (ms.length > 1 && ms[0].heatRook != null) { this.askHeat(ms); return; }
     this.act(E.moveToString(ms[0]));
   }
 
@@ -1446,7 +1477,7 @@ class Game {
     this.aiWait = new Map();
     this.aiBases = [new URL('../model/', import.meta.url).href];
     try {
-      this.worker = new Worker(new URL('./ai-worker.js?v=23', import.meta.url), { type: 'module' });
+      this.worker = new Worker(new URL('./ai-worker.js?v=24', import.meta.url), { type: 'module' });
       this.worker.onmessage = (e) => {
         const cb = this.aiWait.get(e.data.id);
         if (cb) { this.aiWait.delete(e.data.id); cb(e.data); }
@@ -1473,7 +1504,7 @@ class Game {
         return this.aiCall(msg);
       });
     }
-    return import('./ai.js?v=23').then(async (A) => {
+    return import('./ai.js?v=24').then(async (A) => {
       if (!this.aiModel) {
         this.aiKind = 'material';
         this.aiModel = A.materialModel;
