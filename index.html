@@ -10,9 +10,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=28">
-  <link rel="stylesheet" href="css/fx.css?v=28">
-  <link rel="stylesheet" href="css/medieval.css?v=28">
+  <link rel="stylesheet" href="css/style.css?v=29">
+  <link rel="stylesheet" href="css/fx.css?v=29">
+  <link rel="stylesheet" href="css/medieval.css?v=29">
+  <link rel="stylesheet" href="css/layout.css?v=29">
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -84,16 +85,13 @@
         </div>
         <button class="btn" id="btn-local" type="button">Hrát na jednom zařízení</button>
       </div>
-      <div class="card">
-        <h2>Historie partií</h2>
-        <p>Odehrané partie se ukládají v tomto prohlížeči. Kteroukoliv si můžeš přehrát tah po tahu.</p>
-        <p class="note" id="history-count"></p>
-        <button class="btn" id="btn-history" type="button">Otevřít historii</button>
-      </div>
-      <div class="card">
-        <h2>Pravidla</h2>
-        <p>Poutníci, Misionáři, Kardinálové, Inkvizitor, Hranice a Papež. Žádný šach ani rošáda – zato pokání, zpověď, Žár Hranic, Ignis!, konkláve a křížové výpravy.</p>
-        <button class="btn" id="btn-rules2" type="button">Přečíst pravidla</button>
+      <div class="card library">
+        <h2>Kodex a kronika</h2>
+        <p>Pravidla hry a odehrané partie z tohoto prohlížeče – každou si můžeš přehrát tah po tahu. <span class="note" id="history-count"></span></p>
+        <div class="row">
+          <button class="btn" id="btn-rules2" type="button">Přečíst pravidla</button>
+          <button class="btn" id="btn-history" type="button">Historie partií</button>
+        </div>
       </div>
     </section>
   </main>
@@ -176,6 +174,6 @@
     <div class="rbody" id="rules-body"></div>
   </dialog>
 
-  <script type="module" src="js/app.js?v=28"></script>
+  <script type="module" src="js/app.js?v=29"></script>
 </body>
 </html>

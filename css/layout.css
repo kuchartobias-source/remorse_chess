@@ -1,0 +1,94 @@
+/* Schizma – rozložení na počítači: úvod i hra se vejdou do okna bez posouvání.
+   Velikost desky se počítá ze stejných proměnných, jakými se nastavují lišta, patička a pruhy hráčů. */
+
+/* nadpisy listin a buly se řídí velikostí desky, aby okno nepřeteklo přes rám */
+.overlay h2 { font-size: clamp(18px, calc(var(--bs) * .055), 30px); overflow-wrap: anywhere; }
+.overlay.final h2 { font-size: clamp(22px, calc(var(--bs) * .078), 52px); }
+.overlay .box { box-sizing: border-box; max-width: calc(100% - 24px); }
+
+.library .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.library .row .btn { flex: 1 1 auto; width: auto; }
+.library .note { display: block; margin-top: 4px; font-size: 14px; color: var(--dim); font-style: italic; }
+
+@media (min-width: 901px) and (min-height: 560px) {
+  :root {
+    --top-h: 48px;
+    --foot-h: 26px;
+    --pl-h: 36px;
+    --side-w: 336px;
+    --main-h: calc(100vh - var(--top-h) - var(--foot-h));
+    --main-h: calc(100dvh - var(--top-h) - var(--foot-h));
+    /* deska: výška okna − lišta − patička − 2 pruhy hráčů − mezery − rám − okraje; šířka: okno − boční sloupec − mezery − rám */
+    --bs: min(calc(var(--main-h) - 2 * var(--pl-h) - 2 * 6px - 28px - 20px), calc(100vw - var(--side-w) - 22px - 28px - 56px), 860px);
+  }
+  body { overflow-x: hidden; }
+  .top { height: var(--top-h); padding-block: 0; box-sizing: border-box; }
+  footer.foot { height: var(--foot-h); line-height: var(--foot-h); padding: 0 16px; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ---------- Hra ---------- */
+  .game { height: var(--main-h); box-sizing: border-box; padding: 10px 16px; gap: 22px; align-items: flex-start; max-width: none; }
+  .board-col { gap: 6px; }
+  .player { height: var(--pl-h); min-height: 0; padding: 0 10px; box-sizing: border-box; }
+  .player > div { display: flex; align-items: baseline; gap: 10px; min-width: 0; white-space: nowrap; }
+  .player .who { display: flex; align-items: center; gap: 2px; }
+  .player .meta { overflow: hidden; text-overflow: ellipsis; }
+  .player .caps { flex-wrap: nowrap; overflow: hidden; max-width: 50%; padding-left: 7px; }
+  .player .caps .mini { width: 21px; height: 21px; margin-left: -7px; flex: none; }
+
+  /* boční sloupec je vysoký jako deska; Zápis tahů vyplní zbytek a posouvá se uvnitř */
+  .side { width: calc(var(--side-w) + 18px); height: calc(var(--main-h) - 20px); padding: 0 9px; margin: 0 -9px; box-sizing: border-box;
+    overflow-y: auto; overflow-x: hidden; gap: 10px; scrollbar-width: thin; }
+  .side > * { flex: none; }
+  .side .ledger { flex: 1 1 auto; min-height: 150px; display: flex; flex-direction: column; }
+  .side .ledger .moves { flex: 1 1 auto; min-height: 0; max-height: none; }
+  .side .story { max-height: 150px; overflow-y: auto; scrollbar-width: thin; }
+  .side .chat-log { max-height: 120px; }
+  .side .panel.scroll { margin: 9px 0; }
+
+  /* ---------- Úvod: nadpis vlevo, karty vpravo ---------- */
+  .lobby {
+    height: var(--main-h); box-sizing: border-box; max-width: 1260px; padding: 14px 24px;
+    display: grid; grid-template-columns: minmax(270px, 360px) 1fr; gap: 34px; align-items: center;
+  }
+  .hero { padding: 0; }
+  .hero-pieces { margin: 0 auto 10px; }
+  .hero-pieces .hp { width: 44px; height: 44px; }
+  .hero h1 { font-size: clamp(44px, 4.6vw, 66px); }
+  .hero .sub { font-size: 12px; letter-spacing: .22em; }
+  .hero p.lead { font-size: 17px; margin-top: 14px; }
+  .cards { margin-top: 0; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-content: center; }
+  .card { padding: 14px 16px; border-radius: 12px; }
+  .card h2 { font-size: 18px; }
+  .card p { font-size: 15px; margin-bottom: 10px; line-height: 1.35; }
+  .seg { margin-bottom: 10px; gap: 5px; }
+  .seg button { min-width: 0; padding: 7px 6px; }
+  #ai-level-seg button { flex: 1 1 calc(50% - 5px); }
+  .card .btn { padding: 9px 12px; }
+  .card.continue, .card.library { grid-column: 1 / -1; }
+  .card.continue { display: grid; grid-template-columns: minmax(160px, 220px) 1fr; column-gap: 20px; align-items: start; }
+  .card.continue h2, .card.continue > p { grid-column: 1; }
+  .card.continue > p { margin: 0; }
+  .card.continue .continue-list { grid-column: 2; grid-row: 1 / span 2; max-height: 104px; overflow-y: auto; scrollbar-width: thin; padding-right: 6px; }
+  .continue-list .hrow { padding: 5px 0; }
+  .continue-list .hrow .btn { width: auto; padding: 6px 12px; font-size: 13px; }
+  .card.library { display: flex; align-items: center; gap: 18px; }
+  .card.library h2 { margin: 0; flex: none; }
+  .card.library p { margin: 0; flex: 1; }
+  .card.library .row { flex: none; flex-wrap: nowrap; }
+
+  /* užší okna: nadpis nahoru, kompaktně */
+  @media (max-width: 1180px) {
+    .lobby { grid-template-columns: 1fr; align-content: center; gap: 14px; max-width: 1000px; }
+    .hero { display: grid; grid-template-columns: auto auto; justify-content: center; align-items: center; column-gap: 22px; }
+    .hero-pieces { display: none; }
+    .hero::before { width: 230px; opacity: .2; }
+    .hero h1 { grid-row: 1 / span 2; font-size: 52px; }
+    .hero .sub { margin: 0; }
+    .hero p.lead { margin: 6px 0 0; max-width: 520px; font-size: 15px; text-align: left; }
+  }
+  /* nízká okna: ubírat postupně – nejdřív úvodní text, pak figurky, pak popisky karet */
+  @media (max-height: 760px) { .hero p.lead { font-size: 15.5px; } .hero-pieces .hp { width: 38px; height: 38px; } }
+  @media (max-height: 700px) { .card > p { display: none; } }
+  @media (max-height: 660px) { .hero-pieces { display: none; } }
+  @media (max-height: 700px) and (max-width: 1180px) { .hero p.lead { display: none; } }
+}
