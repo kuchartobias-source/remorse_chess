@@ -29,7 +29,7 @@
   .game { height: var(--main-h); box-sizing: border-box; padding: 10px 16px; gap: 22px; align-items: flex-start; max-width: none; }
   .board-col { gap: 6px; }
   .player { height: var(--pl-h); min-height: 0; padding: 0 10px; box-sizing: border-box; }
-  .player > div { display: flex; align-items: baseline; gap: 10px; min-width: 0; white-space: nowrap; }
+  .player > div:not(.caps) { display: flex; align-items: baseline; gap: 10px; min-width: 0; white-space: nowrap; }
   .player .who { display: flex; align-items: center; gap: 2px; }
   .player .meta { overflow: hidden; text-overflow: ellipsis; }
   .player .caps { flex-wrap: nowrap; overflow: hidden; max-width: 50%; padding-left: 7px; }
@@ -39,10 +39,11 @@
   .side { width: calc(var(--side-w) + 18px); height: calc(var(--main-h) - 20px); padding: 0 9px; margin: 0 -9px; box-sizing: border-box;
     overflow-y: auto; overflow-x: hidden; gap: 10px; scrollbar-width: thin; }
   .side > * { flex: none; }
-  .side .ledger { flex: 1 1 auto; min-height: 150px; display: flex; flex-direction: column; }
+  .side .ledger { flex: 1 1 auto; min-height: 124px; display: flex; flex-direction: column; }
   .side .ledger .moves { flex: 1 1 auto; min-height: 0; max-height: none; }
   .side .story { max-height: 150px; overflow-y: auto; scrollbar-width: thin; }
-  .side .chat-log { max-height: 120px; }
+  .side .chat { flex: 0 1 auto; min-height: 120px; display: flex; flex-direction: column; }
+  .side .chat .chat-log { flex: 1 1 auto; min-height: 36px; max-height: 120px; }
   .side .panel.scroll { margin: 9px 0; }
 
   /* ---------- Úvod: nadpis vlevo, karty vpravo ---------- */
