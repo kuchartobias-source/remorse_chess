@@ -10,13 +10,12 @@
 .card.library { display: flex; align-items: stretch; gap: 4px; padding: 6px; }
 .tome {
   flex: 1 1 0; min-width: 0; display: grid; grid-template-columns: auto auto; justify-content: center; align-items: center;
-  column-gap: 14px; padding: 10px 12px; border: 0; border-radius: 9px; background: none; color: var(--ink); font: inherit;
+  column-gap: 16px; padding: 10px 12px; border: 0; border-radius: 9px; background: none; color: var(--ink); font: inherit;
   text-align: left; cursor: pointer; transition: background .25s;
 }
-.tome-ico { grid-row: 1 / span 2; width: 38px; height: 42px; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .55)); transition: transform .3s; }
-.tome-t { font-family: var(--font-title); font-size: 23px; line-height: 1.05; letter-spacing: .07em; color: var(--gold2); }
+.tome-ico { width: 38px; height: 42px; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .55)); transition: transform .3s; }
+.tome-t { font-family: var(--font-title); font-size: 26px; line-height: 1.05; letter-spacing: .07em; color: var(--gold2); }
 .tome-t::first-letter { font-size: 1.4em; color: #e2503c; text-shadow: 0 1px 0 #3a0608, 0 0 10px rgba(214, 171, 76, .35); }
-.tome-s { font-size: 14.5px; font-style: italic; color: var(--dim); }
 .tome:hover, .tome:focus-visible { background: radial-gradient(ellipse at 50% 50%, rgba(214, 171, 76, .16), rgba(214, 171, 76, .04) 70%, transparent); outline: none; }
 .tome:focus-visible { box-shadow: inset 0 0 0 1px rgba(214, 171, 76, .6); }
 .tome:hover .tome-ico, .tome:focus-visible .tome-ico { transform: translateY(-2px) rotate(-5deg); }
@@ -24,7 +23,6 @@
   .tome { column-gap: 8px; padding: 10px 4px; }
   .tome-ico { width: 30px; height: 34px; }
   .tome-t { font-size: 19px; letter-spacing: .04em; }
-  .tome-s { font-size: 13px; }
 }
 .tome-div { flex: none; width: 14px; margin: 6px 0; opacity: .75;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='60' preserveAspectRatio='none'%3E%3Cpath d='M7 0V60' stroke='%23b9a585' stroke-width='.8' opacity='.6'/%3E%3C/svg%3E") center / 14px 100% no-repeat,

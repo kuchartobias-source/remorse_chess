@@ -107,7 +107,7 @@ dialog.rules.closing .rroll.bot { animation: rebot .6s cubic-bezier(.6, 0, .6, 1
   background: linear-gradient(90deg, rgba(0, 0, 0, .55), rgba(52, 28, 14, .4) 50%, rgba(0, 0, 0, .55));
 }
 ::-webkit-scrollbar-thumb {
-  min-height: 34px; border-radius: 6px; border: 1px solid #3a2208;
+  min-height: 22px; border-radius: 6px; border: 1px solid #3a2208;
   background:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 14'%3E%3Cpath d='M4 .6L7.3 7 4 13.4.7 7z' fill='%23a3201a' stroke='%23f3d98a' stroke-width='.7'/%3E%3Cpath d='M4 2.6L5.6 7H2.4z' fill='%23ff8a6a' opacity='.55'/%3E%3C/svg%3E") center / 8px 14px no-repeat,
     radial-gradient(circle at 50% 6px, #fff1bf 0 1.3px, #6b4612 1.9px 2.4px, transparent 2.9px),
@@ -121,16 +121,16 @@ dialog.rules.closing .rroll.bot { animation: rebot .6s cubic-bezier(.6, 0, .6, 1
     radial-gradient(circle at 50% calc(100% - 6px), #fff6d6 0 1.3px, #6b4612 1.9px 2.4px, transparent 2.9px),
     linear-gradient(90deg, #6e4815, #d29e3e 28%, #fbe39a 50%, #d29e3e 72%, #6e4815);
 }
-/* hroty na koncích drážky */
-::-webkit-scrollbar-button:single-button:vertical { height: 13px; background: center / 10px 10px no-repeat; }
-::-webkit-scrollbar-button:single-button:vertical:decrement {
+/* hroty na koncích drážky – jen u vysokých posuvníků (stránka, boční sloupec, svitek), malým seznamům by ubraly místo */
+html::-webkit-scrollbar-button:single-button:vertical, .side::-webkit-scrollbar-button:single-button:vertical, dialog.rules .rbody::-webkit-scrollbar-button:single-button:vertical { height: 13px; background: center / 10px 10px no-repeat; }
+html::-webkit-scrollbar-button:single-button:vertical:decrement, .side::-webkit-scrollbar-button:single-button:vertical:decrement, dialog.rules .rbody::-webkit-scrollbar-button:single-button:vertical:decrement {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M5 .8L8.6 8.2 5 6.6 1.4 8.2z' fill='%23d6ab4c' stroke='%235a3a12' stroke-width='.6' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
-::-webkit-scrollbar-button:single-button:vertical:increment {
+html::-webkit-scrollbar-button:single-button:vertical:increment, .side::-webkit-scrollbar-button:single-button:vertical:increment, dialog.rules .rbody::-webkit-scrollbar-button:single-button:vertical:increment {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M5 9.2L8.6 1.8 5 3.4 1.4 1.8z' fill='%23d6ab4c' stroke='%235a3a12' stroke-width='.6' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
-::-webkit-scrollbar-button:single-button:vertical:hover { filter: brightness(1.2); }
-::-webkit-scrollbar-button:horizontal { display: none; }
+::-webkit-scrollbar-button { display: none; }
+html::-webkit-scrollbar-button:single-button:vertical, .side::-webkit-scrollbar-button:single-button:vertical, dialog.rules .rbody::-webkit-scrollbar-button:single-button:vertical { display: block; }
 ::-webkit-scrollbar-corner { background: transparent; }
 /* na pergamenu světlá drážka vyrytá do listu */
 dialog.rules ::-webkit-scrollbar-track, .panel.scroll ::-webkit-scrollbar-track, .overlay .box ::-webkit-scrollbar-track {
