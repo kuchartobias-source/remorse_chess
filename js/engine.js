@@ -45,6 +45,7 @@ function at(f, r) { return f >= 0 && f < 8 && r >= 0 && r < 8 ? r * 8 + f : -1; 
 export const cheb = (a, b) => Math.max(Math.abs(fileOf(a) - fileOf(b)), Math.abs(rankOf(a) - rankOf(b)));
 
 // Žár Hranice (1–3)
+export const MAX_HEAT = 2; // Žár má jen dvě úrovně
 export const rookHeat = (p) => (p && p.heat) || 1;
 // Inkvizitor s probíhající Inkvizicí (žeton)
 export const hasToken = (p) => !!p && p.t === 'Q' && p.pen;
@@ -252,7 +253,7 @@ export function legalMoves(state) {
   return moves;
 }
 
-// Hranice, mezi kterými hráč volí při dokončení Inkvizice tímto tahem (≥ 2 sousední Hranice se Žárem < 3),
+// Hranice, mezi kterými hráč volí při dokončení Inkvizice tímto tahem (≥ 2 sousední Hranice se Žárem < MAX_HEAT),
 // jinak prázdné pole. Posuzuje se pozice po tahu.
 function heatChoices(state, m) {
   const { board } = state;
@@ -269,7 +270,7 @@ function heatChoices(state, m) {
       if (j < 0) continue;
       const o = pos(j);
       const r = o >= 0 ? board[o] : null;
-      if (r && r.c === p.c && r.t === 'R' && rookHeat(r) < 3) out.push(j);
+      if (r && r.c === p.c && r.t === 'R' && rookHeat(r) < MAX_HEAT) out.push(j);
     }
     if (out.length) return out.sort((a, b) => a - b);
   }
@@ -339,7 +340,7 @@ function completeInquisitions(state, color, events, choice = -1) {
     if (best < 0) continue;
     const r = board[best];
     q.pen = false;
-    const raised = rookHeat(r) < 3;
+    const raised = rookHeat(r) < MAX_HEAT;
     if (raised) r.heat = rookHeat(r) + 1;
     events.push({ type: 'inqDone', color, sq: i, id: q.id, rook: best, rookId: r.id, raised, level: rookHeat(r) });
     if (raised) events.push({ type: 'heat', color, level: rookHeat(r), rooks: [best], from: i });

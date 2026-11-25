@@ -1,14 +1,14 @@
 // Schizma – aplikace (lobby, deska, online hra)
-import * as E from './engine.js?v=26';
-import { pieceSVG, CHIP_SVG, HEAT_SVG, CRUSADE_CHIP_SVG, ICON } from './pieces.js?v=26';
-import { FX } from './fx.js?v=26';
-import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=26';
-import { RULES_HTML } from './rules.js?v=26';
-import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=26';
-import { MusicPlayer } from './music.js?v=26';
+import * as E from './engine.js?v=27';
+import { pieceSVG, CHIP_SVG, HEAT_SVG, CRUSADE_CHIP_SVG, ICON } from './pieces.js?v=27';
+import { FX } from './fx.js?v=27';
+import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=27';
+import { RULES_HTML } from './rules.js?v=27';
+import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=27';
+import { MusicPlayer } from './music.js?v=27';
 
 const music = new MusicPlayer(getCtx);
-import { LEVELS } from './ai.js?v=26';
+import { LEVELS } from './ai.js?v=27';
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -34,8 +34,8 @@ const params = new URLSearchParams(location.hash.slice(1));
 
 const INFO = {
   K: 'Papež – táhne o 1 pole. Soupeřovu figurku smí odstranit jen Upálením (cíl v dosahu jeho Hranice) a sám padne jen Upálením v dosahu soupeřovy Hranice – Poutník ho neodstraní nikdy. Pokání nepropadá. Zpovídá všechny (i diagonálně). Ohrožuje-li ho soupeřův Křižák skokem jezdce, je v Zajetí: nesmí se pohnout ani zpovídat.',
-  Q: 'Inkvizitor – má odpustky a nikdy nepropadá Pokání. V dosahu Hranice upaluje. Mimo dosah zahájí Inkvizici: dostane červený žeton a nesmí brát, dokud nedojde vedle své Hranice – žeton se pak přesune pod ni a její Žár stoupne o 1 (max 3; u dvou Hranic si vybereš).',
-  R: 'Hranice – nebere a nelze ji odstranit. Skáče na volné pole v poloměru svého Žáru (1–3). Soupeřovy figurky v jejím dosahu lze upálit bez Pokání (neplatí pro Poutníky).',
+  Q: 'Inkvizitor – má odpustky a nikdy nepropadá Pokání. V dosahu Hranice upaluje. Mimo dosah zahájí Inkvizici: dostane červený žeton a nesmí brát, dokud nedojde vedle své Hranice – žeton se pak přesune pod ni a její Žár stoupne na 2. úroveň (maximum; u dvou Hranic si vybereš).',
+  R: 'Hranice – nebere a nelze ji odstranit. Skáče na volné pole v poloměru svého Žáru (1–2). Soupeřovy figurky v jejím dosahu lze upálit bez Pokání (neplatí pro Poutníky).',
   B: 'Kardinál – zpovídá Poutníky a Misionáře (jen vodorovně a svisle), sám se zpovídá u Papeže. Bezúhonný Kardinál padne jen Upálením a může být zvolen Papežem. Ohrožuje-li ho soupeřův Křižák skokem jezdce, je v Zajetí.',
   N: 'Misionář – táhne jako jezdec, po zabití mimo dosah Hranice propadá Pokání. Zpověď u Kardinála nebo Papeže. Když strana přijde o posledního Kardinála nebo Inkvizitora, stane se Křižákem.',
   C: 'Křižák – táhne jako jezdec a díky papežskému odpustku nikdy nepropadá Pokání. Papeže a bezúhonného Kardinála smí jen upálit (v dosahu Hranice); ohrožuje-li je skokem jezdce, drží je v Zajetí.',
@@ -1208,7 +1208,7 @@ class Game {
     }
     if (p.t === 'R') {
       const lv = E.rookHeat(p);
-      s += ` <b>Žár ${lv}. úrovně – dosah i skok ${lv} pole${lv < 3 ? '' : ' (maximum)'}.</b>`;
+      s += ` <b>Žár ${lv}. úrovně – dosah i skok ${lv} pole${lv < E.MAX_HEAT ? '' : ' (maximum)'}.</b>`;
     }
     return s;
   }
@@ -1585,7 +1585,7 @@ class Game {
     this.aiWait = new Map();
     this.aiBases = [new URL('../model/', import.meta.url).href];
     try {
-      this.worker = new Worker(new URL('./ai-worker.js?v=26', import.meta.url), { type: 'module' });
+      this.worker = new Worker(new URL('./ai-worker.js?v=27', import.meta.url), { type: 'module' });
       this.worker.onmessage = (e) => {
         const cb = this.aiWait.get(e.data.id);
         if (cb) { this.aiWait.delete(e.data.id); cb(e.data); }
@@ -1612,7 +1612,7 @@ class Game {
         return this.aiCall(msg);
       });
     }
-    return import('./ai.js?v=26').then(async (A) => {
+    return import('./ai.js?v=27').then(async (A) => {
       if (!this.aiModel) {
         this.aiKind = 'material';
         this.aiModel = A.materialModel;

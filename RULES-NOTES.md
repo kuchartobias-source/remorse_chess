@@ -12,12 +12,12 @@ Pravidla v PDF nechávají několik míst otevřených. Aplikace je vykládá ta
 3. **Sousedství při zpovědi:** Kardinál zpovídá jen vodorovně a svisle, Papež na všech 8 sousedních
    polích. Kardinál se zpovídá jen u Papeže, Poutník a Misionář u Kardinála i Papeže. Zajatý zpovědník
    nezpovídá; kající se Kardinál v Zajetí se ale smí vyzpovídat u volného Papeže.
-4. **Žár je vlastností každé Hranice** (1–3, trvalý). Dosah = čtverec o poloměru Žáru, překážky neblokují.
+4. **Žár je vlastností každé Hranice** (jen 1–2, trvalý). Dosah = čtverec o poloměru Žáru, překážky neblokují.
    Hranice se přemisťuje skokem jen na volné pole v tomto čtverci.
 5. **Inkvizice:** Inkvizitor bere mimo dosah vlastních Hranic → oběť je natrvalo ze hry a Inkvizitor
    dostane žeton (v kódu pole `pen` u Inkvizitora). S žetonem nesmí brát. Inkvizice se dokončí na konci
    tahu jeho majitele, stojí-li Inkvizitor vedle (i diagonálně) své Hranice. **Sousedí-li se dvěma
-   Hranicemi, které ještě mohou růst (Žár < 3), hráč si vybere, kterou rozpálí** – volba je součástí tahu
+   Hranicemi, které ještě mohou růst (Žár 1), hráč si vybere, kterou rozpálí** – volba je součástí tahu
    (zápis `c4c3>b2`, v aplikaci dialog). Může-li růst jen jedna, rozpálí se ta. Žeton Inkvizice není
    Pokání – zpověď ho neodstraní a proměna Poutníka se k němu nevztahuje.
 6. **Kající se figurka nesmí odstranit nic** – ani Upálením. Jedinou výjimkou je **Svedení** (en passant):

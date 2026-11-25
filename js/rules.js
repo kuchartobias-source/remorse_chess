@@ -1,5 +1,5 @@
 // Text pravidel zobrazený v aplikaci
-import { pieceSVG, ICON } from './pieces.js?v=26';
+import { pieceSVG, ICON } from './pieces.js?v=27';
 
 const m = (t) => `<span class="mini w">${pieceSVG(t)}</span><span class="mini b">${pieceSVG(t)}</span>`;
 
@@ -70,15 +70,14 @@ a jím zajatý hodnostář (Papež či Kardinál má navíc okovy).</p>
   ${ICON.seal} a dokud proces běží, nesmí brát vůbec.</li>
   <li><b>Dokončení:</b> na konci tvého tahu, kdy Inkvizitor se žetonem sousedí (i diagonálně) s tvou Hranicí – ať přišel on, nebo
   Hranice přiskočila – je zajatec upálen, žeton se přesune pod Hranici a <b>Žár té Hranice stoupne o 1</b>. Sousedí-li
-  Inkvizitor s oběma tvými Hranicemi, <b>vybereš si</b>, kterou rozpálíš. U Hranice s maximem se proces jen dokončí.</li>
+  Inkvizitor s oběma tvými Hranicemi, <b>vybereš si</b>, kterou rozpálíš. Žár má jen <b>dvě úrovně</b> – u Hranice, která už má 2. úroveň, se proces jen dokončí.</li>
   <li><b>Trvalý Žár a přepadení:</b> Žár si každá Hranice drží do konce hry. Odstraní-li soupeř Inkvizitora během Inkvizice,
   zajatec je předčasně popraven, Žár se nezvýší a útočník Pokání nepropadá.</li>
 </ul>
 <table>
   <tr><th>Žár Hranice</th><th>Dokončených inkvizic</th><th>Žetony</th><th>Dosah a skok</th></tr>
   <tr><td><b>1. úroveň</b></td><td>0</td><td>žádný</td><td>1 pole (3 × 3)</td></tr>
-  <tr><td><b>2. úroveň</b></td><td>1</td><td>1 žeton</td><td>2 pole (5 × 5)</td></tr>
-  <tr><td><b>3. úroveň</b></td><td>2</td><td>2 žetony</td><td>3 pole (7 × 7)</td></tr>
+  <tr><td><b>2. úroveň (max)</b></td><td>1</td><td>1 žeton</td><td>2 pole (5 × 5)</td></tr>
 </table>
 
 <h3>6. Papež a Kardinálové (imunita hierarchie)</h3>
@@ -115,9 +114,9 @@ a jím zajatý hodnostář (Papež či Kardinál má navíc okovy).</p>
 <ul>
   <li><b>Konec hry:</b> kajícný ani zajatý Kardinál nemůže být zvolen Papežem – pád posledního Papeže je <i>Exstirpatio</i> (prohra extirpací);
   soupeř bez tahu aktivní figurkou prohrává <i>Abjuratio</i> (abjurací).</li>
-  <li><b>Hranice</b> jsou nezničitelné, neberou a skáčou v poloměru svého Žáru (1–3). Umožňují čisté Upálení (ne Poutníkům).</li>
+  <li><b>Hranice</b> jsou nezničitelné, neberou a skáčou v poloměru svého Žáru (1–2). Umožňují čisté Upálení (ne Poutníkům).</li>
   <li><b>Inkvizitor</b> nepropadá Pokání. V dosahu Hranice upaluje, mimo něj zahájí Inkvizici a nesmí brát, dokud nedojde
-  k Hranici – ta pak získá trvale +1 Žár (max 3). Přepadení Inkvizitora s žetonem je bez Pokání.</li>
+  k Hranici – ta pak získá trvale 2. úroveň Žáru (maximum). Přepadení Inkvizitora s žetonem je bez Pokání.</li>
   <li><b>Papež a bezúhonný Kardinál</b> padnou jen Upálením; kající se Kardinál o imunitu přichází. Soupeřův Papež v dosahu
   tvé Hranice = <b>Ignis!</b></li>
   <li><b>Zpověď</b> na konci vlastního tahu: Kardinál zpovídá kardinálně, Papež i diagonálně.</li>
