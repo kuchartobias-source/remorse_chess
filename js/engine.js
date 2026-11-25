@@ -2,8 +2,8 @@
 //
 // Výklad nejasných míst pravidel (viz také RULES-NOTES.md):
 //  - Pořadí na konci tahu: tah → pokání / zahájení Inkvizice → proměna ruší pokání → zpověď kajících
-//    figurek hráče na tahu → dokončení Inkvizice u Hranice (Žár) → pád Papeže (Konkláve / Anathema)
-//    → Křížová výprava → zajetí → Ignis! → kontrola, zda má soupeř tah aktivní figurkou (Interdikt).
+//    figurek hráče na tahu → dokončení Inkvizice u Hranice (Žár) → pád Papeže (Konkláve / Exstirpatio)
+//    → Křížová výprava → zajetí → Ignis! → kontrola, zda má soupeř tah aktivní figurkou (Abjuratio).
 //  - Každá Hranice má vlastní Žár (1–3, trvalý). Dosah = čtverec o poloměru Žáru, překážky neblokují.
 //  - Hranice se přemisťuje skokem na volné pole ve svém poloměru, nikdy nebere a nelze ji odstranit.
 //  - Inkvizitor nikdy nepropadá Pokání. Pole `pen` u Inkvizitora znamená žeton Inkvizice (probíhající
@@ -15,7 +15,7 @@
 //  - Zajetí: soupeřův Křižák ve vzdálenosti skoku jezdce drží Papeže i každého Kardinála – nesmí táhnout,
 //    nezpovídá a zajatý Kardinál nemůže do Konkláve (posuzuje se v pozici na konci tahu).
 //  - Křížová výprava: strana bez Kardinála nebo bez Inkvizitora; trvalý příznak strany.
-//  - Interdikt: hráč na tahu nemá tah žádnou figurkou kromě Hranic.
+//  - Abjuratio (dříve Interdikt): hráč na tahu nemá tah žádnou figurkou kromě Hranic.
 
 export const FILES = 'abcdefgh';
 export const NAMES = {
@@ -384,7 +384,7 @@ export function popeSquare(state, color) {
 
 function finishTurn(state, events) {
   if (!state.result) takeTheCross(state, events);
-  // Na začátku tahu nemá hráč tah aktivní figurkou → Interdikt, prohrává
+  // Na začátku tahu nemá hráč tah aktivní figurkou → Abjuratio, prohrává
   if (!state.result && !state.conclave && !hasActiveMove(state)) {
     state.result = { winner: other(state.turn), reason: 'interdict' };
     events.push({ type: 'gameover', result: state.result });

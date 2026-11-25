@@ -5,13 +5,13 @@ Pravidla v PDF nechávají několik míst otevřených. Aplikace je vykládá ta
 
 1. **Pořadí vyhodnocení tahu:** tah → Pokání / zahájení Inkvizice → proměna (Spása) Pokání ruší →
    zpověď kajících se figurek hráče, který táhl → dokončení Inkvizice u Hranice (Žár) →
-   pád Papeže (Konkláve / Anathema) → Křížová výprava → zajetí → Ignis! →
-   kontrola, zda má soupeř tah aktivní figurkou (Interdikt).
+   pád Papeže (Konkláve / Exstirpatio) → Křížová výprava → Zajetí → Ignis! →
+   kontrola, zda má soupeř tah aktivní figurkou (Abjuratio).
 2. **Zpověď ve stejném tahu:** pokud figurka sebere a skončí vedle svého zpovědníka, je rozhřešena
    hned na konci téhož tahu. Zpovídají se jen figurky hráče, který právě táhl.
 3. **Sousedství při zpovědi:** Kardinál zpovídá jen vodorovně a svisle, Papež na všech 8 sousedních
    polích. Kardinál se zpovídá jen u Papeže, Poutník a Misionář u Kardinála i Papeže. Zajatý zpovědník
-   nezpovídá; kající se Kardinál v zajetí se ale smí vyzpovídat u volného Papeže.
+   nezpovídá; kající se Kardinál v Zajetí se ale smí vyzpovídat u volného Papeže.
 4. **Žár je vlastností každé Hranice** (1–3, trvalý). Dosah = čtverec o poloměru Žáru, překážky neblokují.
    Hranice se přemisťuje skokem jen na volné pole v tomto čtverci.
 5. **Inkvizice:** Inkvizitor bere mimo dosah vlastních Hranic → oběť je natrvalo ze hry a Inkvizitor
@@ -30,7 +30,7 @@ Pravidla v PDF nechávají několik míst otevřených. Aplikace je vykládá ta
 10. **Zajetí** se posuzuje v pozici na konci tahu. Zajatý Papež i Kardinál netáhnou a nezpovídají;
     zajatý Kardinál není způsobilý pro Konkláve. Volba nového Papeže je první akcí poražené strany;
     má-li jediného způsobilého Kardinála, zvolí se automaticky.
-11. **Interdikt:** hráč na tahu nemá tah žádnou figurkou kromě Hranic → prohrává.
+11. **Abjuratio** (dříve Interdikt): hráč na tahu nemá tah žádnou figurkou kromě Hranic → prohrává.
 12. **Poutník** smí o 2 pole odkudkoliv, jsou-li obě pole volná; dvojkrok na poslední řadu je Spása
     (pak Svedení neplatí). Proměna jen v Inkvizitora, Kardinála nebo Misionáře/Křižáka.
 13. **Ignis!** (povinné varování, dříve Monitum) aplikace zvolá automaticky, když se soupeřův Papež po tahu

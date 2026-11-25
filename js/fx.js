@@ -452,7 +452,7 @@ export class FX {
     this.add(c, 'freering');
   }
 
-  // Anathema: svíce zhasínají – nad figurkami poraženého stoupá dým
+  // Exstirpatio: svíce zhasínají – nad figurkami poraženého stoupá dým
   snuff(sqs) {
     if (this.off) return;
     sqs.forEach((sq, i) => {
@@ -465,7 +465,7 @@ export class FX {
     });
   }
 
-  // Interdikt: doprostřed desky dopadne těžká pečeť
+  // Abjuratio: doprostřed desky dopadne těžká pečeť
   sealStamp(ms = 2600) {
     if (this.off) return;
     const el = document.createElement('div');

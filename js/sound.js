@@ -239,12 +239,12 @@ export const sfx = {
     }
     sfx.crusadeCall(delay + 0.35);
   },
-  // Anathema: třikrát umíráček
+  // Exstirpatio: třikrát umíráček
   anathema(delay = 0) {
     if (!ok()) return;
     for (let i = 0; i < 3; i++) bell(65.4, { delay: delay + i * 0.85, dur: 3, gain: 0.4 });
   },
-  // Interdikt: těžká pečeť dopadne a zarachotí řetězy
+  // Abjuratio: těžká pečeť dopadne a zarachotí řetězy
   interdict(delay = 0) {
     if (!ok()) return;
     knock(delay + 0.38, 0.6, 0.9);

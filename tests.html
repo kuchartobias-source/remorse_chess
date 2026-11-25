@@ -301,12 +301,12 @@ t('Zajatý Kardinál se nepohne, nezpovídá a nejde do Konkláve', () => {
   ok(!P(apply(s3, 'd6d5').state, 'd5').pen, 'volný Kardinál zpovídá');
 });
 
-t('Anathema, když jsou všichni bezúhonní Kardinálové v zajetí', () => {
+t('Exstirpatio, když jsou všichni bezúhonní Kardinálové v zajetí', () => {
   const s = pos({ a1: 'wR', h1: 'wR', d7: 'wR', h8: 'bR', e8: 'bK', f5: 'bB', g3: 'wC', h5: 'wQ', e1: 'wK' });
   eq(apply(s, 'h5e8').state.result, { winner: 'w', reason: 'anathema' });
 });
 
-t('Interdikt: jen tahy Hranicí nestačí', () => {
+t('Abjuratio: jen tahy Hranicí nestačí', () => {
   const s = pos({ a1: 'wR', h1: 'wR', b1: 'wK', a2: 'wP*', b2: 'wP*', a3: 'bP', b3: 'bP', c1: 'bN', c2: 'bN', e8: 'bK', g8: 'bR', h7: 'bR' }, 'b');
   const r = apply(s, 'e8e7');
   eq(r.state.result, { winner: 'b', reason: 'interdict' });
@@ -388,13 +388,13 @@ t('Konkláve se dvěma bezúhonnými Kardinály', () => {
   eq(r2.state.turn, 'b');
 });
 
-t('Anathema: Papež padne a není bezúhonný Kardinál', () => {
+t('Exstirpatio: Papež padne a není bezúhonný Kardinál', () => {
   const s = pos({ a1: 'wR', h1: 'wR', d7: 'wR', h8: 'bR', e8: 'bK', c8: 'bB*', h5: 'wQ', e1: 'wK' });
   const r = apply(s, 'h5e8');
   eq(r.state.result, { winner: 'w', reason: 'anathema' });
 });
 
-t('Interdikt: hráč bez legálního tahu prohrává', () => {
+t('Abjuratio: hráč bez legálního tahu prohrává', () => {
   const s = pos({ a1: 'wR', a2: 'wR', b1: 'wK', b2: 'wP*', a3: 'bP', b3: 'bP', c1: 'bN', c2: 'bN', e8: 'bK', g8: 'bR', h7: 'bR' }, 'b');
   const r = apply(s, 'e8e7');
   eq(r.state.result, { winner: 'b', reason: 'interdict' });

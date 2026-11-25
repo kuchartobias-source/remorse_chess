@@ -1,14 +1,14 @@
 // Schizma – aplikace (lobby, deska, online hra)
-import * as E from './engine.js?v=25';
-import { pieceSVG, CHIP_SVG, HEAT_SVG, CRUSADE_CHIP_SVG, ICON } from './pieces.js?v=25';
-import { FX } from './fx.js?v=25';
-import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=25';
-import { RULES_HTML } from './rules.js?v=25';
-import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=25';
-import { MusicPlayer } from './music.js?v=25';
+import * as E from './engine.js?v=26';
+import { pieceSVG, CHIP_SVG, HEAT_SVG, CRUSADE_CHIP_SVG, ICON } from './pieces.js?v=26';
+import { FX } from './fx.js?v=26';
+import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=26';
+import { RULES_HTML } from './rules.js?v=26';
+import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=26';
+import { MusicPlayer } from './music.js?v=26';
 
 const music = new MusicPlayer(getCtx);
-import { LEVELS } from './ai.js?v=25';
+import { LEVELS } from './ai.js?v=26';
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -33,12 +33,12 @@ const mini = (t, c) => `<span class="mini ${c}">${pieceSVG(t)}</span>`;
 const params = new URLSearchParams(location.hash.slice(1));
 
 const INFO = {
-  K: 'Papež – táhne o 1 pole. Soupeřovu figurku smí odstranit jen Upálením (cíl v dosahu jeho Hranice) a sám padne jen Upálením v dosahu soupeřovy Hranice – Poutník ho neodstraní nikdy. Pokání nepropadá. Zpovídá všechny (i diagonálně). Ohrožuje-li ho soupeřův Křižák skokem jezdce, je v zajetí: nesmí se pohnout ani zpovídat.',
+  K: 'Papež – táhne o 1 pole. Soupeřovu figurku smí odstranit jen Upálením (cíl v dosahu jeho Hranice) a sám padne jen Upálením v dosahu soupeřovy Hranice – Poutník ho neodstraní nikdy. Pokání nepropadá. Zpovídá všechny (i diagonálně). Ohrožuje-li ho soupeřův Křižák skokem jezdce, je v Zajetí: nesmí se pohnout ani zpovídat.',
   Q: 'Inkvizitor – má odpustky a nikdy nepropadá Pokání. V dosahu Hranice upaluje. Mimo dosah zahájí Inkvizici: dostane červený žeton a nesmí brát, dokud nedojde vedle své Hranice – žeton se pak přesune pod ni a její Žár stoupne o 1 (max 3; u dvou Hranic si vybereš).',
   R: 'Hranice – nebere a nelze ji odstranit. Skáče na volné pole v poloměru svého Žáru (1–3). Soupeřovy figurky v jejím dosahu lze upálit bez Pokání (neplatí pro Poutníky).',
-  B: 'Kardinál – zpovídá Poutníky a Misionáře (jen vodorovně a svisle), sám se zpovídá u Papeže. Bezúhonný Kardinál padne jen Upálením a může být zvolen Papežem. Ohrožuje-li ho soupeřův Křižák skokem jezdce, je v zajetí.',
+  B: 'Kardinál – zpovídá Poutníky a Misionáře (jen vodorovně a svisle), sám se zpovídá u Papeže. Bezúhonný Kardinál padne jen Upálením a může být zvolen Papežem. Ohrožuje-li ho soupeřův Křižák skokem jezdce, je v Zajetí.',
   N: 'Misionář – táhne jako jezdec, po zabití mimo dosah Hranice propadá Pokání. Zpověď u Kardinála nebo Papeže. Když strana přijde o posledního Kardinála nebo Inkvizitora, stane se Křižákem.',
-  C: 'Křižák – táhne jako jezdec a díky papežskému odpustku nikdy nepropadá Pokání. Papeže a bezúhonného Kardinála smí jen upálit (v dosahu Hranice); ohrožuje-li je skokem jezdce, drží je v zajetí.',
+  C: 'Křižák – táhne jako jezdec a díky papežskému odpustku nikdy nepropadá Pokání. Papeže a bezúhonného Kardinála smí jen upálit (v dosahu Hranice); ohrožuje-li je skokem jezdce, drží je v Zajetí.',
   P: 'Poutník – smí kdykoliv o 1 nebo 2 pole vpřed. Nikdy neupaluje: každé Krveprolití znamená Pokání (kromě Svedení a přepadení Inkvizitora). Papeže ani bezúhonného Kardinála odstranit nesmí. Zpověď u Kardinála nebo Papeže.',
 };
 const PEN_INFO = {
@@ -142,7 +142,7 @@ function historyResult(x) {
   const r = x.res;
   if (!r) return 'rozehraná';
   if (r.reason === 'draw') return 'remíza';
-  const why = { anathema: 'Vymýcení', interdict: 'Podrobení', resign: 'vzdání' }[r.reason] || '';
+  const why = { anathema: 'Exstirpatio', interdict: 'Abjuratio', resign: 'vzdání' }[r.reason] || '';
   const who = x.me ? (r.winner === x.me ? 'výhra' : 'prohra') : `vítězí ${PLAYER[r.winner].toLowerCase()}`;
   return why ? `${who} · ${why}` : who;
 }
@@ -401,7 +401,7 @@ class BoardView {
             this.el.classList.add('shake');
             later(650, () => this.el.classList.remove('shake'));
           });
-          if (evs.some((x) => x.type === 'gameover')) break; // Anathema – ohlásí ji konec partie
+          if (evs.some((x) => x.type === 'gameover')) break; // Exstirpatio – ohlásí ji konec partie
           const auto = evs.some((x) => x.type === 'conclave');
           Q.push({ ms: auto ? 1700 : 2300, run: () => {
             this.fx.proclaim({ title: 'SEDE VACANTE', cls: 'sede', icon: ICON.crown, ms: auto ? 1700 : 2300,
@@ -551,14 +551,14 @@ class BoardView {
           const anathema = r.reason === 'anathema';
           end = { ms: 2800, run: () => {
             if (anathema) {
-              this.fx.proclaim({ title: 'ANATHEMA', sub: `Vymýcení – ${PLAYER[loser].toLowerCase()} nemá koho dosadit na papežský stolec`, cls: 'anathema', icon: ICON.fire, ms: 2800 });
+              this.fx.proclaim({ title: 'EXSTIRPATIO', sub: `${PLAYER[loser]} nemá koho dosadit na papežský stolec – prohra extirpací`, cls: 'anathema', icon: ICON.fire, ms: 2800 });
               this.fx.wash('anathema', 2800);
               const sqs = [];
               this.state.board.forEach((p, sq) => { if (p && p.c === loser) sqs.push(sq); });
               later(500, () => this.fx.snuff(sqs));
               sfx.anathema(0);
             } else {
-              this.fx.proclaim({ title: 'INTERDIKT', sub: `Podrobení – ${PLAYER[loser].toLowerCase()} nemá tah aktivní figurkou`, cls: 'interdict', icon: ICON.chain, ms: 2800 });
+              this.fx.proclaim({ title: 'ABJURATIO', sub: `${PLAYER[loser]} nemá tah aktivní figurkou – prohra abjurací`, cls: 'interdict', icon: ICON.chain, ms: 2800 });
               this.fx.wash('interdict', 2800);
               this.fx.sealStamp(2600);
               later(420, () => {
@@ -984,7 +984,7 @@ class Game {
       map.reach = new Set(E.rookReachSquares(st, c));
       map.reach2 = new Set(E.rookReachSquares(st, other(c)));
     }
-    // Papež v zajetí Křižáka (řetěz) a Papež v dosahu soupeřových Hranic (hrozí mu poprava)
+    // Papež v Zajetí Křižáka (řetěz) a Papež v dosahu soupeřových Hranic (hrozí mu poprava)
     if (!st.result) {
       map.captive = new Set();
       map.captor = new Set();
@@ -1150,7 +1150,7 @@ class Game {
           : `Inkvizice dokončena u Hranice na ${E.sqName(e.rook)} – její Žár už je na maximu.`);
       }
       if (e.type === 'inqFoiled') out.push(`Inkvizitor padl uprostřed Inkvizice – zajatec je předčasně popraven, Žár se nezvýší.`);
-      if (e.type === 'captive') out.push(`<b>Zajetí!</b> ${PLAYER[e.color]} ${NAME[e.t]} na ${E.sqName(e.sq)} je v zajetí ${e.by.length > 1 ? 'Křižáků' : 'Křižáka'} – nesmí se pohnout ani zpovídat${e.t === 'B' ? ' a nemůže do Konkláve' : ''}.`);
+      if (e.type === 'captive') out.push(`<b>Zajetí!</b> ${PLAYER[e.color]} ${NAME[e.t]} na ${E.sqName(e.sq)} je v Zajetí ${e.by.length > 1 ? 'Křižáků' : 'Křižáka'} – nesmí se pohnout ani zpovídat${e.t === 'B' ? ' a nemůže do Konkláve' : ''}.`);
       if (e.type === 'freed') out.push(`${PLAYER[e.color]} ${NAME[e.t] || 'hodnostář'} na ${E.sqName(e.sq)} je opět volný.`);
       if (e.type === 'monitum') out.push(`<b>Ignis!</b> ${PLAYER[e.color]} Papež na ${E.sqName(e.sq)} stojí v dosahu soupeřovy Hranice – hrozí mu poprava.`);
     }
@@ -1161,8 +1161,8 @@ class Game {
     if (r.reason === 'draw') return 'Remíza dohodou.';
     const L = PLAYER[other(r.winner)], W = PLAYER[r.winner];
     return {
-      anathema: `Anathema – Vymýcení! ${L} Papež padl a není žádný způsobilý Kardinál (bezúhonný a mimo zajetí), kterého by šlo dosadit na papežský stolec. Vítězí ${W}.`,
-      interdict: `Interdikt – Podrobení! ${L} nemá žádný tah aktivní figurkou (Hranice se nepočítají) a prohrává. Vítězí ${W}.`,
+      anathema: `Exstirpatio! ${L} Papež padl a není žádný způsobilý Kardinál (bezúhonný a mimo Zajetí), kterého by šlo dosadit na papežský stolec. Vítězí ${W}.`,
+      interdict: `Abjuratio! ${L} nemá žádný tah aktivní figurkou (Hranice se nepočítají) a prohrává abjurací. Vítězí ${W}.`,
       resign: `${L} se vzdal. Vítězí ${W}.`,
     }[r.reason] || `Vítězí ${W}.`;
   }
@@ -1179,7 +1179,7 @@ class Game {
     } else if (res) status = `<b>${this.resultText(res)}</b>`;
     else if (this.state.conclave) {
       const c = this.state.conclave.color;
-      status = `<b>Konkláve!</b> ${PLAYER[c]}${c === this.me ? ' (ty)' : ''} volí nového Papeže z bezúhonných Kardinálů mimo zajetí.`;
+      status = `<b>Konkláve!</b> ${PLAYER[c]}${c === this.me ? ' (ty)' : ''} volí nového Papeže z bezúhonných Kardinálů mimo Zajetí.`;
     } else {
       const t = this.state.turn;
       const machine = this.ai && t === this.ai.color;
@@ -1204,7 +1204,7 @@ class Game {
     let s = INFO[p.t] + (p.pen ? ' <b>' + PEN_INFO[p.t] + '</b>' : '');
     const sq = this.state.board.indexOf(p);
     if ((p.t === 'K' || p.t === 'B') && sq >= 0 && E.isCaptiveAt(this.state, sq)) {
-      s += ` <b>Je v zajetí Křižáka – nesmí se pohnout ani zpovídat${p.t === 'B' ? ' a nemůže do Konkláve' : ''}, dokud Křižák neodskočí nebo nepadne.</b>`;
+      s += ` <b>Je v Zajetí Křižáka – nesmí se pohnout ani zpovídat${p.t === 'B' ? ' a nemůže do Konkláve' : ''}, dokud Křižák neodskočí nebo nepadne.</b>`;
     }
     if (p.t === 'R') {
       const lv = E.rookHeat(p);
@@ -1377,7 +1377,7 @@ class Game {
     if (r.reason === 'draw') sfx.draw();
     else if (!this.me || r.winner === this.me) sfx.win();
     else sfx.lose();
-    const title = { anathema: 'Anathema · Vymýcení', interdict: 'Interdikt · Podrobení', resign: 'Kapitulace', draw: 'Remíza' }[r.reason] || 'Konec hry';
+    const title = { anathema: 'Exstirpatio', interdict: 'Abjuratio', resign: 'Kapitulace', draw: 'Remíza' }[r.reason] || 'Konec hry';
     let me = '';
     if (this.me && r.winner) me = r.winner === this.me ? '<p><b>Vítězíš! Tvé svědomí je čisté.</b></p>' : '<p><b>Prohráváš. Čas na pokání.</b></p>';
     const canRematch = this.mode === 'local' || !!this.me;
@@ -1500,7 +1500,7 @@ class Game {
     }
     if (this.state.conclave && this.canAct()) {
       if (this.state.conclave.options.includes(sq)) this.act('@' + E.sqName(sq));
-      else toast('Vyber jednoho ze zvýrazněných bezúhonných Kardinálů (mimo zajetí).');
+      else toast('Vyber jednoho ze zvýrazněných bezúhonných Kardinálů (mimo Zajetí).');
       return;
     }
     if (this.sel >= 0 && this.selMoves.some((m) => m.to === sq)) {
@@ -1585,7 +1585,7 @@ class Game {
     this.aiWait = new Map();
     this.aiBases = [new URL('../model/', import.meta.url).href];
     try {
-      this.worker = new Worker(new URL('./ai-worker.js?v=25', import.meta.url), { type: 'module' });
+      this.worker = new Worker(new URL('./ai-worker.js?v=26', import.meta.url), { type: 'module' });
       this.worker.onmessage = (e) => {
         const cb = this.aiWait.get(e.data.id);
         if (cb) { this.aiWait.delete(e.data.id); cb(e.data); }
@@ -1612,7 +1612,7 @@ class Game {
         return this.aiCall(msg);
       });
     }
-    return import('./ai.js?v=25').then(async (A) => {
+    return import('./ai.js?v=26').then(async (A) => {
       if (!this.aiModel) {
         this.aiKind = 'material';
         this.aiModel = A.materialModel;
