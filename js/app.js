@@ -1,14 +1,14 @@
 // Schizma – aplikace (lobby, deska, online hra)
-import * as E from './engine.js?v=27';
-import { pieceSVG, CHIP_SVG, HEAT_SVG, CRUSADE_CHIP_SVG, ICON } from './pieces.js?v=27';
-import { FX } from './fx.js?v=27';
-import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=27';
-import { RULES_HTML } from './rules.js?v=27';
-import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=27';
-import { MusicPlayer } from './music.js?v=27';
+import * as E from './engine.js?v=28';
+import { pieceSVG, CHIP_SVG, HEAT_SVG, CRUSADE_CHIP_SVG, ICON } from './pieces.js?v=28';
+import { FX } from './fx.js?v=28';
+import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=28';
+import { RULES_HTML } from './rules.js?v=28';
+import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=28';
+import { MusicPlayer } from './music.js?v=28';
 
 const music = new MusicPlayer(getCtx);
-import { LEVELS } from './ai.js?v=27';
+import { LEVELS } from './ai.js?v=28';
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -241,7 +241,9 @@ class BoardView {
   createPiece(p, sq) {
     const el = document.createElement('div');
     el.className = 'piece ' + p.c + (p.t === 'R' ? ' rook' : '') + (p.t === 'Q' ? ' inq' : '');
-    el.innerHTML = (p.t === 'R' ? HEAT_SVG + '<span class="rflame"><i></i><i></i><i></i></span>' : CHIP_SVG + CRUSADE_CHIP_SVG) + pieceSVG(p.t);
+    el.innerHTML = p.t === 'R'
+      ? HEAT_SVG + '<span class="rflame"><i></i><i></i><i></i><i></i><i></i></span>' + pieceSVG(p.t) + '<span class="rfront"><i></i><i></i><i></i></span><span class="rembers"><u></u><b></b><b></b><b></b><b></b></span>'
+      : CHIP_SVG + CRUSADE_CHIP_SVG + pieceSVG(p.t);
     el.classList.toggle('cru', p.t === 'C');
     el._shownT = p.t;
     el._t = p.t;
@@ -1585,7 +1587,7 @@ class Game {
     this.aiWait = new Map();
     this.aiBases = [new URL('../model/', import.meta.url).href];
     try {
-      this.worker = new Worker(new URL('./ai-worker.js?v=27', import.meta.url), { type: 'module' });
+      this.worker = new Worker(new URL('./ai-worker.js?v=28', import.meta.url), { type: 'module' });
       this.worker.onmessage = (e) => {
         const cb = this.aiWait.get(e.data.id);
         if (cb) { this.aiWait.delete(e.data.id); cb(e.data); }
@@ -1612,7 +1614,7 @@ class Game {
         return this.aiCall(msg);
       });
     }
-    return import('./ai.js?v=27').then(async (A) => {
+    return import('./ai.js?v=28').then(async (A) => {
       if (!this.aiModel) {
         this.aiKind = 'material';
         this.aiModel = A.materialModel;

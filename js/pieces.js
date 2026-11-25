@@ -126,7 +126,7 @@ export const CHIP_SVG = `<svg class="chip" viewBox="0 0 100 100" aria-hidden="tr
   <ellipse cx="50" cy="89" rx="33" ry="6.3" fill="none" style="stroke:var(--chip-ring,#e6c8ff)" stroke-width="1"/>
 </svg>`;
 
-// Žetony Žáru (leží pod Hranicí): 1 žeton = 2. úroveň, 2 žetony = 3. úroveň
+// Žeton Žáru (leží pod Hranicí): 1 žeton = 2. úroveň (maximum)
 const heatChip = (dy) => `<g transform="translate(0 ${dy})">
   <ellipse cx="50" cy="92.5" rx="45" ry="9.5" fill="#5e0815"/>
   <ellipse cx="50" cy="89" rx="45" ry="9.5" fill="#c9202f" stroke="#3d040c" stroke-width="1.2"/>
@@ -134,7 +134,7 @@ const heatChip = (dy) => `<g transform="translate(0 ${dy})">
   <ellipse cx="50" cy="89" rx="31" ry="5.8" fill="none" stroke="#ffb36b" stroke-width="1"/>
 </g>`;
 export const HEAT_SVG = `<svg class="heat" viewBox="0 0 100 100" aria-hidden="true">
-  <g class="h1">${heatChip(0)}</g><g class="h2">${heatChip(-6.5)}</g>
+  <g class="h1">${heatChip(0)}</g>
 </svg>`;
 
 // Modrý žeton Křižáka (třetí barva) – leží pod Křižákem i pod hodnostářem, kterého drží v zajetí

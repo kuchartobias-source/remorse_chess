@@ -463,8 +463,7 @@ footer.foot { text-align: center; color: var(--dim); font-size: 14px; padding: 8
 .heatbadge { display: inline-flex; align-items: center; gap: 3px; margin-left: 6px; padding: 1px 7px 1px 4px; border-radius: 999px; font-size: 12px; letter-spacing: .05em; vertical-align: 2px; border: 1px solid rgba(240,122,26,.35); color: #f3c27a; background: rgba(240,122,26,.08); }
 .heatbadge .ico { width: 14px; height: 14px; }
 .heatbadge small { font-size: 11px; opacity: .75; margin-left: 2px; }
-.heatbadge.lv2 { border-color: rgba(255,140,30,.7); background: rgba(255,120,20,.18); color: #ffd08a; }
-.heatbadge.lv3 { border-color: #ff8a1a; background: rgba(255,90,10,.3); color: #fff0c0; box-shadow: 0 0 10px rgba(255,110,20,.5); animation: heatpulse 1.6s ease-in-out infinite; }
+.heatbadge.lv2 { border-color: #ff8a1a; background: rgba(255,90,10,.3); color: #fff0c0; box-shadow: 0 0 10px rgba(255,110,20,.5); animation: heatpulse 1.6s ease-in-out infinite; }
 @keyframes heatpulse { 50% { box-shadow: 0 0 16px rgba(255,130,30,.8); } }
 .crubadge { display: inline-block; width: 16px; height: 16px; margin-left: 5px; vertical-align: -2px; }
 .crubadge .ico { width: 100%; height: 100%; }

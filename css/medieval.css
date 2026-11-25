@@ -1,0 +1,190 @@
+/* Schizma – středověká výzdoba: pergameny, svitky, papežská bula s pečetí, kování desky, rozeta a iniciály.
+   Vše jen CSS a vlastní SVG (žádné cizí obrázky). */
+
+:root {
+  /* zrnitost a skvrny pergamenu (statický SVG šum, žádný živý filtr) */
+  --parch-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .40 0 0 0 0 .26 0 0 0 0 .10 0 0 0 .20 0'/%3E%3C/filter%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.018' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .55 0 0 0 0 .36 0 0 0 0 .12 0 0 -1.4 0 .62'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  --parch-base: radial-gradient(ellipse at 50% 35%, #f8eccf 0%, #efdcb2 55%, #dcc08a 100%);
+  --rubric: #a3201a;
+}
+
+/* ---------- Pergamen: společný vzhled a barvy písma na světlém podkladu ---------- */
+.panel.scroll, dialog.rules, .overlay .box {
+  --ink: #2e1d10; --muted: #5e4527; --dim: #846946; --gold: #8b5a14; --gold2: var(--rubric); --line: rgba(110, 70, 25, .28);
+  background: var(--parch-grain), var(--parch-base);
+  color: var(--ink);
+}
+
+/* tlačítka zůstávají tmavá se světlým písmem */
+.panel.scroll .btn, dialog.rules .btn, .overlay .box .btn { color: #f1e6cc; }
+.panel.scroll .btn:disabled, .panel.scroll .btn[disabled] { opacity: .5; }
+
+/* ---------- Kronika a Zápis tahů jako rozvinuté svitky ---------- */
+.panel.scroll {
+  position: relative; margin: 9px 6px; border: 0; border-radius: 2px;
+  padding: 14px 16px 14px;
+  box-shadow: inset 0 0 26px rgba(120, 70, 20, .42), inset 0 0 2px rgba(90, 50, 10, .6), 0 8px 22px rgba(0, 0, 0, .45);
+}
+.panel.scroll::before, .panel.scroll::after {
+  content: ''; position: absolute; left: -9px; right: -9px; height: 15px; border-radius: 8px; pointer-events: none;
+  background:
+    radial-gradient(circle at 6px 50%, #6b4421 0 4px, #3a220e 4.5px, transparent 5.5px),
+    radial-gradient(circle at calc(100% - 6px) 50%, #6b4421 0 4px, #3a220e 4.5px, transparent 5.5px),
+    linear-gradient(180deg, #8f6a3c, #f3e3bd 32%, #d8bb83 62%, #84602f);
+  box-shadow: 0 3px 5px rgba(0, 0, 0, .45);
+}
+.panel.scroll::before { top: -8px; }
+.panel.scroll::after { bottom: -8px; }
+.panel.scroll h3 { color: var(--rubric); display: flex; align-items: center; gap: 7px; }
+.panel.scroll h3::after { content: ''; flex: 1; height: 7px; opacity: .7;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 8' preserveAspectRatio='none'%3E%3Cpath d='M0 4 H110' stroke='%23a3201a' stroke-width='.8'/%3E%3Cpath d='M112 4 l4 -3.4 l4 3.4 l-4 3.4 z' fill='%23a3201a'/%3E%3C/svg%3E") center / 100% 100% no-repeat; }
+.panel.scroll .story .tip.pre { color: #2b5299; }
+.panel.scroll .moves li { border-bottom-color: rgba(110, 70, 25, .2); }
+.panel.scroll .moves li::before { color: var(--dim); font-style: italic; }
+.panel.scroll .moves .mv.last { color: var(--rubric); font-weight: 600; }
+.panel.scroll .moves .mv[data-ply]:hover { background: rgba(163, 32, 26, .1); }
+.panel.scroll .mini.b .pc { filter: none; }
+.panel.scroll .mini.w .pc { filter: drop-shadow(0 0 .7px rgba(0, 0, 0, .95)); }
+
+/* svíce u Kroniky, brk u Zápisu tahů */
+.chronicle h3::before, .ledger h3::before { content: ''; width: 15px; height: 18px; flex: none; background: center / contain no-repeat; }
+.chronicle h3::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15 18'%3E%3Cpath d='M7.5 .5 C5.6 3 5.3 4.4 5.3 5.4 A2.2 2.2 0 0 0 9.7 5.4 C9.7 4.2 8.6 3 7.5 .5Z' fill='%23f39a1e'/%3E%3Cpath d='M7.5 3.3 C6.8 4.4 6.7 5 6.7 5.5 A.8 .8 0 0 0 8.3 5.5 C8.3 4.9 7.9 4.3 7.5 3.3Z' fill='%23fff2a8'/%3E%3Cpath d='M7.5 6.9 V8.2' stroke='%232a1608' stroke-width='.6'/%3E%3Crect x='5' y='8' width='5' height='8' rx='.8' fill='%23f3e6c4' stroke='%237a5a2a' stroke-width='.5'/%3E%3Cpath d='M9.2 8.4 C9.6 9.8 9.4 10.6 9.6 11.6' stroke='%23e0cfa4' stroke-width='.7' fill='none'/%3E%3Cellipse cx='7.5' cy='16.6' rx='5' ry='1.2' fill='%238b5a14'/%3E%3C/svg%3E");
+  animation: candle 2.2s ease-in-out infinite alternate; transform-origin: 50% 100%;
+}
+@keyframes candle { 50% { filter: drop-shadow(0 0 3px rgba(255, 160, 40, .8)); } }
+.ledger h3::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15 18'%3E%3Cpath d='M14 .6 C8 2 4.5 6.5 3.2 12.6 L4.4 13 C6 9.5 8 7.5 10.6 6.2 C9 6.1 8.2 6.4 7.3 6.9 C9 4.4 11 3.4 12.4 3 C11.4 2.8 10.6 3 9.9 3.3 C11.2 1.8 12.6 1.1 14 .6Z' fill='%23f3e6c4' stroke='%235e4527' stroke-width='.5'/%3E%3Cpath d='M13.4 1 L3.7 13' stroke='%235e4527' stroke-width='.5'/%3E%3Cpath d='M3.6 12.8 L2.4 16.6 L4.6 13.2Z' fill='%232e1d10'/%3E%3Ccircle cx='2.3' cy='17' r='.9' fill='%23a3201a'/%3E%3C/svg%3E");
+}
+
+/* ---------- Ohlášení jako rozvinuté svitky s rolemi po stranách ---------- */
+.procl { --roll-d: #7b5730; --roll-l: #f3e3bd; --roll-m: #c9a46a; border-radius: 2px; }
+.procl::before, .procl::after {
+  content: ''; position: absolute; top: -9%; bottom: -9%; width: calc(var(--bs) * .028); border-radius: 999px; pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 9% at 50% 4%, var(--roll-d) 0 60%, transparent 66%),
+    radial-gradient(ellipse 80% 9% at 50% 96%, var(--roll-d) 0 60%, transparent 66%),
+    linear-gradient(90deg, var(--roll-d), var(--roll-l) 38%, var(--roll-m) 68%, var(--roll-d));
+  box-shadow: 0 4px 10px rgba(0, 0, 0, .5);
+}
+.procl::before { left: calc(var(--bs) * -.02); }
+.procl::after { right: calc(var(--bs) * -.02); }
+.procl.ignis { --roll-d: #2a0c04; --roll-l: #c4581c; --roll-m: #7a2a08; }
+.procl.sede { --roll-d: #0d0a10; --roll-l: #6a6070; --roll-m: #2c2732; }
+.procl.habemus { --roll-d: #8a6420; --roll-l: #fffbe8; --roll-m: #e7cf8a; }
+.procl.crusade { --roll-d: #4a0610; --roll-l: #f1d488; --roll-m: #a8822e; }
+.procl.inquisition { --roll-d: #22030a; --roll-l: #c9202f; --roll-m: #5e0815; }
+.procl.heat { --roll-d: #6a1e04; --roll-l: #ffe08a; --roll-m: #d9701c; }
+.procl.captive { --roll-d: #3a4048; --roll-l: #eef1f5; --roll-m: #9aa2ad; }
+.procl.anathema { --roll-d: #070304; --roll-l: #8d1020; --roll-m: #3a0a12; }
+.procl.interdict { --roll-d: #150f1c; --roll-l: #e2b25c; --roll-m: #3b2d4a; }
+
+/* ---------- Okna (Konkláve, Spása, volba Hranice…) jako listina; konec partie jako papežská bula s pečetí ---------- */
+.overlay .box {
+  border: 1px solid rgba(110, 65, 20, .65); border-radius: 3px;
+  box-shadow: inset 0 0 30px rgba(120, 70, 20, .45), inset 0 0 2px rgba(90, 50, 10, .7), 0 20px 50px rgba(0, 0, 0, .7);
+}
+.overlay h2 { color: var(--rubric); }
+.overlay h2::before, .overlay h2::after { content: '✠'; font-size: .55em; vertical-align: .3em; margin: 0 .45em; opacity: .8; }
+.promo-opts button { background: rgba(255, 250, 235, .45); border-color: rgba(110, 70, 25, .35); }
+.promo-opts button:hover { background: rgba(255, 250, 235, .8); border-color: var(--rubric); }
+.overlay.final .box { position: relative; margin-bottom: calc(var(--bs) * .1); padding-bottom: 26px; }
+.overlay.final .box::before {
+  content: ''; position: absolute; left: 50%; bottom: calc(var(--bs) * -.07); width: 26px; height: calc(var(--bs) * .075); transform: translateX(-50%); pointer-events: none;
+  background: linear-gradient(90deg, transparent 18%, #a3201a 18% 40%, transparent 40% 60%, #d6ab4c 60% 82%, transparent 82%);
+}
+.overlay.final .box::after {
+  content: ''; position: absolute; left: 50%; bottom: calc(var(--bs) * -.125); width: calc(var(--bs) * .11); height: calc(var(--bs) * .11); min-width: 52px; min-height: 52px; transform: translateX(-50%) rotate(-8deg); pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Cdefs%3E%3CradialGradient id='w' cx='.4' cy='.35' r='.7'%3E%3Cstop offset='0' stop-color='%23e0414a'/%3E%3Cstop offset='.6' stop-color='%23a3141f'/%3E%3Cstop offset='1' stop-color='%235a0610'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cpath d='M30 2 C38 1 44 5 49 9 C55 13 58 20 57 28 C59 36 56 44 50 50 C45 56 37 59 29 58 C21 59 13 55 9 49 C3 43 1 36 2 29 C1 21 5 13 11 8 C16 4 23 1 30 2Z' fill='url(%23w)'/%3E%3Ccircle cx='30' cy='30' r='19' fill='none' stroke='%23670912' stroke-width='2.4'/%3E%3Ccircle cx='30' cy='30' r='19' fill='none' stroke='%23f08a8a' stroke-width='.6' stroke-dasharray='1.5 2.2' opacity='.7'/%3E%3Cpath d='M27.6 15 H32.4 V24.6 H41 V29.4 H32.4 V45 H27.6 V29.4 H19 V24.6 H27.6Z' fill='%23700a14'/%3E%3Cpath d='M27.6 15 H32.4 V24.6 H41 V29.4 H32.4 V45 H27.6 V29.4 H19 V24.6 H27.6Z' fill='none' stroke='%23ff9a9a' stroke-width='.5' opacity='.6' transform='translate(-.6 -.6)'/%3E%3C/svg%3E") center / contain no-repeat;
+  filter: drop-shadow(0 4px 5px rgba(0, 0, 0, .55));
+  animation: sealdrop .7s .45s cubic-bezier(.3, 1.5, .5, 1) backwards;
+}
+@keyframes sealdrop { from { transform: translateX(-50%) translateY(-60%) rotate(-40deg) scale(1.6); opacity: 0; } }
+
+/* ---------- Pravidla a Historie jako stránka kodexu ---------- */
+dialog.rules { border: 1px solid #7a5426; border-radius: 4px; box-shadow: inset 0 0 40px rgba(120, 70, 20, .45), 0 30px 80px rgba(0, 0, 0, .8); }
+.rules .rhead { background: linear-gradient(180deg, #e6cf9c, #d5b77c); border-bottom: 3px double rgba(110, 60, 20, .55); }
+.rules .rhead h2 { color: var(--rubric); }
+.rules h3 { color: var(--rubric); }
+.rules h3::before { content: '✠'; margin-right: .4em; font-size: .9em; color: var(--rubric); }
+.rules .rbody > p.note:first-child { font-size: 18px; color: var(--muted); }
+.rules .rbody > p.note:first-child::first-letter {
+  float: left; font-family: var(--font-title); font-weight: 900; font-style: normal; font-size: 3.4em; line-height: .82;
+  margin: 6px 10px 0 0; padding: 8px 9px 6px; color: #fbe7a6; border-radius: 3px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 220, 140, .35) 0 2px, transparent 3px) 0 0 / 10px 10px,
+    linear-gradient(160deg, #b3261c, #6e0f0c);
+  border: 2px solid #c79a3c; box-shadow: 0 0 0 1px #5a3a12, 0 2px 4px rgba(0, 0, 0, .35);
+  text-shadow: 0 1px 0 #5a0a08;
+}
+.rules td, .rules th { border-bottom-color: rgba(110, 70, 25, .25); }
+.rules th { color: var(--rubric); }
+.rules .cheat { background: rgba(163, 32, 26, .07); border-left-color: var(--rubric); }
+.rules .mini.b .pc { filter: none; }
+.history .hres.win { color: #2f6b1f; } .history .hres.loss { color: #9b1b1b; }
+.history .hrow { border-bottom-color: rgba(110, 70, 25, .25); }
+dialog.rules ::-webkit-scrollbar { width: 10px; }
+dialog.rules ::-webkit-scrollbar-thumb { background: rgba(110, 70, 25, .45); border-radius: 5px; }
+
+/* ---------- Kování rámu šachovnice: zlaté rohy a nýty ---------- */
+.frame { --fp: 14px; }
+.frame::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 0;
+  --c: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 44'%3E%3Cg fill='none' stroke='%23e3bb5c' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M3 22 V7 Q3 3 7 3 H22'/%3E%3Cpath d='M22 3 Q27 3 29 6 M3 22 Q3 27 6 29'/%3E%3C/g%3E%3Ccircle cx='7.5' cy='7.5' r='3.4' fill='%23f3d37f' stroke='%237a5414' stroke-width='.8'/%3E%3Cpath d='M31 6.5 l2.6 -2.2 l2.6 2.2 l-2.6 2.2z M6.5 31 l-2.2 2.6 l2.2 2.6 l2.2 -2.6z' fill='%23e3bb5c'/%3E%3C/svg%3E");
+  background:
+    var(--c) left top / 44px 44px no-repeat,
+    radial-gradient(circle, #f6d98a 0 1.4px, #8a6420 2px, transparent 2.6px) var(--fp) 0 / calc(var(--bs) / 8) var(--fp) repeat-x,
+    radial-gradient(circle, #f6d98a 0 1.4px, #8a6420 2px, transparent 2.6px) var(--fp) 100% / calc(var(--bs) / 8) var(--fp) repeat-x,
+    radial-gradient(circle, #f6d98a 0 1.4px, #8a6420 2px, transparent 2.6px) 0 var(--fp) / var(--fp) calc(var(--bs) / 8) repeat-y,
+    radial-gradient(circle, #f6d98a 0 1.4px, #8a6420 2px, transparent 2.6px) 100% var(--fp) / var(--fp) calc(var(--bs) / 8) repeat-y;
+}
+.frame::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background: var(--c2) right top / 44px 44px no-repeat, var(--c3) left bottom / 44px 44px no-repeat, var(--c4) right bottom / 44px 44px no-repeat;
+  --c2: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 44'%3E%3Cg transform='matrix(-1 0 0 1 44 0)'%3E%3Cg fill='none' stroke='%23e3bb5c' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M3 22 V7 Q3 3 7 3 H22'/%3E%3Cpath d='M22 3 Q27 3 29 6 M3 22 Q3 27 6 29'/%3E%3C/g%3E%3Ccircle cx='7.5' cy='7.5' r='3.4' fill='%23f3d37f' stroke='%237a5414' stroke-width='.8'/%3E%3Cpath d='M31 6.5 l2.6 -2.2 l2.6 2.2 l-2.6 2.2z M6.5 31 l-2.2 2.6 l2.2 2.6 l2.2 -2.6z' fill='%23e3bb5c'/%3E%3C/g%3E%3C/svg%3E");
+  --c3: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 44'%3E%3Cg transform='matrix(1 0 0 -1 0 44)'%3E%3Cg fill='none' stroke='%23e3bb5c' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M3 22 V7 Q3 3 7 3 H22'/%3E%3Cpath d='M22 3 Q27 3 29 6 M3 22 Q3 27 6 29'/%3E%3C/g%3E%3Ccircle cx='7.5' cy='7.5' r='3.4' fill='%23f3d37f' stroke='%237a5414' stroke-width='.8'/%3E%3Cpath d='M31 6.5 l2.6 -2.2 l2.6 2.2 l-2.6 2.2z M6.5 31 l-2.2 2.6 l2.2 2.6 l2.2 -2.6z' fill='%23e3bb5c'/%3E%3C/g%3E%3C/svg%3E");
+  --c4: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 44'%3E%3Cg transform='matrix(-1 0 0 -1 44 44)'%3E%3Cg fill='none' stroke='%23e3bb5c' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M3 22 V7 Q3 3 7 3 H22'/%3E%3Cpath d='M22 3 Q27 3 29 6 M3 22 Q3 27 6 29'/%3E%3C/g%3E%3Ccircle cx='7.5' cy='7.5' r='3.4' fill='%23f3d37f' stroke='%237a5414' stroke-width='.8'/%3E%3Cpath d='M31 6.5 l2.6 -2.2 l2.6 2.2 l-2.6 2.2z M6.5 31 l-2.2 2.6 l2.2 2.6 l2.2 -2.6z' fill='%23e3bb5c'/%3E%3C/g%3E%3C/svg%3E");
+}
+.frame > .board { z-index: 1; }
+
+/* ---------- Hráči: erbovní štíty místo koleček ---------- */
+.player .disc {
+  width: 18px; height: 21px; border-radius: 2px 2px 50% 50% / 2px 2px 75% 75%;
+  border: 2px solid var(--gold); position: relative;
+}
+.player .disc::after { content: ''; position: absolute; inset: 3px 4px 5px;
+  background: linear-gradient(var(--x-c), var(--x-c)) 50% 0 / 2px 100% no-repeat, linear-gradient(var(--x-c), var(--x-c)) 50% 35% / 100% 2px no-repeat; }
+.player .disc.w { --x-c: #a3201a; }
+.player .disc.b { --x-c: #d6ab4c; }
+
+/* ---------- Úvod: gotická rozeta, ornamenty a iniciály ---------- */
+.hero { position: relative; isolation: isolate; }
+.hero::before {
+  content: ''; position: absolute; left: 50%; top: -14px; width: min(440px, 96vw); aspect-ratio: 1; transform: translateX(-50%); z-index: -1; pointer-events: none; opacity: .16;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-100 -100 200 200'%3E%3Cg fill='none' stroke='%23e3bb5c' stroke-width='1.3'%3E%3Ccircle r='97'/%3E%3Ccircle r='91'/%3E%3Ccircle r='42'/%3E%3Ccircle r='15'/%3E%3Cg id='p'%3E%3Cpath d='M0 -42 V-91'/%3E%3Ccircle cy='-72' r='13'/%3E%3Cpath d='M-9 -48 Q0 -60 9 -48'/%3E%3Ccircle cy='-30' r='6'/%3E%3C/g%3E%3Cuse href='%23p' transform='rotate(30)'/%3E%3Cuse href='%23p' transform='rotate(60)'/%3E%3Cuse href='%23p' transform='rotate(90)'/%3E%3Cuse href='%23p' transform='rotate(120)'/%3E%3Cuse href='%23p' transform='rotate(150)'/%3E%3Cuse href='%23p' transform='rotate(180)'/%3E%3Cuse href='%23p' transform='rotate(210)'/%3E%3Cuse href='%23p' transform='rotate(240)'/%3E%3Cuse href='%23p' transform='rotate(270)'/%3E%3Cuse href='%23p' transform='rotate(300)'/%3E%3Cuse href='%23p' transform='rotate(330)'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
+  -webkit-mask: radial-gradient(circle, #000 45%, transparent 72%); mask: radial-gradient(circle, #000 45%, transparent 72%);
+}
+.hero .sub { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.hero .sub::before, .hero .sub::after { content: ''; width: min(80px, 9vw); height: 10px; flex: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 10'%3E%3Cpath d='M0 5 H62' stroke='%23b9a585' stroke-width='.9'/%3E%3Cpath d='M64 5 l4 -3.6 l4 3.6 l-4 3.6z' fill='%23d6ab4c'/%3E%3Ccircle cx='76' cy='5' r='1.6' fill='%23d6ab4c'/%3E%3C/svg%3E") center / 100% 100% no-repeat; }
+.hero .sub::after { transform: scaleX(-1); }
+.card h2::first-letter { font-size: 1.4em; color: #e2503c; text-shadow: 0 1px 0 #3a0608, 0 0 10px rgba(214, 171, 76, .35); }
+.card { position: relative; }
+.card::before { content: ''; position: absolute; inset: 6px; pointer-events: none; border-radius: 10px; opacity: .55;
+  background: var(--k) left top / 22px 22px no-repeat, var(--k2) right top / 22px 22px no-repeat, var(--k3) left bottom / 22px 22px no-repeat, var(--k4) right bottom / 22px 22px no-repeat;
+  --k: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cpath d='M1.5 14 V4 Q1.5 1.5 4 1.5 H14' fill='none' stroke='%23d6ab4c' stroke-width='1.2'/%3E%3Ccircle cx='4.5' cy='4.5' r='1.6' fill='%23d6ab4c'/%3E%3C/svg%3E");
+  --k2: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cpath d='M20.5 14 V4 Q20.5 1.5 18 1.5 H8' fill='none' stroke='%23d6ab4c' stroke-width='1.2'/%3E%3Ccircle cx='17.5' cy='4.5' r='1.6' fill='%23d6ab4c'/%3E%3C/svg%3E");
+  --k3: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cpath d='M1.5 8 V18 Q1.5 20.5 4 20.5 H14' fill='none' stroke='%23d6ab4c' stroke-width='1.2'/%3E%3Ccircle cx='4.5' cy='17.5' r='1.6' fill='%23d6ab4c'/%3E%3C/svg%3E");
+  --k4: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cpath d='M20.5 8 V18 Q20.5 20.5 18 20.5 H8' fill='none' stroke='%23d6ab4c' stroke-width='1.2'/%3E%3Ccircle cx='17.5' cy='17.5' r='1.6' fill='%23d6ab4c'/%3E%3C/svg%3E");
+}
+
+@media (max-width: 900px) { .frame { --fp: 10px; } }
+@media (max-width: 420px) {
+  .frame { --fp: 6px; }
+  .frame::before, .frame::after { background-size: 30px 30px, calc(var(--bs) / 8) var(--fp), calc(var(--bs) / 8) var(--fp), var(--fp) calc(var(--bs) / 8), var(--fp) calc(var(--bs) / 8); }
+  .frame::after { background-size: 30px 30px; }
+  .panel.scroll { margin: 9px 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chronicle h3::before, .overlay.final .box::after { animation: none; }
+}
