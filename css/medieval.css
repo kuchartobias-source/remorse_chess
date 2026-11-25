@@ -18,6 +18,10 @@
 /* tlačítka zůstávají tmavá se světlým písmem */
 .panel.scroll .btn, dialog.rules .btn, .overlay .box .btn { color: #f1e6cc; }
 .panel.scroll .btn:disabled, .panel.scroll .btn[disabled] { opacity: .5; }
+.panel.scroll .btn.ghost, dialog.rules .btn.ghost, .overlay .box .btn.ghost { color: var(--ink); border-color: rgba(110, 70, 25, .55); }
+.panel.scroll .btn.ghost:hover, dialog.rules .btn.ghost:hover, .overlay .box .btn.ghost:hover { background: rgba(110, 70, 25, .1); }
+/* světlé ikony (meč, okovy, svatozář) dostanou na pergamenu tenký obrys */
+.panel.scroll .ico, dialog.rules .ico, .overlay .box .ico { filter: drop-shadow(0 0 .5px rgba(40, 20, 5, .95)) drop-shadow(0 0 .5px rgba(40, 20, 5, .6)); }
 
 /* ---------- Kronika a Zápis tahů jako rozvinuté svitky ---------- */
 .panel.scroll {

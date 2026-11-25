@@ -37,8 +37,8 @@ ochromit. Ve Schizmatu neexistuje povinný šach ani rošáda. Remíza je možn�
   <tr><td>${m('P')}</td><td><b>Poutník</b></td><td>Pěšec</td><td>2. a 7. řada</td></tr>
 </table>
 <p>Figurky táhnou jako v šachu, s výjimkou Hranic, Poutníků a pravidel níže. Žetony pod figurkami:
-<b style="color:#a560e0">fialový</b> = Pokání, <b style="color:#e8414d">červený</b> = Inkvizice pod Inkvizitorem a Žár pod
-Hranicí (po dokončení Inkvizice se žeton přesune zpod Inkvizitora pod Hranici), <b style="color:#3d9be6">modrý s křížem</b> = Křižák
+<b style="color:#7b3cb8">fialový</b> = Pokání, <b style="color:#b81a2a">červený</b> = Inkvizice pod Inkvizitorem a Žár pod
+Hranicí (po dokončení Inkvizice se žeton přesune zpod Inkvizitora pod Hranici), <b style="color:#1f6fb8">modrý s křížem</b> = Křižák
 a jím zajatý hodnostář (Papež či Kardinál má navíc okovy).</p>
 
 <h3>3. Pokání a Zpověď</h3>
@@ -127,8 +127,8 @@ a jím zajatý hodnostář (Papež či Kardinál má navíc okovy).</p>
 
 <h3>Nápověda v aplikaci</h3>
 <ul>
-  <li>Tečka = tah na volné pole. <span style="color:#a560e0">Fialový kruh</span> = Krveprolití s Pokáním.
-  <span style="color:#f80">Plamenný kruh</span> = braní bez Pokání (upálení, poprava, Křižák, Inkvizice, přepadení, Svedení).</li>
+  <li>Tečka = tah na volné pole. <span style="color:#7b3cb8">Fialový kruh</span> = Krveprolití s Pokáním.
+  <span style="color:#c25200">Plamenný kruh</span> = braní bez Pokání (upálení, poprava, Křižák, Inkvizice, přepadení, Svedení).</li>
   <li>Zlatá svatozář v rohu pole = po tahu proběhne zpověď. Koruna = proměna.</li>
   <li>Pulzující oranžový kruh pod Papežem = je v dosahu soupeřovy Hranice (Ignis!). Okovy = Zajetí, Křižák, který drží, má rudý rámeček.</li>
   <li>Tlačítko <b>Dosah hranic</b> zvýrazní pole v dosahu tvých Hranic (oranžově) a soupeřových (fialově šrafovaně).
