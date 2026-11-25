@@ -10,10 +10,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=29">
-  <link rel="stylesheet" href="css/fx.css?v=29">
-  <link rel="stylesheet" href="css/medieval.css?v=29">
-  <link rel="stylesheet" href="css/layout.css?v=29">
+  <link rel="stylesheet" href="css/style.css?v=30">
+  <link rel="stylesheet" href="css/fx.css?v=30">
+  <link rel="stylesheet" href="css/medieval.css?v=30">
+  <link rel="stylesheet" href="css/layout.css?v=30">
+  <link rel="stylesheet" href="css/scroll.css?v=30">
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -60,7 +61,7 @@
         </div>
         <button class="btn primary" id="btn-create" type="button">Založit online hru</button>
       </div>
-      <div class="card">
+      <div class="card vs-ai">
         <h2>Proti stroji</h2>
         <p>Zahraj si proti neuronové síti, která se hru naučila sama hraním proti sobě.</p>
         <div class="seg" role="group" aria-label="Barva proti stroji" id="ai-color-seg">
@@ -86,12 +87,9 @@
         <button class="btn" id="btn-local" type="button">Hrát na jednom zařízení</button>
       </div>
       <div class="card library">
-        <h2>Kodex a kronika</h2>
-        <p>Pravidla hry a odehrané partie z tohoto prohlížeče – každou si můžeš přehrát tah po tahu. <span class="note" id="history-count"></span></p>
-        <div class="row">
-          <button class="btn" id="btn-rules2" type="button">Přečíst pravidla</button>
-          <button class="btn" id="btn-history" type="button">Historie partií</button>
-        </div>
+        <button class="tome" id="btn-rules2" type="button"><svg class="tome-ico" viewBox="0 0 40 44" aria-hidden="true"><rect x="8" y="4.5" width="26" height="36" rx="2" fill="#efdcb2" stroke="#8b5a14" stroke-width=".8"/><rect x="5" y="3" width="27" height="38" rx="3" fill="#7a1712" stroke="#d6ab4c" stroke-width="1.2"/><rect x="5.6" y="3.6" width="4.6" height="36.8" rx="2" fill="#560d0a"/><path d="M20 12.5v17M14 18.5h12" stroke="#e3bb5c" stroke-width="2.2" stroke-linecap="round"/><g fill="#e3bb5c"><circle cx="13.5" cy="7.5" r="1.3"/><circle cx="28" cy="7.5" r="1.3"/><circle cx="13.5" cy="36.5" r="1.3"/><circle cx="28" cy="36.5" r="1.3"/></g><rect x="29.5" y="19" width="7" height="6" rx="1.2" fill="#d6ab4c" stroke="#5a3a12" stroke-width=".7"/></svg><span class="tome-t">Kodex</span><span class="tome-s">pravidla hry</span></button>
+        <span class="tome-div" aria-hidden="true"></span>
+        <button class="tome" id="btn-history" type="button"><svg class="tome-ico" viewBox="0 0 40 44" aria-hidden="true"><rect x="9" y="8" width="22" height="28" fill="#efdcb2" stroke="#8b5a14" stroke-width=".8"/><path d="M13 15h14M13 19h14M13 23h11M13 27h8" stroke="#8b5a14" stroke-width=".9" opacity=".75"/><g stroke="#6b4612" stroke-width=".8"><rect x="6" y="4" width="28" height="6.5" rx="3.2" fill="#dcc08a"/><rect x="6" y="33.5" width="28" height="6.5" rx="3.2" fill="#dcc08a"/></g><g fill="#6b4612"><circle cx="4.6" cy="7.2" r="2.1"/><circle cx="35.4" cy="7.2" r="2.1"/><circle cx="4.6" cy="36.8" r="2.1"/><circle cx="35.4" cy="36.8" r="2.1"/></g><circle cx="27" cy="29.5" r="3.4" fill="#a3201a" stroke="#6e0f0c" stroke-width=".6"/></svg><span class="tome-t">Kronika</span><span class="tome-s" id="history-count"></span></button>
       </div>
     </section>
   </main>
@@ -165,15 +163,21 @@
   <footer class="foot">Schizma · varianta šachu · původní nápad: <a href="https://www.instagram.com/bardelo_bardalini/" target="_blank" rel="noopener">@bardelo_bardalini</a> · grafika, aplikace a hudba vlastní tvorby · nahrávky nástrojů: <a href="music/CREDITS.md">VCSL (CC0)</a></footer>
 
   <dialog class="rules history" id="history">
-    <div class="rhead"><h2>Historie partií</h2><button class="btn small" id="history-close" type="button">Zavřít</button></div>
-    <div class="rbody" id="history-body"></div>
+    <div class="rsheet">
+      <div class="rhead"><h2>Kronika partií</h2><button class="btn small" id="history-close" type="button">Zavřít</button></div>
+      <div class="rbody" id="history-body"></div>
+    </div>
+    <span class="rroll top" aria-hidden="true"></span><span class="rroll bot" aria-hidden="true"></span>
   </dialog>
 
   <dialog class="rules" id="rules">
-    <div class="rhead"><h2>Pravidla Schizmatu</h2><button class="btn small" id="rules-close" type="button">Zavřít</button></div>
-    <div class="rbody" id="rules-body"></div>
+    <div class="rsheet">
+      <div class="rhead"><h2>Kodex Schizmatu</h2><button class="btn small" id="rules-close" type="button">Zavřít</button></div>
+      <div class="rbody" id="rules-body"></div>
+    </div>
+    <span class="rroll top" aria-hidden="true"></span><span class="rroll bot" aria-hidden="true"></span>
   </dialog>
 
-  <script type="module" src="js/app.js?v=29"></script>
+  <script type="module" src="js/app.js?v=30"></script>
 </body>
 </html>

@@ -1,0 +1,145 @@
+/* Schizma – Kodex a Kronika jako svitek s ohořelými okraji, který se při otevření rozvine od středu,
+   a středověké posuvníky. Vše jen CSS a vlastní SVG. */
+
+:root {
+  /* jemná zrnitost pergamenu (bez velkých skvrn – ty jsou na textu a posouvají se s ním) */
+  --parch-fine: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .40 0 0 0 0 .26 0 0 0 0 .10 0 0 0 .20 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  /* skvrny, mapy od vody a stopy po kapkách – velká dlaždice, aby se při posouvání neopakovala nápadně */
+  --parch-stain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='760' height='1300'%3E%3Cfilter id='s' x='0' y='0' width='1' height='1'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.0045 .0035' numOctaves='3' seed='5' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .52 0 0 0 0 .33 0 0 0 0 .11 0 0 -2.2 0 1.02'/%3E%3C/filter%3E%3Cfilter id='r' x='-20%25' y='-20%25' width='140%25' height='140%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.06' numOctaves='2' seed='2' result='n'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='n' scale='9'/%3E%3CfeGaussianBlur stdDeviation='1.2'/%3E%3C/filter%3E%3Crect width='760' height='1300' filter='url(%23s)'/%3E%3Cg fill='none' stroke='%236b3f10' filter='url(%23r)'%3E%3Ccircle cx='585' cy='250' r='64' stroke-width='5' stroke-opacity='.16'/%3E%3Ccircle cx='598' cy='262' r='52' stroke-width='2' stroke-opacity='.08'/%3E%3Ccircle cx='150' cy='900' r='46' stroke-width='4' stroke-opacity='.13'/%3E%3Cellipse cx='430' cy='1170' rx='90' ry='60' stroke-width='3' stroke-opacity='.08'/%3E%3C/g%3E%3Cg fill='%236b3f10' filter='url(%23r)'%3E%3Ccircle cx='96' cy='180' r='7' fill-opacity='.12'/%3E%3Ccircle cx='118' cy='206' r='3' fill-opacity='.12'/%3E%3Ccircle cx='660' cy='760' r='10' fill-opacity='.09'/%3E%3Ccircle cx='636' cy='742' r='4' fill-opacity='.1'/%3E%3C/g%3E%3C/svg%3E");
+  /* ohořelý okraj: obdélník se zúží a roztřepí šumem – maska listu a tmavý lem v jednom tvaru */
+  --burn-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Cfilter id='b' x='0' y='0' width='1' height='1'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.021' numOctaves='4' seed='11' result='n'/%3E%3CfeMorphology in='SourceAlpha' operator='erode' radius='13' result='e'/%3E%3CfeDisplacementMap in='e' in2='n' scale='46' xChannelSelector='R' yChannelSelector='G'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3C/svg%3E");
+  --burn-rim: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Cfilter id='b' x='0' y='0' width='1' height='1'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.021' numOctaves='4' seed='11' result='n'/%3E%3CfeMorphology in='SourceAlpha' operator='erode' radius='13' result='e'/%3E%3CfeDisplacementMap in='e' in2='n' scale='46' xChannelSelector='R' yChannelSelector='G' result='t'/%3E%3CfeMorphology in='t' operator='erode' radius='5' result='i1'/%3E%3CfeGaussianBlur in='i1' stdDeviation='6' result='b1'/%3E%3CfeComposite in='t' in2='b1' operator='out' result='rim'/%3E%3CfeFlood flood-color='%23361604' flood-opacity='.92'/%3E%3CfeComposite in2='rim' operator='in' result='rc'/%3E%3CfeMorphology in='t' operator='erode' radius='16' result='i2'/%3E%3CfeGaussianBlur in='i2' stdDeviation='13' result='b2'/%3E%3CfeComposite in='t' in2='b2' operator='out' result='sc'/%3E%3CfeFlood flood-color='%236b3a12' flood-opacity='.42'/%3E%3CfeComposite in2='sc' operator='in' result='scc'/%3E%3CfeMorphology in='t' operator='erode' radius='1.4' result='i3'/%3E%3CfeComposite in='t' in2='i3' operator='out' result='ed'/%3E%3CfeFlood flood-color='%23120601'/%3E%3CfeComposite in2='ed' operator='in' result='edc'/%3E%3CfeMerge%3E%3CfeMergeNode in='scc'/%3E%3CfeMergeNode in='rc'/%3E%3CfeMergeNode in='edc'/%3E%3C/feMerge%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3C/svg%3E");
+  --roll-h: 26px;
+  --roll-out: 20px;
+}
+
+/* ---------- Dialog = průhledný rám; list (.rsheet) nese pergamen, text se posouvá uvnitř (.rbody) ---------- */
+dialog.rules {
+  width: min(800px, calc(100vw - 12px)); max-width: none; max-height: calc(100vh - 16px); max-height: calc(100dvh - 16px);
+  box-sizing: border-box; padding: calc(var(--roll-h) / 2) calc(var(--roll-out) + 2px); overflow: visible;
+  background: none; border: 0; border-radius: 0; box-shadow: none;
+}
+dialog.rules[open] { display: flex; flex-direction: column; }
+dialog.rules[open]::backdrop { animation: scrollfade .45s ease-out both; }
+dialog.rules.closing::backdrop { animation: scrollfade .5s .1s ease-in reverse both; }
+@keyframes scrollfade { from { opacity: 0; } }
+
+.rsheet {
+  position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
+  padding: 16px 24px 14px 20px;
+  background: var(--parch-fine), var(--parch-base);
+  -webkit-mask: var(--burn-mask) 0 0 / 100% 100% no-repeat; mask: var(--burn-mask) 0 0 / 100% 100% no-repeat;
+  animation: unroll 1.05s cubic-bezier(.5, .05, .2, 1) both;
+}
+.rsheet::after { content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none; background: var(--burn-rim) 0 0 / 100% 100% no-repeat; }
+
+.rules .rhead { position: static; flex: none; padding: 8px 4px 10px 12px; background: none; border-bottom: 3px double rgba(110, 60, 20, .5); }
+.rules .rbody {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  padding: 6px 14px 22px 50px;
+  /* attachment local: úponek i skvrny jedou s textem */
+  background: var(--vine) 8px 0 / 26px 120px repeat-y local, var(--parch-stain) 0 0 / 760px 1300px repeat local;
+}
+@media (max-width: 600px) {
+  :root { --roll-out: 12px; --roll-h: 22px; }
+  .rsheet { padding: 14px 18px 12px 14px; }
+  .rules .rbody { padding-left: 12px; padding-right: 10px; background: var(--parch-stain) 0 0 / 760px 1300px repeat local; }
+}
+
+/* ---------- Svinuté konce svitku s držadly ---------- */
+.rroll {
+  position: absolute; left: var(--roll-out); right: var(--roll-out); height: var(--roll-h); z-index: 2; pointer-events: none;
+  border-radius: calc(var(--roll-h) / 2) / 50%;
+  background:
+    linear-gradient(90deg, rgba(60, 30, 8, .55), transparent 3%, transparent 97%, rgba(60, 30, 8, .55)),
+    repeating-linear-gradient(180deg, transparent 0 5px, rgba(110, 70, 25, .14) 5px 6px),
+    linear-gradient(180deg, #5f3d17 0%, #b88f55 14%, #ecd7a8 38%, #f6e7c2 48%, #dcbd85 66%, #9d743c 86%, #4e3011 100%);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, .5), 0 1px 0 rgba(255, 240, 200, .25) inset;
+}
+.rroll.top { top: 0; animation: rolltop 1.05s cubic-bezier(.5, .05, .2, 1) both; }
+.rroll.bot { bottom: 0; animation: rollbot 1.05s cubic-bezier(.5, .05, .2, 1) both; }
+.rroll::before, .rroll::after {
+  content: ''; position: absolute; top: 50%; width: calc(var(--roll-out) + 4px); height: 12px; margin-top: -6px;
+  border-radius: 6px;
+  background:
+    radial-gradient(circle at var(--kx) 50%, #fff0b8 0 1.6px, #d9ad4c 2.4px 4.2px, #6b4612 5px, transparent 5.6px),
+    linear-gradient(180deg, #2a1406, #7b4b1f 45%, #2e1607);
+}
+.rroll::before { left: calc(-1 * var(--roll-out) - 2px); --kx: 6px; }
+.rroll::after { right: calc(-1 * var(--roll-out) - 2px); --kx: calc(100% - 6px); }
+
+/* rozvinutí: svinutý svitek uprostřed, horní polovina se rozvine nahoru a dolní dolů, obě najednou */
+@keyframes unroll { 0%, 24% { clip-path: inset(50% 0 50% 0); } 100% { clip-path: inset(0 0 0 0); } }
+@keyframes rolltop {
+  0% { top: calc(50% - var(--roll-h) / 2); opacity: 0; transform: scale(.4, 1.6); }
+  24% { top: calc(50% - var(--roll-h) / 2); opacity: 1; transform: scale(1, 1.6); }
+  100% { top: 0; transform: none; }
+}
+@keyframes rollbot {
+  0% { bottom: calc(50% - var(--roll-h) / 2); opacity: 0; transform: scale(.4, 1.6); }
+  24% { bottom: calc(50% - var(--roll-h) / 2); opacity: 1; transform: scale(1, 1.6); }
+  100% { bottom: 0; transform: none; }
+}
+/* zavření: stejný pohyb pozpátku a rychleji (jiný název, aby se animace spustila znovu) */
+dialog.rules.closing .rsheet { animation: reroll .6s cubic-bezier(.6, 0, .6, 1) reverse both; }
+dialog.rules.closing .rroll.top { animation: retop .6s cubic-bezier(.6, 0, .6, 1) reverse both; }
+dialog.rules.closing .rroll.bot { animation: rebot .6s cubic-bezier(.6, 0, .6, 1) reverse both; }
+@keyframes reroll { 0%, 24% { clip-path: inset(50% 0 50% 0); } 100% { clip-path: inset(0 0 0 0); } }
+@keyframes retop {
+  0% { top: calc(50% - var(--roll-h) / 2); opacity: 0; transform: scale(.4, 1.6); }
+  24% { top: calc(50% - var(--roll-h) / 2); opacity: 1; transform: scale(1, 1.6); }
+  100% { top: 0; transform: none; }
+}
+@keyframes rebot {
+  0% { bottom: calc(50% - var(--roll-h) / 2); opacity: 0; transform: scale(.4, 1.6); }
+  24% { bottom: calc(50% - var(--roll-h) / 2); opacity: 1; transform: scale(1, 1.6); }
+  100% { bottom: 0; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rsheet, .rroll.top, .rroll.bot, dialog.rules[open]::backdrop,
+  dialog.rules.closing .rsheet, dialog.rules.closing .rroll.top, dialog.rules.closing .rroll.bot, dialog.rules.closing::backdrop { animation: none; }
+}
+
+/* ---------- Středověké posuvníky: pozlacená tyč s nýty a rubínem v drážce ---------- */
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track {
+  border-radius: 6px; border: 1px solid rgba(214, 171, 76, .2);
+  background: linear-gradient(90deg, rgba(0, 0, 0, .55), rgba(52, 28, 14, .4) 50%, rgba(0, 0, 0, .55));
+}
+::-webkit-scrollbar-thumb {
+  min-height: 34px; border-radius: 6px; border: 1px solid #3a2208;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 14'%3E%3Cpath d='M4 .6L7.3 7 4 13.4.7 7z' fill='%23a3201a' stroke='%23f3d98a' stroke-width='.7'/%3E%3Cpath d='M4 2.6L5.6 7H2.4z' fill='%23ff8a6a' opacity='.55'/%3E%3C/svg%3E") center / 8px 14px no-repeat,
+    radial-gradient(circle at 50% 6px, #fff1bf 0 1.3px, #6b4612 1.9px 2.4px, transparent 2.9px),
+    radial-gradient(circle at 50% calc(100% - 6px), #fff1bf 0 1.3px, #6b4612 1.9px 2.4px, transparent 2.9px),
+    linear-gradient(90deg, #5c3b12, #b8862e 28%, #f0d27a 50%, #b8862e 72%, #5c3b12);
+}
+::-webkit-scrollbar-thumb:hover {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 14'%3E%3Cpath d='M4 .6L7.3 7 4 13.4.7 7z' fill='%23c8281f' stroke='%23fff0b8' stroke-width='.7'/%3E%3Cpath d='M4 2.6L5.6 7H2.4z' fill='%23ffb09a' opacity='.6'/%3E%3C/svg%3E") center / 8px 14px no-repeat,
+    radial-gradient(circle at 50% 6px, #fff6d6 0 1.3px, #6b4612 1.9px 2.4px, transparent 2.9px),
+    radial-gradient(circle at 50% calc(100% - 6px), #fff6d6 0 1.3px, #6b4612 1.9px 2.4px, transparent 2.9px),
+    linear-gradient(90deg, #6e4815, #d29e3e 28%, #fbe39a 50%, #d29e3e 72%, #6e4815);
+}
+/* hroty na koncích drážky */
+::-webkit-scrollbar-button:single-button:vertical { height: 13px; background: center / 10px 10px no-repeat; }
+::-webkit-scrollbar-button:single-button:vertical:decrement {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M5 .8L8.6 8.2 5 6.6 1.4 8.2z' fill='%23d6ab4c' stroke='%235a3a12' stroke-width='.6' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+::-webkit-scrollbar-button:single-button:vertical:increment {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M5 9.2L8.6 1.8 5 3.4 1.4 1.8z' fill='%23d6ab4c' stroke='%235a3a12' stroke-width='.6' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+::-webkit-scrollbar-button:single-button:vertical:hover { filter: brightness(1.2); }
+::-webkit-scrollbar-button:horizontal { display: none; }
+::-webkit-scrollbar-corner { background: transparent; }
+/* na pergamenu světlá drážka vyrytá do listu */
+dialog.rules ::-webkit-scrollbar-track, .panel.scroll ::-webkit-scrollbar-track, .overlay .box ::-webkit-scrollbar-track {
+  border-color: rgba(110, 70, 25, .35);
+  background: linear-gradient(90deg, rgba(110, 70, 25, .32), rgba(110, 70, 25, .1) 50%, rgba(110, 70, 25, .32));
+}
+
+/* Firefox neumí kreslit posuvník; dostane aspoň tenký zlatý */
+@supports not selector(::-webkit-scrollbar) {
+  * { scrollbar-width: thin; scrollbar-color: #b8862e rgba(0, 0, 0, .35); }
+  dialog.rules *, .panel.scroll *, .overlay .box * { scrollbar-color: #8b5a14 rgba(110, 70, 25, .18); }
+}

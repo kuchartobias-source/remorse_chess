@@ -129,8 +129,6 @@ dialog.rules { border: 1px solid #7a5426; border-radius: 4px; box-shadow: inset 
 .rules .mini.b .pc { filter: none; }
 .history .hres.win { color: #2f6b1f; } .history .hres.loss { color: #9b1b1b; }
 .history .hrow { border-bottom-color: rgba(110, 70, 25, .25); }
-dialog.rules ::-webkit-scrollbar { width: 10px; }
-dialog.rules ::-webkit-scrollbar-thumb { background: rgba(110, 70, 25, .45); border-radius: 5px; }
 
 /* ---------- Kování rámu šachovnice: zlaté rohy a nýty ---------- */
 .frame { --fp: 14px; }

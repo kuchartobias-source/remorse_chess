@@ -151,7 +151,7 @@ button { font: inherit; color: inherit; }
 .invite .row .btn { flex: 1; }
 .invite p { margin: 0 0 8px; font-size: 15px; color: var(--muted); }
 
-.moves { max-height: 260px; overflow-y: auto; font-size: 15px; scrollbar-width: thin; }
+.moves { max-height: 260px; overflow-y: auto; font-size: 15px; }
 .moves ol { margin: 0; padding: 0; list-style: none; counter-reset: mv; }
 .moves li { display: grid; grid-template-columns: 30px 1fr 1fr; gap: 4px; height: 28px; align-items: center; border-bottom: 1px solid rgba(214,171,76,.08); }
 .moves li::before { counter-increment: mv; content: counter(mv) "."; color: var(--dim); }
@@ -444,7 +444,7 @@ footer.foot { text-align: center; color: var(--dim); font-size: 14px; padding: 8
 }
 
 /* ---------- Chat ---------- */
-.chat-log { max-height: 190px; overflow-y: auto; font-size: 15px; display: flex; flex-direction: column; gap: 3px; padding-right: 4px; scrollbar-width: thin; }
+.chat-log { max-height: 190px; overflow-y: auto; font-size: 15px; display: flex; flex-direction: column; gap: 3px; padding-right: 4px; }
 .chat-log .msg { line-height: 1.35; overflow-wrap: anywhere; }
 .chat-log .msg.mine { color: #f6e7c4; }
 .chat-log .who { font-family: var(--font-title); font-size: 12px; letter-spacing: .04em; }

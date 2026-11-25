@@ -1,14 +1,14 @@
 // Schizma – aplikace (lobby, deska, online hra)
-import * as E from './engine.js?v=29';
-import { pieceSVG, CHIP_SVG, HEAT_SVG, CRUSADE_CHIP_SVG, ICON } from './pieces.js?v=29';
-import { FX } from './fx.js?v=29';
-import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=29';
-import { RULES_HTML } from './rules.js?v=29';
-import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=29';
-import { MusicPlayer } from './music.js?v=29';
+import * as E from './engine.js?v=30';
+import { pieceSVG, CHIP_SVG, HEAT_SVG, CRUSADE_CHIP_SVG, ICON } from './pieces.js?v=30';
+import { FX } from './fx.js?v=30';
+import { Channel, newRoomId, clientId, ROOM_RE } from './net.js?v=30';
+import { RULES_HTML } from './rules.js?v=30';
+import { sfx, playEvents, unlock, isMuted, setMuted, getCtx } from './sound.js?v=30';
+import { MusicPlayer } from './music.js?v=30';
 
 const music = new MusicPlayer(getCtx);
-import { LEVELS } from './ai.js?v=29';
+import { LEVELS } from './ai.js?v=30';
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -57,15 +57,45 @@ function toast(msg, ms = 3200) {
   toastTimer = setTimeout(() => t.remove(), ms);
 }
 
+// ---------------- Svitky (Kodex a Kronika) ----------------
+// Otevření: svitek se rozvine od středu nahoru i dolů (CSS animace). Zavření: nejdřív se sroluje, pak se dialog zavře.
+const calmMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+function openScroll(dlg) {
+  dlg.classList.remove('closing');
+  if (dlg.open) return;
+  if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
+}
+function closeScroll(dlg) {
+  if (!dlg.open || dlg.classList.contains('closing')) return;
+  const finish = () => {
+    if (!dlg.classList.contains('closing')) return;
+    dlg.classList.remove('closing');
+    if (dlg.close) dlg.close(); else dlg.removeAttribute('open');
+  };
+  if (calmMotion()) { dlg.classList.add('closing'); finish(); return; }
+  dlg.classList.add('closing');
+  const sheet = dlg.querySelector('.rsheet');
+  sheet.addEventListener('animationend', function done(e) {
+    if (e.target !== sheet) return;
+    sheet.removeEventListener('animationend', done);
+    finish();
+  });
+  setTimeout(finish, 900);
+}
+function setupScroll(dlg, closeBtn) {
+  closeBtn.onclick = () => closeScroll(dlg);
+  dlg.addEventListener('click', (e) => { if (e.target === dlg) closeScroll(dlg); });
+  dlg.addEventListener('cancel', (e) => { e.preventDefault(); closeScroll(dlg); });
+}
+
 // ---------------- Pravidla ----------------
 function setupRules() {
   const dlg = $('rules');
   $('rules-body').innerHTML = RULES_HTML;
-  const open = () => { if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', ''); };
+  const open = () => openScroll(dlg);
   $('btn-rules').onclick = open;
   $('btn-rules2').onclick = open;
-  $('rules-close').onclick = () => dlg.close();
-  dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
+  setupScroll(dlg, $('rules-close'));
 }
 
 // ---------------- Lobby ----------------
@@ -168,9 +198,8 @@ function setupHistory() {
     });
   };
   render();
-  $('btn-history').onclick = () => { render(); if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', ''); };
-  $('history-close').onclick = () => dlg.close();
-  dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
+  $('btn-history').onclick = () => { render(); openScroll(dlg); };
+  setupScroll(dlg, $('history-close'));
 }
 
 // ---------------- Deska ----------------
@@ -1176,8 +1205,8 @@ class Game {
     const res = upto === this.hist.length ? this.result() : null;
     let status;
     if (this.viewPly != null && upto < this.hist.length) {
-      status = `<b>${this.replay ? 'Záznam partie' : 'Prohlížíš starší pozici'}</b> – půltah ${upto} z ${this.hist.length}. ← → listuje, `
-        + (this.replay ? 'Home/End skočí na začátek či konec.' : 'Esc vrátí živou partii.');
+      status = `<b>${this.replay ? 'Záznam partie' : 'Prohlížíš starší pozici'}</b> – půltah ${upto} z ${this.hist.length}.`
+        + (this.replay ? '' : ' Esc vrátí živou partii.');
     } else if (res) status = `<b>${this.resultText(res)}</b>`;
     else if (this.state.conclave) {
       const c = this.state.conclave.color;
@@ -1587,7 +1616,7 @@ class Game {
     this.aiWait = new Map();
     this.aiBases = [new URL('../model/', import.meta.url).href];
     try {
-      this.worker = new Worker(new URL('./ai-worker.js?v=29', import.meta.url), { type: 'module' });
+      this.worker = new Worker(new URL('./ai-worker.js?v=30', import.meta.url), { type: 'module' });
       this.worker.onmessage = (e) => {
         const cb = this.aiWait.get(e.data.id);
         if (cb) { this.aiWait.delete(e.data.id); cb(e.data); }
@@ -1614,7 +1643,7 @@ class Game {
         return this.aiCall(msg);
       });
     }
-    return import('./ai.js?v=29').then(async (A) => {
+    return import('./ai.js?v=30').then(async (A) => {
       if (!this.aiModel) {
         this.aiKind = 'material';
         this.aiModel = A.materialModel;
